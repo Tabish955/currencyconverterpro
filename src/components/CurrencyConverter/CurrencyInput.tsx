@@ -17,10 +17,12 @@ const CurrencyInput = ({
   disabled = false,
 }: CurrencyInputProps) => {
   // Format the input value for display
-  const formattedValue = value.toLocaleString(undefined, {
-    maximumFractionDigits: 6,
-    minimumFractionDigits: 2,
-  });
+  const formattedValue = value === 0 && document.activeElement?.id === id 
+    ? "" 
+    : value.toLocaleString(undefined, {
+        maximumFractionDigits: 6,
+        minimumFractionDigits: 2,
+      });
 
   // Handler for input changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -44,6 +46,13 @@ const CurrencyInput = ({
     }
   };
 
+  // Handle focus to clear the input when it's zero
+  const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    if (value === 0) {
+      e.target.value = "";
+    }
+  };
+
   return (
     <div className="relative rounded-md shadow-sm">
       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -58,6 +67,7 @@ const CurrencyInput = ({
         placeholder="0.00"
         value={formattedValue}
         onChange={handleChange}
+        onFocus={handleFocus}
         disabled={disabled}
         aria-label={`Amount in ${currencyCode}`}
       />

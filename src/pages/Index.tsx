@@ -8,7 +8,7 @@ const Index = () => {
       <CurrencyConverter />
       <div className="mt-8 text-center text-sm text-gray-500">
         <p>Exchange rates provided by open.er-api.com</p>
-        <p>Rates are updated every 15 minutes</p>
+        <p>Rates are updated every 5 minutes</p>
       </div>
     </div>
   );
