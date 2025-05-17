@@ -21,7 +21,7 @@ interface SymbolsResponse {
 
 // Initialize cache
 const symbolsCache = new CurrencyCache<CurrencySymbol[]>(24 * 60 * 60 * 1000); // 24 hours
-const ratesCache = new CurrencyCache<number>(15 * 60 * 1000); // 15 minutes
+const ratesCache = new CurrencyCache<number>(5 * 60 * 1000); // 5 minutes (reduced from 15 minutes)
 
 const CurrencyConverter = () => {
   // State for currency symbols
@@ -34,6 +34,9 @@ const CurrencyConverter = () => {
   const [targetAmount, setTargetAmount] = useState(0);
   const [baseCurrency, setBaseCurrency] = useState("USD");
   const [targetCurrency, setTargetCurrency] = useState("EUR");
+  
+  // Track which field was last changed to prevent ping-pong effect
+  const [lastChangedField, setLastChangedField] = useState<"base" | "target">("base");
 
   // State for exchange rate
   const [rate, setRate] = useState<number | null>(null);
@@ -85,93 +88,134 @@ const CurrencyConverter = () => {
     fetchSymbols();
   }, []);
 
-  // Fetch exchange rate when currencies change
-  useEffect(() => {
-    const fetchRate = async () => {
-      // Don't fetch if currencies are the same
-      if (baseCurrency === targetCurrency) {
-        setRate(1);
+  // Fetch exchange rate when currencies change or when conversion is needed
+  const fetchExchangeRate = async () => {
+    // Don't fetch if currencies are the same
+    if (baseCurrency === targetCurrency) {
+      setRate(1);
+      
+      // Update amounts based on which field was last changed
+      if (lastChangedField === "base") {
         setTargetAmount(baseAmount);
+      } else {
+        setBaseAmount(targetAmount);
+      }
+      
+      setLastUpdated(new Date());
+      return;
+    }
+    
+    try {
+      setIsLoadingRate(true);
+      setRateError(null);
+      
+      // Generate cache key
+      const cacheKey = `${baseCurrency}-${targetCurrency}`;
+      
+      // Check cache first
+      const cachedRate = ratesCache.get(cacheKey);
+      if (cachedRate !== undefined) {
+        setRate(cachedRate);
+        
+        // Update the correct amount based on which field was last changed
+        if (lastChangedField === "base") {
+          // Use precise math, only round for display
+          setTargetAmount(baseAmount * cachedRate);
+        } else {
+          // Use precise math for reverse calculation
+          setBaseAmount(targetAmount / cachedRate);
+        }
+        
         setLastUpdated(new Date());
+        setIsLoadingRate(false);
         return;
       }
       
-      try {
-        setIsLoadingRate(true);
-        setRateError(null);
-        
-        // Generate cache key
-        const cacheKey = `${baseCurrency}-${targetCurrency}`;
-        
-        // Check cache first
-        const cachedRate = ratesCache.get(cacheKey);
-        if (cachedRate !== undefined) {
-          setRate(cachedRate);
-          setTargetAmount(baseAmount * cachedRate);
-          setLastUpdated(new Date());
-          setIsLoadingRate(false);
-          return;
-        }
-        
-        // Fetch rate from API
-        const response = await fetch(
-          `https://open.er-api.com/v6/latest/${baseCurrency}`
-        );
-        
-        if (!response.ok) {
-          throw new Error(`Failed to fetch rates: ${response.status}`);
-        }
-        
-        const data: SymbolsResponse = await response.json();
-        
-        const newRate = data.rates[targetCurrency];
-        
-        if (!newRate) {
-          throw new Error(`Rate not found for ${targetCurrency}`);
-        }
-        
-        // Update state and cache
-        setRate(newRate);
-        ratesCache.set(cacheKey, newRate);
-        setTargetAmount(baseAmount * newRate);
-        setLastUpdated(new Date(data.time_last_update_utc));
-      } catch (error) {
-        console.error("Error fetching exchange rate:", error);
-        setRateError(error instanceof Error ? error.message : "Failed to load exchange rate");
-      } finally {
-        setIsLoadingRate(false);
+      // Fetch rate from API
+      const response = await fetch(
+        `https://open.er-api.com/v6/latest/${baseCurrency}`
+      );
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch rates: ${response.status}`);
       }
-    };
-
-    // Only fetch if we have both currencies selected
-    if (baseCurrency && targetCurrency) {
-      fetchRate();
+      
+      const data: SymbolsResponse = await response.json();
+      
+      const newRate = data.rates[targetCurrency];
+      
+      if (!newRate) {
+        throw new Error(`Rate not found for ${targetCurrency}`);
+      }
+      
+      // Update state and cache
+      setRate(newRate);
+      ratesCache.set(cacheKey, newRate);
+      
+      // Update the correct amount based on which field was last changed
+      if (lastChangedField === "base") {
+        setTargetAmount(baseAmount * newRate);
+      } else {
+        setBaseAmount(targetAmount / newRate);
+      }
+      
+      setLastUpdated(new Date(data.time_last_update_utc));
+    } catch (error) {
+      console.error("Error fetching exchange rate:", error);
+      setRateError(error instanceof Error ? error.message : "Failed to load exchange rate");
+    } finally {
+      setIsLoadingRate(false);
     }
-  }, [baseCurrency, targetCurrency, baseAmount]);
+  };
+
+  // Effect to trigger rate fetch when currencies change
+  useEffect(() => {
+    if (baseCurrency && targetCurrency) {
+      fetchExchangeRate();
+    }
+  }, [baseCurrency, targetCurrency]);
 
   // Handle base amount change
   const handleBaseAmountChange = (value: number) => {
     setBaseAmount(value);
+    setLastChangedField("base");
+    
+    // If rate is available, calculate target amount without waiting for API
     if (rate !== null) {
+      // Use precise math, don't round until display
       setTargetAmount(value * rate);
+    } else {
+      // Trigger rate fetch if needed
+      fetchExchangeRate();
     }
   };
 
   // Handle target amount change
   const handleTargetAmountChange = (value: number) => {
     setTargetAmount(value);
+    setLastChangedField("target");
+    
+    // If rate is available, calculate base amount without waiting for API
     if (rate !== null && rate !== 0) {
+      // Use precise math for inverse calculation
       setBaseAmount(value / rate);
+    } else {
+      // Trigger rate fetch if needed
+      fetchExchangeRate();
     }
   };
 
   // Handle currency changes
   const handleBaseCurrencyChange = (value: string) => {
     setBaseCurrency(value);
+    setLastChangedField("base");
+    // Rate fetch will be triggered by useEffect
   };
 
   const handleTargetCurrencyChange = (value: string) => {
     setTargetCurrency(value);
+    setLastChangedField("target");
+    // Rate fetch will be triggered by useEffect
   };
 
   // Format the last updated date
@@ -185,10 +229,29 @@ const CurrencyConverter = () => {
 
   // Handle currency swap
   const handleSwapCurrencies = () => {
-    setBaseCurrency(targetCurrency);
-    setTargetCurrency(baseCurrency);
-    setBaseAmount(targetAmount);
-    setTargetAmount(baseAmount);
+    // Swap currencies
+    const tempBaseCurrency = baseCurrency;
+    const tempTargetCurrency = targetCurrency;
+    const tempBaseAmount = baseAmount;
+    const tempTargetAmount = targetAmount;
+    
+    setBaseCurrency(tempTargetCurrency);
+    setTargetCurrency(tempBaseCurrency);
+    setBaseAmount(tempTargetAmount);
+    setTargetAmount(tempBaseAmount);
+    
+    // Don't change last changed field as the user initiated the swap
+    // This ensures the proper calculation direction is maintained
+  };
+
+  // Manual rate refresh
+  const handleRefreshRate = () => {
+    // Force clear the cache for this currency pair
+    const cacheKey = `${baseCurrency}-${targetCurrency}`;
+    ratesCache.remove(cacheKey);
+    
+    // Fetch fresh rates
+    fetchExchangeRate();
   };
 
   // Show loading state if we're still loading the initial symbols
@@ -266,7 +329,7 @@ const CurrencyConverter = () => {
           </div>
           
           {/* Exchange Rate and Last Updated */}
-          <div className="mt-4">
+          <div className="mt-4 flex flex-col sm:flex-row sm:justify-between">
             {isLoadingRate ? (
               <p className="text-sm text-gray-500">Fetching latest rates...</p>
             ) : rateError ? (
@@ -274,14 +337,21 @@ const CurrencyConverter = () => {
                 <span>{rateError}</span>
               </div>
             ) : rate ? (
-              <div className="text-sm text-gray-500 flex flex-col sm:flex-row sm:justify-between">
+              <div className="text-sm text-gray-500 flex flex-col sm:flex-row sm:justify-between w-full">
                 <span>
                   1 {baseCurrency} = {rate.toFixed(4)} {targetCurrency}
                 </span>
                 {lastUpdated && (
-                  <span className="mt-1 sm:mt-0">
-                    Updated at {formattedLastUpdated}
-                  </span>
+                  <div className="flex items-center mt-1 sm:mt-0">
+                    <span className="mr-2">Updated at {formattedLastUpdated}</span>
+                    <button
+                      onClick={handleRefreshRate}
+                      className="text-blue-500 hover:text-blue-600 text-xs underline"
+                      aria-label="Refresh rates"
+                    >
+                      Refresh
+                    </button>
+                  </div>
                 )}
               </div>
             ) : null}
