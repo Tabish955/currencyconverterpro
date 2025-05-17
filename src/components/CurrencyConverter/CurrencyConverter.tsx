@@ -32,8 +32,8 @@ const CurrencyConverter = () => {
   // State for selected currencies and amounts
   const [baseAmount, setBaseAmount] = useState(1);
   const [targetAmount, setTargetAmount] = useState(0);
-  const [baseCurrency, setBaseCurrency] = useState("USD");
-  const [targetCurrency, setTargetCurrency] = useState("EUR");
+  const [baseCurrency, setBaseCurrency] = useState("KWD"); // Set default to KWD (Kuwaiti Dinar)
+  const [targetCurrency, setTargetCurrency] = useState("PKR"); // Set default to PKR (Pakistani Rupee)
   
   // Track which field was last changed to prevent ping-pong effect
   const [lastChangedField, setLastChangedField] = useState<"base" | "target">("base");
@@ -120,10 +120,10 @@ const CurrencyConverter = () => {
         // Update the correct amount based on which field was last changed
         if (lastChangedField === "base") {
           // Use precise math, only round for display
-          setTargetAmount(baseAmount * cachedRate);
+          setTargetAmount(parseFloat((baseAmount * cachedRate).toFixed(6)));
         } else {
           // Use precise math for reverse calculation
-          setBaseAmount(targetAmount / cachedRate);
+          setBaseAmount(parseFloat((targetAmount / cachedRate).toFixed(6)));
         }
         
         setLastUpdated(new Date());
@@ -154,9 +154,9 @@ const CurrencyConverter = () => {
       
       // Update the correct amount based on which field was last changed
       if (lastChangedField === "base") {
-        setTargetAmount(baseAmount * newRate);
+        setTargetAmount(parseFloat((baseAmount * newRate).toFixed(6)));
       } else {
-        setBaseAmount(targetAmount / newRate);
+        setBaseAmount(parseFloat((targetAmount / newRate).toFixed(6)));
       }
       
       setLastUpdated(new Date(data.time_last_update_utc));
@@ -183,7 +183,7 @@ const CurrencyConverter = () => {
     // If rate is available, calculate target amount without waiting for API
     if (rate !== null) {
       // Use precise math, don't round until display
-      setTargetAmount(value * rate);
+      setTargetAmount(parseFloat((value * rate).toFixed(6)));
     } else {
       // Trigger rate fetch if needed
       fetchExchangeRate();
@@ -198,7 +198,7 @@ const CurrencyConverter = () => {
     // If rate is available, calculate base amount without waiting for API
     if (rate !== null && rate !== 0) {
       // Use precise math for inverse calculation
-      setBaseAmount(value / rate);
+      setBaseAmount(parseFloat((value / rate).toFixed(6)));
     } else {
       // Trigger rate fetch if needed
       fetchExchangeRate();
