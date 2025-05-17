@@ -7,7 +7,7 @@ const Index = () => {
       <h1 className="text-3xl font-bold mb-8 text-gray-800">Currency Converter</h1>
       <CurrencyConverter />
       <div className="mt-8 text-center text-sm text-gray-500">
-        <p>Exchange rates provided by exchangerate.host</p>
+        <p>Exchange rates provided by open.er-api.com</p>
         <p>Rates are updated every 15 minutes</p>
       </div>
     </div>

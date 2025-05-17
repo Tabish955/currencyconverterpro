@@ -5,6 +5,7 @@ import CurrencyDropdown from "./CurrencyDropdown";
 import CurrencyInput from "./CurrencyInput";
 import ErrorDisplay from "./ErrorDisplay";
 import LoadingState from "./LoadingState";
+import { ArrowDownUp } from "lucide-react";
 
 // Type definitions
 export interface CurrencySymbol {
@@ -13,15 +14,9 @@ export interface CurrencySymbol {
 }
 
 interface SymbolsResponse {
-  success: boolean;
-  symbols: Record<string, { code: string; description: string }>;
-}
-
-interface RateResponse {
-  success: boolean;
   rates: Record<string, number>;
-  date: string;
-  timestamp: number;
+  base_code: string;
+  time_last_update_utc: string;
 }
 
 // Initialize cache
@@ -58,7 +53,7 @@ const CurrencyConverter = () => {
           return;
         }
 
-        const response = await fetch("https://api.exchangerate.host/symbols");
+        const response = await fetch("https://open.er-api.com/v6/latest/USD");
         
         if (!response.ok) {
           throw new Error(`Failed to fetch symbols: ${response.status}`);
@@ -66,14 +61,10 @@ const CurrencyConverter = () => {
         
         const data: SymbolsResponse = await response.json();
         
-        if (!data.success) {
-          throw new Error("API returned unsuccessful response");
-        }
-        
-        // Transform symbols object into array
-        const symbolsArray = Object.values(data.symbols).map(symbol => ({
-          code: symbol.code,
-          description: symbol.description
+        // Transform rates object into array of currency symbols
+        const symbolsArray = Object.keys(data.rates).map(code => ({
+          code,
+          description: code // We don't get descriptions from this API, so we use the code
         }));
         
         // Sort alphabetically by code
@@ -124,18 +115,14 @@ const CurrencyConverter = () => {
         
         // Fetch rate from API
         const response = await fetch(
-          `https://api.exchangerate.host/latest?base=${baseCurrency}&symbols=${targetCurrency}`
+          `https://open.er-api.com/v6/latest/${baseCurrency}`
         );
         
         if (!response.ok) {
           throw new Error(`Failed to fetch rates: ${response.status}`);
         }
         
-        const data: RateResponse = await response.json();
-        
-        if (!data.success) {
-          throw new Error("API returned unsuccessful response");
-        }
+        const data: SymbolsResponse = await response.json();
         
         const newRate = data.rates[targetCurrency];
         
@@ -147,7 +134,7 @@ const CurrencyConverter = () => {
         setRate(newRate);
         ratesCache.set(cacheKey, newRate);
         setTargetAmount(baseAmount * newRate);
-        setLastUpdated(new Date());
+        setLastUpdated(new Date(data.time_last_update_utc));
       } catch (error) {
         console.error("Error fetching exchange rate:", error);
         setRateError(error instanceof Error ? error.message : "Failed to load exchange rate");
@@ -196,6 +183,14 @@ const CurrencyConverter = () => {
       })
     : '';
 
+  // Handle currency swap
+  const handleSwapCurrencies = () => {
+    setBaseCurrency(targetCurrency);
+    setTargetCurrency(baseCurrency);
+    setBaseAmount(targetAmount);
+    setTargetAmount(baseAmount);
+  };
+
   // Show loading state if we're still loading the initial symbols
   if (isLoadingSymbols) {
     return <LoadingState message="Loading currencies..." />;
@@ -233,6 +228,18 @@ const CurrencyConverter = () => {
               currencyCode={baseCurrency}
               disabled={isLoadingRate}
             />
+          </div>
+          
+          {/* Currency Swap Button */}
+          <div className="flex justify-center my-4">
+            <button
+              onClick={handleSwapCurrencies}
+              disabled={isLoadingRate}
+              className="p-2 rounded-full bg-blue-50 hover:bg-blue-100 transition-colors"
+              aria-label="Swap currencies"
+            >
+              <ArrowDownUp className="h-5 w-5 text-blue-600" />
+            </button>
           </div>
           
           {/* Target Currency Section */}
