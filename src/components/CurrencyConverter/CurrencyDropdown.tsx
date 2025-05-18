@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from "react";
 import { CurrencySymbol } from "./CurrencyConverter";
 import { ChevronDown, ChevronUp, Search } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface CurrencyDropdownProps {
   id: string;
@@ -70,7 +71,7 @@ const CurrencyDropdown = ({
         disabled={disabled}
       >
         <span className="truncate font-medium">
-          {selectedCurrency ? selectedCurrency.code : "Select currency"}
+          {selectedCurrency ? `${selectedCurrency.code} (${selectedCurrency.description})` : "Select currency"}
         </span>
         {isOpen ? (
           <ChevronUp className="h-4 w-4 text-gray-500" />
@@ -80,7 +81,7 @@ const CurrencyDropdown = ({
       </button>
 
       {isOpen && (
-        <div className="absolute z-10 mt-1 w-72 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
+        <div className="absolute z-10 mt-1 w-72 bg-white border border-gray-200 rounded-md shadow-lg">
           <div className="sticky top-0 bg-white p-2 border-b border-gray-200">
             <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
@@ -95,36 +96,38 @@ const CurrencyDropdown = ({
             </div>
           </div>
 
-          <ul className="py-1" role="listbox">
-            {filteredCurrencies.length > 0 ? (
-              filteredCurrencies.map((currency) => (
-                <li
-                  key={currency.code}
-                  className={`px-3 py-2 cursor-pointer hover:bg-blue-50 ${
-                    currency.code === value ? "bg-blue-100" : ""
-                  }`}
-                  onClick={() => {
-                    onChange(currency.code);
-                    setIsOpen(false);
-                    setSearchTerm("");
-                  }}
-                  role="option"
-                  aria-selected={currency.code === value}
-                >
-                  <div className="flex justify-between items-center">
-                    <span className="font-medium">{currency.code}</span>
-                    <span className="text-gray-500 text-sm truncate ml-2">
-                      {currency.description}
-                    </span>
-                  </div>
+          <ScrollArea className="h-60">
+            <ul className="py-1" role="listbox">
+              {filteredCurrencies.length > 0 ? (
+                filteredCurrencies.map((currency) => (
+                  <li
+                    key={currency.code}
+                    className={`px-3 py-2 cursor-pointer hover:bg-blue-50 ${
+                      currency.code === value ? "bg-blue-100" : ""
+                    }`}
+                    onClick={() => {
+                      onChange(currency.code);
+                      setIsOpen(false);
+                      setSearchTerm("");
+                    }}
+                    role="option"
+                    aria-selected={currency.code === value}
+                  >
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium">{currency.code}</span>
+                      <span className="text-gray-500 text-sm truncate ml-2">
+                        {currency.description}
+                      </span>
+                    </div>
+                  </li>
+                ))
+              ) : (
+                <li className="px-3 py-2 text-gray-500 text-center">
+                  No currencies found
                 </li>
-              ))
-            ) : (
-              <li className="px-3 py-2 text-gray-500 text-center">
-                No currencies found
-              </li>
-            )}
-          </ul>
+              )}
+            </ul>
+          </ScrollArea>
         </div>
       )}
     </div>
