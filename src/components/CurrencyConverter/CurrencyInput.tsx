@@ -7,6 +7,7 @@ interface CurrencyInputProps {
   onChange: (value: number) => void;
   currencyCode: string;
   disabled?: boolean;
+  label?: string;
 }
 
 const CurrencyInput = ({
@@ -15,6 +16,7 @@ const CurrencyInput = ({
   onChange,
   currencyCode,
   disabled = false,
+  label,
 }: CurrencyInputProps) => {
   // Track if the user is currently editing to prevent auto-formatting
   const [isEditing, setIsEditing] = React.useState(false);
@@ -74,24 +76,31 @@ const CurrencyInput = ({
   };
 
   return (
-    <div className="relative rounded-md shadow-sm">
-      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-        <span className="text-gray-500 sm:text-sm">{currencyCode}</span>
+    <div className="w-full">
+      {label && (
+        <label htmlFor={id} className="block text-sm font-medium text-gray-600 mb-1">
+          {label}
+        </label>
+      )}
+      <div className="relative rounded-md shadow-sm">
+        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <span className="text-gray-500 sm:text-sm">{currencyCode}</span>
+        </div>
+        <input
+          id={id}
+          type="text"
+          className={`block w-full pl-16 pr-3 py-3 text-lg border-gray-300 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+            disabled ? "bg-gray-100 opacity-50 cursor-not-allowed" : "bg-white"
+          }`}
+          placeholder="0.00"
+          value={formattedValue}
+          onChange={handleChange}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          disabled={disabled}
+          aria-label={`Amount in ${currencyCode}`}
+        />
       </div>
-      <input
-        id={id}
-        type="text"
-        className={`block w-full pl-16 pr-3 py-3 text-lg border-gray-300 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-          disabled ? "bg-gray-100 opacity-50 cursor-not-allowed" : "bg-white"
-        }`}
-        placeholder="0.00"
-        value={formattedValue}
-        onChange={handleChange}
-        onFocus={handleFocus}
-        onBlur={handleBlur}
-        disabled={disabled}
-        aria-label={`Amount in ${currencyCode}`}
-      />
     </div>
   );
 };

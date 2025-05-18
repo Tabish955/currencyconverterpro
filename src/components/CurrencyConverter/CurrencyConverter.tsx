@@ -5,7 +5,7 @@ import CurrencyDropdown from "./CurrencyDropdown";
 import CurrencyInput from "./CurrencyInput";
 import ErrorDisplay from "./ErrorDisplay";
 import LoadingState from "./LoadingState";
-import { ArrowDownUp } from "lucide-react";
+import { ArrowDownUp, RefreshCw } from "lucide-react";
 
 // Type definitions
 export interface CurrencySymbol {
@@ -30,7 +30,7 @@ const currencyFullNames: Record<string, string> = {
   CHF: "Swiss Franc",
   CNY: "Chinese Yuan",
   INR: "Indian Rupee",
-  PKR: "Pakistani Rupee", // Keeping only one instance of PKR
+  PKR: "Pakistani Rupee",
   KWD: "Kuwaiti Dinar",
   AED: "United Arab Emirates Dirham",
   SAR: "Saudi Riyal",
@@ -122,7 +122,6 @@ const currencyFullNames: Record<string, string> = {
   NIO: "Nicaraguan Córdoba",
   XOF: "West African CFA Franc",
   NOK: "Norwegian Krone",
-  // Removed duplicate PKR entry
   PAB: "Panamanian Balboa",
   PGK: "Papua New Guinean Kina",
   PYG: "Paraguayan Guarani",
@@ -404,17 +403,16 @@ const CurrencyConverter = () => {
   }
 
   return (
-    <div className="w-full max-w-md mx-auto">
-      <div className="bg-white rounded-xl shadow-md overflow-hidden">
-        <div className="p-6">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6">Currency Converter</h2>
-          
-          {/* Base Currency Section */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-2">
-              <label htmlFor="baseAmount" className="text-sm font-medium text-gray-600">
-                From
-              </label>
+    <div className="w-full">
+      {/* Currency Converter Form */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Base Currency Column */}
+        <div>
+          <div className="mb-3">
+            <label htmlFor="baseAmount" className="block text-sm font-medium text-gray-700 mb-1">
+              From
+            </label>
+            <div className="mb-2">
               <CurrencyDropdown
                 id="baseCurrency"
                 value={baseCurrency}
@@ -431,25 +429,41 @@ const CurrencyConverter = () => {
               disabled={isLoadingRate}
             />
           </div>
-          
-          {/* Currency Swap Button */}
-          <div className="flex justify-center my-4">
-            <button
-              onClick={handleSwapCurrencies}
-              disabled={isLoadingRate}
-              className="p-2 rounded-full bg-blue-50 hover:bg-blue-100 transition-colors"
-              aria-label="Swap currencies"
-            >
-              <ArrowDownUp className="h-5 w-5 text-blue-600" />
-            </button>
-          </div>
-          
-          {/* Target Currency Section */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-2">
-              <label htmlFor="targetAmount" className="text-sm font-medium text-gray-600">
+        </div>
+
+        {/* Swap Button (visible only on mobile) */}
+        <div className="md:hidden flex justify-center my-2">
+          <button
+            onClick={handleSwapCurrencies}
+            disabled={isLoadingRate}
+            className="p-2 rounded-full bg-blue-50 hover:bg-blue-100 transition-colors"
+            aria-label="Swap currencies"
+          >
+            <ArrowDownUp className="h-5 w-5 text-blue-600" />
+          </button>
+        </div>
+
+        {/* Target Currency Column */}
+        <div>
+          <div className="mb-3 relative">
+            <div className="flex items-center justify-between mb-1">
+              <label htmlFor="targetAmount" className="block text-sm font-medium text-gray-700">
                 To
               </label>
+
+              {/* Swap Button (visible only on desktop) */}
+              <button
+                onClick={handleSwapCurrencies}
+                disabled={isLoadingRate}
+                className="hidden md:flex items-center space-x-1 text-blue-600 hover:text-blue-800 text-sm"
+                aria-label="Swap currencies"
+              >
+                <ArrowDownUp className="h-4 w-4" />
+                <span>Swap</span>
+              </button>
+            </div>
+
+            <div className="mb-2">
               <CurrencyDropdown
                 id="targetCurrency"
                 value={targetCurrency}
@@ -466,36 +480,51 @@ const CurrencyConverter = () => {
               disabled={isLoadingRate}
             />
           </div>
-          
-          {/* Exchange Rate and Last Updated */}
-          <div className="mt-4 flex flex-col sm:flex-row sm:justify-between">
-            {isLoadingRate ? (
-              <p className="text-sm text-gray-500">Fetching latest rates...</p>
-            ) : rateError ? (
-              <div className="text-sm text-red-600">
-                <span>{rateError}</span>
-              </div>
-            ) : rate ? (
-              <div className="text-sm text-gray-500 flex flex-col sm:flex-row sm:justify-between w-full">
-                <span>
-                  1 {baseCurrency} = {rate.toFixed(4)} {targetCurrency}
-                </span>
-                {lastUpdated && (
-                  <div className="flex items-center mt-1 sm:mt-0">
-                    <span className="mr-2">Updated at {formattedLastUpdated}</span>
-                    <button
-                      onClick={handleRefreshRate}
-                      className="text-blue-500 hover:text-blue-600 text-xs underline"
-                      aria-label="Refresh rates"
-                    >
-                      Refresh
-                    </button>
-                  </div>
-                )}
-              </div>
-            ) : null}
-          </div>
         </div>
+      </div>
+      
+      {/* Exchange Rate and Last Updated */}
+      <div className="mt-6 border-t pt-4 text-sm text-gray-600">
+        {isLoadingRate ? (
+          <div className="flex items-center">
+            <div className="animate-spin mr-2">
+              <RefreshCw className="h-4 w-4" />
+            </div>
+            <span>Fetching latest rates...</span>
+          </div>
+        ) : rateError ? (
+          <div className="text-red-600">
+            <span>{rateError}</span>
+            <button
+              onClick={handleRefreshRate}
+              className="ml-2 text-blue-500 hover:text-blue-600 underline"
+              aria-label="Try again"
+            >
+              Try again
+            </button>
+          </div>
+        ) : rate ? (
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+            <div className="flex items-center">
+              <span>
+                1 {baseCurrency} = <span className="font-semibold">{rate.toFixed(4)}</span> {targetCurrency}
+              </span>
+            </div>
+            {lastUpdated && (
+              <div className="flex items-center mt-2 sm:mt-0">
+                <span className="text-gray-500 mr-2">Updated {formattedLastUpdated}</span>
+                <button
+                  onClick={handleRefreshRate}
+                  className="text-blue-500 hover:text-blue-600 flex items-center"
+                  aria-label="Refresh rates"
+                >
+                  <RefreshCw className="h-3 w-3 mr-1" />
+                  <span>Refresh</span>
+                </button>
+              </div>
+            )}
+          </div>
+        ) : null}
       </div>
     </div>
   );

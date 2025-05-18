@@ -21,8 +21,10 @@ const CurrencyDropdown = ({
 }: CurrencyDropdownProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [highlightedIndex, setHighlightedIndex] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
 
   // Handle outside clicks to close dropdown
   useEffect(() => {
@@ -45,43 +47,100 @@ const CurrencyDropdown = ({
   useEffect(() => {
     if (isOpen && searchInputRef.current) {
       searchInputRef.current.focus();
+      setHighlightedIndex(0);
     }
   }, [isOpen]);
 
   // Get the selected currency details
   const selectedCurrency = currencies.find((c) => c.code === value);
 
-  // Filter currencies based on search term - now searches both code and full name
+  // Filter currencies based on search term - searches both code and full name
   const filteredCurrencies = currencies.filter(
     (currency) =>
       currency.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
       currency.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Handle keyboard navigation
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!isOpen) {
+      if (e.key === "Enter" || e.key === " " || e.key === "ArrowDown") {
+        e.preventDefault();
+        setIsOpen(true);
+      }
+      return;
+    }
+
+    switch (e.key) {
+      case "Escape":
+        setIsOpen(false);
+        break;
+      case "ArrowDown":
+        e.preventDefault();
+        setHighlightedIndex((prevIndex) =>
+          Math.min(prevIndex + 1, filteredCurrencies.length - 1)
+        );
+        scrollToHighlighted();
+        break;
+      case "ArrowUp":
+        e.preventDefault();
+        setHighlightedIndex((prevIndex) => Math.max(prevIndex - 1, 0));
+        scrollToHighlighted();
+        break;
+      case "Enter":
+        e.preventDefault();
+        if (filteredCurrencies[highlightedIndex]) {
+          onChange(filteredCurrencies[highlightedIndex].code);
+          setIsOpen(false);
+          setSearchTerm("");
+        }
+        break;
+      case "Tab":
+        setIsOpen(false);
+        break;
+    }
+  };
+
+  // Scroll to highlighted item
+  const scrollToHighlighted = () => {
+    if (listRef.current && listRef.current.children[highlightedIndex]) {
+      listRef.current.children[highlightedIndex].scrollIntoView({
+        block: "nearest",
+      });
+    }
+  };
+
   return (
-    <div className="relative inline-block w-44" ref={dropdownRef}>
+    <div className="relative inline-block w-full" ref={dropdownRef}>
       <button
         id={id}
         className={`w-full flex items-center justify-between py-2 px-3 border border-gray-300 rounded-md bg-white text-left ${
           disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
         }`}
         onClick={() => !disabled && setIsOpen(!isOpen)}
+        onKeyDown={handleKeyDown}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         disabled={disabled}
       >
         <span className="truncate font-medium">
-          {selectedCurrency ? `${selectedCurrency.code} (${selectedCurrency.description})` : "Select currency"}
+          {selectedCurrency ? (
+            <span>
+              {selectedCurrency.code} <span className="text-gray-500">({selectedCurrency.description})</span>
+            </span>
+          ) : (
+            "Select currency"
+          )}
         </span>
         {isOpen ? (
-          <ChevronUp className="h-4 w-4 text-gray-500" />
+          <ChevronUp className="h-4 w-4 text-gray-500 flex-shrink-0" />
         ) : (
-          <ChevronDown className="h-4 w-4 text-gray-500" />
+          <ChevronDown className="h-4 w-4 text-gray-500 flex-shrink-0" />
         )}
       </button>
 
       {isOpen && (
-        <div className="absolute z-50 mt-1 w-72 bg-white border border-gray-200 rounded-md shadow-lg">
+        <div className="absolute z-50 mt-1 w-72 md:w-80 bg-white border border-gray-200 rounded-md shadow-lg">
           <div className="sticky top-0 bg-white p-2 border-b border-gray-200 z-10">
             <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
@@ -92,19 +151,27 @@ const CurrencyDropdown = ({
                 placeholder="Search currencies..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={handleKeyDown}
+                aria-controls="currency-list"
               />
             </div>
           </div>
 
           <ScrollArea className="h-60">
-            <ul className="py-1" role="listbox">
+            <ul 
+              id="currency-list"
+              ref={listRef}
+              className="py-1" 
+              role="listbox"
+              tabIndex={-1}
+            >
               {filteredCurrencies.length > 0 ? (
-                filteredCurrencies.map((currency) => (
+                filteredCurrencies.map((currency, index) => (
                   <li
                     key={currency.code}
                     className={`px-3 py-2 cursor-pointer hover:bg-blue-50 ${
                       currency.code === value ? "bg-blue-100" : ""
-                    }`}
+                    } ${index === highlightedIndex ? "bg-blue-50" : ""}`}
                     onClick={() => {
                       onChange(currency.code);
                       setIsOpen(false);
