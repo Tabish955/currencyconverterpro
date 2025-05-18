@@ -16,18 +16,30 @@ const CurrencyInput = ({
   currencyCode,
   disabled = false,
 }: CurrencyInputProps) => {
-  // Format the input value for display
-  const formattedValue = value === 0 && document.activeElement?.id === id 
-    ? "" 
-    : value.toLocaleString(undefined, {
-        maximumFractionDigits: 6,
-        minimumFractionDigits: 2,
-      });
+  // Track if the user is currently editing to prevent auto-formatting
+  const [isEditing, setIsEditing] = React.useState(false);
+  // Track the raw input value during editing
+  const [rawInputValue, setRawInputValue] = React.useState("");
+
+  // Format the value for display only when not editing
+  const formattedValue = isEditing 
+    ? rawInputValue 
+    : (value === 0 && document.activeElement?.id === id)
+      ? ""
+      : value.toLocaleString(undefined, {
+          maximumFractionDigits: 6,
+          minimumFractionDigits: value % 1 === 0 ? 0 : 2, // Only show decimals if needed
+        });
 
   // Handler for input changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Remove non-numeric characters except decimal points
-    const sanitizedValue = e.target.value.replace(/[^0-9.]/g, "");
+    const inputValue = e.target.value;
+    
+    // Store the raw input value
+    setRawInputValue(inputValue);
+    
+    // Remove non-numeric characters except decimal point
+    const sanitizedValue = inputValue.replace(/[^0-9.]/g, "");
     
     // Handle multiple decimal points
     const decimalPoints = sanitizedValue.match(/\./g) || [];
@@ -41,16 +53,24 @@ const CurrencyInput = ({
     // Update if it's a valid number or empty string
     if (!isNaN(numericValue)) {
       onChange(numericValue);
-    } else if (e.target.value === "" || e.target.value === ".") {
+    } else if (inputValue === "" || inputValue === ".") {
       onChange(0);
     }
   };
 
-  // Handle focus to clear the input when it's zero
+  // Handle focus to clear the input when it's zero and track editing state
   const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    setIsEditing(true);
+    setRawInputValue(value === 0 ? "" : value.toString());
+    
     if (value === 0) {
       e.target.value = "";
     }
+  };
+
+  // Handle blur to format the value when not focused
+  const handleBlur = () => {
+    setIsEditing(false);
   };
 
   return (
@@ -68,6 +88,7 @@ const CurrencyInput = ({
         value={formattedValue}
         onChange={handleChange}
         onFocus={handleFocus}
+        onBlur={handleBlur}
         disabled={disabled}
         aria-label={`Amount in ${currencyCode}`}
       />

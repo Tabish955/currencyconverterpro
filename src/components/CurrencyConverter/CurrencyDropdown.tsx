@@ -50,7 +50,7 @@ const CurrencyDropdown = ({
   // Get the selected currency details
   const selectedCurrency = currencies.find((c) => c.code === value);
 
-  // Filter currencies based on search term
+  // Filter currencies based on search term - now searches both code and full name
   const filteredCurrencies = currencies.filter(
     (currency) =>
       currency.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -80,7 +80,7 @@ const CurrencyDropdown = ({
       </button>
 
       {isOpen && (
-        <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
+        <div className="absolute z-10 mt-1 w-72 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
           <div className="sticky top-0 bg-white p-2 border-b border-gray-200">
             <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
@@ -100,7 +100,7 @@ const CurrencyDropdown = ({
               filteredCurrencies.map((currency) => (
                 <li
                   key={currency.code}
-                  className={`px-3 py-2 cursor-pointer hover:bg-blue-50 flex justify-between ${
+                  className={`px-3 py-2 cursor-pointer hover:bg-blue-50 ${
                     currency.code === value ? "bg-blue-100" : ""
                   }`}
                   onClick={() => {
@@ -111,10 +111,12 @@ const CurrencyDropdown = ({
                   role="option"
                   aria-selected={currency.code === value}
                 >
-                  <span className="font-medium">{currency.code}</span>
-                  <span className="text-gray-500 text-sm truncate ml-2">
-                    {currency.description}
-                  </span>
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium">{currency.code}</span>
+                    <span className="text-gray-500 text-sm truncate ml-2">
+                      {currency.description}
+                    </span>
+                  </div>
                 </li>
               ))
             ) : (

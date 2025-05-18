@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { CurrencyCache } from "./CurrencyCache";
 import CurrencyDropdown from "./CurrencyDropdown";
@@ -18,9 +19,148 @@ interface SymbolsResponse {
   time_last_update_utc: string;
 }
 
+// Currency full names mapping
+const currencyFullNames: Record<string, string> = {
+  USD: "United States Dollar",
+  EUR: "Euro",
+  GBP: "British Pound Sterling",
+  JPY: "Japanese Yen",
+  AUD: "Australian Dollar",
+  CAD: "Canadian Dollar",
+  CHF: "Swiss Franc",
+  CNY: "Chinese Yuan",
+  INR: "Indian Rupee",
+  PKR: "Pakistani Rupee",
+  KWD: "Kuwaiti Dinar",
+  AED: "United Arab Emirates Dirham",
+  SAR: "Saudi Riyal",
+  QAR: "Qatari Riyal",
+  BHD: "Bahraini Dinar",
+  OMR: "Omani Rial",
+  EGP: "Egyptian Pound",
+  TRY: "Turkish Lira",
+  RUB: "Russian Ruble",
+  NGN: "Nigerian Naira",
+  ZAR: "South African Rand",
+  BRL: "Brazilian Real",
+  MXN: "Mexican Peso",
+  SGD: "Singapore Dollar",
+  NZD: "New Zealand Dollar",
+  HKD: "Hong Kong Dollar",
+  KRW: "South Korean Won",
+  IDR: "Indonesian Rupiah",
+  MYR: "Malaysian Ringgit",
+  THB: "Thai Baht",
+  VND: "Vietnamese Dong",
+  PHP: "Philippine Peso",
+  AFN: "Afghan Afghani",
+  DZD: "Algerian Dinar",
+  ARS: "Argentine Peso",
+  AMD: "Armenian Dram",
+  AWG: "Aruban Florin",
+  AZN: "Azerbaijani Manat",
+  BSD: "Bahamian Dollar",
+  BBD: "Barbadian Dollar",
+  BYN: "Belarusian Ruble",
+  BZD: "Belize Dollar",
+  BMD: "Bermudan Dollar",
+  BOB: "Bolivian Boliviano",
+  BAM: "Bosnia-Herzegovina Convertible Mark",
+  BWP: "Botswanan Pula",
+  BGN: "Bulgarian Lev",
+  BIF: "Burundian Franc",
+  KHR: "Cambodian Riel",
+  CVE: "Cape Verdean Escudo",
+  XAF: "Central African CFA Franc",
+  CLP: "Chilean Peso",
+  COP: "Colombian Peso",
+  KMF: "Comorian Franc",
+  CDF: "Congolese Franc",
+  CRC: "Costa Rican Colón",
+  HRK: "Croatian Kuna",
+  CZK: "Czech Republic Koruna",
+  DKK: "Danish Krone",
+  DJF: "Djiboutian Franc",
+  DOP: "Dominican Peso",
+  XCD: "East Caribbean Dollar",
+  ETB: "Ethiopian Birr",
+  FJD: "Fijian Dollar",
+  GMD: "Gambian Dalasi",
+  GEL: "Georgian Lari",
+  GHS: "Ghanaian Cedi",
+  GTQ: "Guatemalan Quetzal",
+  GNF: "Guinean Franc",
+  GYD: "Guyanaese Dollar",
+  HTG: "Haitian Gourde",
+  HNL: "Honduran Lempira",
+  HUF: "Hungarian Forint",
+  ISK: "Icelandic Króna",
+  IRR: "Iranian Rial",
+  IQD: "Iraqi Dinar",
+  ILS: "Israeli New Shekel",
+  JMD: "Jamaican Dollar",
+  JOD: "Jordanian Dinar",
+  KZT: "Kazakhstani Tenge",
+  KES: "Kenyan Shilling",
+  LAK: "Laotian Kip",
+  LBP: "Lebanese Pound",
+  LSL: "Lesotho Loti",
+  LRD: "Liberian Dollar",
+  LYD: "Libyan Dinar",
+  MKD: "Macedonian Denar",
+  MGA: "Malagasy Ariary",
+  MWK: "Malawian Kwacha",
+  MVR: "Maldivian Rufiyaa",
+  MRU: "Mauritanian Ouguiya",
+  MUR: "Mauritian Rupee",
+  MDL: "Moldovan Leu",
+  MNT: "Mongolian Tugrik",
+  MAD: "Moroccan Dirham",
+  MMK: "Myanmar Kyat",
+  NAD: "Namibian Dollar",
+  NPR: "Nepalese Rupee",
+  NIO: "Nicaraguan Córdoba",
+  XOF: "West African CFA Franc",
+  NOK: "Norwegian Krone",
+  PKR: "Pakistani Rupee",
+  PAB: "Panamanian Balboa",
+  PGK: "Papua New Guinean Kina",
+  PYG: "Paraguayan Guarani",
+  PEN: "Peruvian Nuevo Sol",
+  PLN: "Polish Zloty",
+  RON: "Romanian Leu",
+  RWF: "Rwandan Franc",
+  SVC: "Salvadoran Colón",
+  WST: "Samoan Tala",
+  STN: "São Tomé and Príncipe Dobra",
+  RSD: "Serbian Dinar",
+  SLL: "Sierra Leonean Leone",
+  SEK: "Swedish Krona",
+  SOS: "Somali Shilling",
+  SSP: "South Sudanese Pound",
+  LKR: "Sri Lankan Rupee",
+  SDG: "Sudanese Pound",
+  SRD: "Surinamese Dollar",
+  SZL: "Swazi Lilangeni",
+  SYP: "Syrian Pound",
+  TWD: "New Taiwan Dollar",
+  TZS: "Tanzanian Shilling",
+  TOP: "Tongan Paʻanga",
+  TTD: "Trinidad and Tobago Dollar",
+  TND: "Tunisian Dinar",
+  UGX: "Ugandan Shilling",
+  UAH: "Ukrainian Hryvnia",
+  UYU: "Uruguayan Peso",
+  UZS: "Uzbekistan Som",
+  VEF: "Venezuelan Bolívar Fuerte",
+  VES: "Venezuelan Bolívar Soberano",
+  YER: "Yemeni Rial",
+  ZMW: "Zambian Kwacha"
+};
+
 // Initialize cache
 const symbolsCache = new CurrencyCache<CurrencySymbol[]>(24 * 60 * 60 * 1000); // 24 hours
-const ratesCache = new CurrencyCache<number>(5 * 60 * 1000); // 5 minutes (reduced from 15 minutes)
+const ratesCache = new CurrencyCache<number>(5 * 60 * 1000); // 5 minutes
 
 const CurrencyConverter = () => {
   // State for currency symbols
@@ -63,10 +203,10 @@ const CurrencyConverter = () => {
         
         const data: SymbolsResponse = await response.json();
         
-        // Transform rates object into array of currency symbols
+        // Transform rates object into array of currency symbols with full names
         const symbolsArray = Object.keys(data.rates).map(code => ({
           code,
-          description: code // We don't get descriptions from this API, so we use the code
+          description: currencyFullNames[code] || code // Use full name from our map or fallback to code
         }));
         
         // Sort alphabetically by code
