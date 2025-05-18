@@ -30,7 +30,7 @@ const currencyFullNames: Record<string, string> = {
   CHF: "Swiss Franc",
   CNY: "Chinese Yuan",
   INR: "Indian Rupee",
-  PKR: "Pakistani Rupee",
+  PKR: "Pakistani Rupee", // Keeping only one instance of PKR
   KWD: "Kuwaiti Dinar",
   AED: "United Arab Emirates Dirham",
   SAR: "Saudi Riyal",
@@ -122,7 +122,7 @@ const currencyFullNames: Record<string, string> = {
   NIO: "Nicaraguan Córdoba",
   XOF: "West African CFA Franc",
   NOK: "Norwegian Krone",
-  PKR: "Pakistani Rupee",
+  // Removed duplicate PKR entry
   PAB: "Panamanian Balboa",
   PGK: "Papua New Guinean Kina",
   PYG: "Paraguayan Guarani",
