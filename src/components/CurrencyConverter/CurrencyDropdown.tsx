@@ -81,8 +81,8 @@ const CurrencyDropdown = ({
       </button>
 
       {isOpen && (
-        <div className="absolute z-10 mt-1 w-72 bg-white border border-gray-200 rounded-md shadow-lg">
-          <div className="sticky top-0 bg-white p-2 border-b border-gray-200">
+        <div className="absolute z-50 mt-1 w-72 bg-white border border-gray-200 rounded-md shadow-lg">
+          <div className="sticky top-0 bg-white p-2 border-b border-gray-200 z-10">
             <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
               <input
@@ -113,9 +113,9 @@ const CurrencyDropdown = ({
                     role="option"
                     aria-selected={currency.code === value}
                   >
-                    <div className="flex justify-between items-center">
+                    <div className="flex items-center justify-between">
                       <span className="font-medium">{currency.code}</span>
-                      <span className="text-gray-500 text-sm truncate ml-2">
+                      <span className="text-gray-500 text-sm truncate ml-2 max-w-[70%]">
                         {currency.description}
                       </span>
                     </div>
