@@ -109,7 +109,7 @@ const CurrencyInput = ({
           inputMode="decimal" 
           type="text"
           pattern="[0-9]*(\.[0-9]+)?"
-          className={`block w-full pl-16 pr-3 py-3 text-lg border-gray-300 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+          className={`block w-full pl-16 pr-3 py-3 text-lg border-gray-300 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 ${
             disabled ? "bg-gray-100 opacity-50 cursor-not-allowed" : "bg-white"
           }`}
           placeholder="0.00"
