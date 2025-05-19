@@ -1,5 +1,4 @@
-
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { CurrencyCache } from "./CurrencyCache";
 import CurrencyDropdown from "./CurrencyDropdown";
 import CurrencyInput from "./CurrencyInput";
@@ -158,7 +157,7 @@ const currencyFullNames: Record<string, string> = {
 };
 
 // Initialize cache
-const symbolsCache = new CurrencyCache<CurrencySymbol[]>(24 * 60 * 60 * 1000); // 24 hours
+const symbolsCache = new CurrencyCache<CurrencySymbol[]>(24 * 60 * 60 * 1000); // 24 hours 
 const ratesCache = new CurrencyCache<number>(5 * 60 * 1000); // 5 minutes
 
 const CurrencyConverter = () => {
@@ -182,6 +181,18 @@ const CurrencyConverter = () => {
   const [rateError, setRateError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
+  // Force refresh timer - ensure rates are updated regularly
+  const [forceRefreshCounter, setForceRefreshCounter] = useState(0);
+
+  // Set up auto refresh every 5 minutes
+  useEffect(() => {
+    const refreshInterval = setInterval(() => {
+      setForceRefreshCounter(prev => prev + 1);
+    }, 5 * 60 * 1000); // 5 minutes
+    
+    return () => clearInterval(refreshInterval);
+  }, []);
+
   // Fetch currency symbols
   useEffect(() => {
     const fetchSymbols = async () => {
@@ -194,6 +205,7 @@ const CurrencyConverter = () => {
           return;
         }
 
+        // Using open.er-api.com for currency rates
         const response = await fetch("https://open.er-api.com/v6/latest/USD");
         
         if (!response.ok) {
@@ -227,7 +239,7 @@ const CurrencyConverter = () => {
   }, []);
 
   // Fetch exchange rate when currencies change or when conversion is needed
-  const fetchExchangeRate = async () => {
+  const fetchExchangeRate = useCallback(async () => {
     // Don't fetch if currencies are the same
     if (baseCurrency === targetCurrency) {
       setRate(1);
@@ -250,26 +262,7 @@ const CurrencyConverter = () => {
       // Generate cache key
       const cacheKey = `${baseCurrency}-${targetCurrency}`;
       
-      // Check cache first
-      const cachedRate = ratesCache.get(cacheKey);
-      if (cachedRate !== undefined) {
-        setRate(cachedRate);
-        
-        // Update the correct amount based on which field was last changed
-        if (lastChangedField === "base") {
-          // Use precise math, only round for display
-          setTargetAmount(parseFloat((baseAmount * cachedRate).toFixed(6)));
-        } else {
-          // Use precise math for reverse calculation
-          setBaseAmount(parseFloat((targetAmount / cachedRate).toFixed(6)));
-        }
-        
-        setLastUpdated(new Date());
-        setIsLoadingRate(false);
-        return;
-      }
-      
-      // Fetch rate from API
+      // Always fetch fresh data
       const response = await fetch(
         `https://open.er-api.com/v6/latest/${baseCurrency}`
       );
@@ -297,21 +290,22 @@ const CurrencyConverter = () => {
         setBaseAmount(parseFloat((targetAmount / newRate).toFixed(6)));
       }
       
-      setLastUpdated(new Date(data.time_last_update_utc));
+      // Always set the current time as last updated time
+      setLastUpdated(new Date());
     } catch (error) {
       console.error("Error fetching exchange rate:", error);
       setRateError(error instanceof Error ? error.message : "Failed to load exchange rate");
     } finally {
       setIsLoadingRate(false);
     }
-  };
+  }, [baseAmount, baseCurrency, lastChangedField, targetAmount, targetCurrency]);
 
-  // Effect to trigger rate fetch when currencies change
+  // Effect to trigger rate fetch when currencies change or the forceRefreshCounter changes
   useEffect(() => {
     if (baseCurrency && targetCurrency) {
       fetchExchangeRate();
     }
-  }, [baseCurrency, targetCurrency]);
+  }, [baseCurrency, targetCurrency, fetchExchangeRate, forceRefreshCounter]);
 
   // Handle base amount change
   const handleBaseAmountChange = (value: number) => {
