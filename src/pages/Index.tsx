@@ -1,11 +1,8 @@
-
 import CurrencyConverter from "../components/CurrencyConverter/CurrencyConverter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Toaster } from "@/components/ui/sonner";
-
 const Index = () => {
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-indigo-100 via-blue-50 to-purple-100 p-4 overflow-hidden animate-gradient-slow relative">
+  return <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-indigo-100 via-blue-50 to-purple-100 p-4 overflow-hidden animate-gradient-slow relative">
       {/* Floating background elements */}
       <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-blue-200/20 to-indigo-200/20 rounded-full blur-3xl transform -translate-y-1/2 translate-x-1/4 animate-float-slow"></div>
       <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-purple-200/20 to-pink-200/20 rounded-full blur-3xl transform translate-y-1/3 -translate-x-1/3 animate-float-medium"></div>
@@ -28,12 +25,10 @@ const Index = () => {
         
         <div className="mt-6 text-center text-sm">
           <p className="text-indigo-700 font-medium">Rates are 100% accurate and updated regularly</p>
-          <p className="text-blue-600">Exchange rates refresh automatically every 5 minutes</p>
+          <p className="text-blue-600">To insure accuracy click refresh once before using</p>
         </div>
       </div>
       <Toaster />
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
