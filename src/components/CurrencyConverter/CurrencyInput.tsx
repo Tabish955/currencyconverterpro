@@ -24,7 +24,7 @@ const CurrencyInput = ({
   const [rawInputValue, setRawInputValue] = React.useState("");
 
   // Format the value for display only when not editing
-  const formattedValue = isEditing 
+  const displayValue = isEditing 
     ? rawInputValue 
     : (value === 0 && document.activeElement?.id === id)
       ? ""
@@ -75,24 +75,6 @@ const CurrencyInput = ({
     setIsEditing(false);
   };
 
-  // Handle keypress to restrict input to numbers and decimal point only
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    // Allow only digits and decimal point, plus control keys
-    const isNumericInput = /[\d.]/.test(e.key);
-    const isControlKey = e.ctrlKey || e.metaKey || 
-      ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.key);
-    
-    // If the key is not a digit, decimal, or control key, block it
-    if (!isNumericInput && !isControlKey) {
-      e.preventDefault();
-    }
-    
-    // Prevent multiple decimal points
-    if (e.key === '.' && formattedValue.includes('.')) {
-      e.preventDefault();
-    }
-  };
-
   return (
     <div className="w-full">
       {label && (
@@ -111,13 +93,12 @@ const CurrencyInput = ({
           pattern="[0-9]*(\.[0-9]+)?"
           className={`block w-full pl-16 pr-3 py-3 text-lg border-gray-300 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 ${
             disabled ? "bg-gray-100 opacity-50 cursor-not-allowed" : "bg-white"
-          }`}
+          } shadow-inner`}
           placeholder="0.00"
-          value={formattedValue}
+          value={displayValue}
           onChange={handleChange}
           onFocus={handleFocus}
           onBlur={handleBlur}
-          onKeyDown={handleKeyPress}
           disabled={disabled}
           aria-label={`Amount in ${currencyCode}`}
         />
