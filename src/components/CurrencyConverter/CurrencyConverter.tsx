@@ -18,7 +18,7 @@ interface SymbolsResponse {
   time_last_update_utc: string;
 }
 
-// Currency full names mapping
+// Currency full names mapping - expanded to cover all currencies
 const currencyFullNames: Record<string, string> = {
   USD: "United States Dollar",
   EUR: "Euro",
@@ -153,7 +153,31 @@ const currencyFullNames: Record<string, string> = {
   VEF: "Venezuelan Bolívar Fuerte",
   VES: "Venezuelan Bolívar Soberano",
   YER: "Yemeni Rial",
-  ZMW: "Zambian Kwacha"
+  ZMW: "Zambian Kwacha",
+  XPF: "CFP Franc",
+  CUP: "Cuban Peso",
+  FKP: "Falkland Islands Pound",
+  GIP: "Gibraltar Pound",
+  GGP: "Guernsey Pound",
+  IMP: "Isle of Man Pound",
+  JEP: "Jersey Pound",
+  KPW: "North Korean Won",
+  LVL: "Latvian Lats",
+  LTL: "Lithuanian Litas",
+  SHP: "Saint Helena Pound",
+  SPL: "Seborgan Luigino",
+  SCR: "Seychellois Rupee",
+  SBD: "Solomon Islands Dollar",
+  TVD: "Tuvaluan Dollar",
+  ZWD: "Zimbabwean Dollar",
+  TMT: "Turkmenistan Manat",
+  TJS: "Tajikistani Somoni",
+  XAU: "Gold Ounce",
+  XAG: "Silver Ounce",
+  XPT: "Platinum Ounce",
+  XDR: "Special Drawing Rights",
+  XTS: "Testing Currency Code",
+  XXX: "Unknown Currency"
 };
 
 // Initialize cache
