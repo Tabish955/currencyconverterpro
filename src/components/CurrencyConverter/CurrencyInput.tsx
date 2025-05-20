@@ -1,5 +1,5 @@
 
-import React, { useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 
 interface CurrencyInputProps {
   id: string;
@@ -7,7 +7,6 @@ interface CurrencyInputProps {
   onChange: (value: number) => void;
   currencyCode: string;
   disabled?: boolean;
-  label?: string;
 }
 
 const CurrencyInput = ({
@@ -16,106 +15,102 @@ const CurrencyInput = ({
   onChange,
   currencyCode,
   disabled = false,
-  label,
 }: CurrencyInputProps) => {
-  // Track if the user is currently editing to prevent auto-formatting
-  const [isEditing, setIsEditing] = React.useState(false);
-  // Track the raw input value during editing
-  const [rawInputValue, setRawInputValue] = React.useState("");
+  // Local state for input display value
+  const [inputValue, setInputValue] = useState(value.toString());
   // Reference to the input element to maintain focus
   const inputRef = useRef<HTMLInputElement>(null);
-  // Track cursor position
-  const cursorPositionRef = useRef<number | null>(null);
-
-  // Effect to restore cursor position after re-render
+  // To track if the input is focused
+  const [isFocused, setIsFocused] = useState(false);
+  
+  // Update local state when value prop changes
   useEffect(() => {
-    if (isEditing && inputRef.current && cursorPositionRef.current !== null) {
-      inputRef.current.setSelectionRange(cursorPositionRef.current, cursorPositionRef.current);
+    // Only update if the input is not focused to prevent cursor jumping
+    if (!isFocused) {
+      setInputValue(value.toString());
     }
-  }, [rawInputValue, isEditing]);
+  }, [value, isFocused]);
 
-  // Format the value for display only when not editing
-  const displayValue = isEditing 
-    ? rawInputValue 
-    : (value === 0 && document.activeElement?.id === id)
-      ? ""
-      : value.toLocaleString(undefined, {
-          maximumFractionDigits: 4,
-          minimumFractionDigits: value % 1 === 0 ? 0 : 2, // Only show decimals if needed
-        });
-
-  // Handler for input changes
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const inputValue = e.target.value;
-    cursorPositionRef.current = e.target.selectionStart;
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
     
-    // Store the raw input value
-    setRawInputValue(inputValue);
-    
-    // Remove non-numeric characters except decimal point
-    const sanitizedValue = inputValue.replace(/[^0-9.]/g, "");
-    
-    // Handle multiple decimal points
-    const decimalPoints = sanitizedValue.match(/\./g) || [];
-    if (decimalPoints.length > 1) {
+    // Allow empty string for backspacing
+    if (newValue === "") {
+      setInputValue("");
+      onChange(0);
       return;
     }
     
-    // Convert to number
-    const numericValue = parseFloat(sanitizedValue);
-    
-    // Update if it's a valid number or empty string
-    if (!isNaN(numericValue)) {
-      onChange(numericValue);
-    } else if (inputValue === "" || inputValue === ".") {
-      onChange(0);
+    // Only allow numbers and a single decimal point
+    const regex = /^[0-9]*\.?[0-9]*$/;
+    if (regex.test(newValue)) {
+      setInputValue(newValue);
+      
+      // Convert to number and call onChange if valid
+      const numericValue = parseFloat(newValue);
+      if (!isNaN(numericValue)) {
+        onChange(numericValue);
+      }
     }
   };
 
-  // Handle focus to clear the input when it's zero and track editing state
-  const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
-    setIsEditing(true);
-    setRawInputValue(value === 0 ? "" : value.toString());
-    
-    if (value === 0) {
-      e.target.value = "";
-    }
+  // Handle focus events
+  const handleFocus = () => {
+    setIsFocused(true);
   };
-
-  // Handle blur to format the value when not focused
+  
   const handleBlur = () => {
-    setIsEditing(false);
+    setIsFocused(false);
+    
+    // Format the value on blur to ensure it displays properly
+    if (inputValue === "") {
+      setInputValue("0");
+      onChange(0);
+    } else {
+      // Ensure the displayed value matches the actual value
+      setInputValue(parseFloat(inputValue).toString());
+    }
+  };
+
+  // Focus the input element if there's a click on the container
+  const handleContainerClick = () => {
+    if (inputRef.current && !disabled) {
+      inputRef.current.focus();
+    }
   };
 
   return (
-    <div className="w-full">
-      {label && (
-        <label htmlFor={id} className="block text-sm font-medium text-gray-600 mb-1">
-          {label}
-        </label>
-      )}
-      <div className="relative rounded-md shadow-md hover:shadow-lg transition-all duration-300">
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <span className="text-gray-500 sm:text-sm">{currencyCode}</span>
-        </div>
-        <input
-          ref={inputRef}
-          id={id}
-          inputMode="decimal" 
-          type="text"
-          pattern="[0-9]*(\.[0-9]+)?"
-          className={`block w-full pl-16 pr-3 py-3.5 text-lg border-gray-300 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 ${
-            disabled ? "bg-gray-100 opacity-50 cursor-not-allowed" : "bg-white"
-          } shadow-inner`}
-          placeholder="0.00"
-          value={displayValue}
-          onChange={handleChange}
-          onFocus={handleFocus}
-          onBlur={handleBlur}
-          disabled={disabled}
-          aria-label={`Amount in ${currencyCode}`}
-        />
+    <div 
+      className={`relative rounded-md shadow-sm transition-all duration-300 ${
+        isFocused ? "ring-2 ring-blue-300" : ""
+      }`}
+      onClick={handleContainerClick}
+    >
+      <div className="absolute inset-y-0 left-0 flex items-center pl-3">
+        <span className="text-gray-500 sm:text-sm">{currencyCode}</span>
       </div>
+      <input
+        ref={inputRef}
+        id={id}
+        type="text"
+        value={inputValue}
+        onChange={handleInputChange}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
+        disabled={disabled}
+        className={`
+          block w-full pl-16 pr-3 py-3 rounded-md 
+          border-gray-300 border focus:outline-none
+          bg-white placeholder-gray-400 
+          text-gray-900 font-medium text-lg
+          transition-all duration-200
+          currency-input
+          ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-text hover:border-gray-400"}
+          ${isFocused ? "border-blue-400 shadow-blue-100" : ""}
+        `}
+        placeholder="0"
+        aria-describedby={`${id}-currency`}
+      />
     </div>
   );
 };

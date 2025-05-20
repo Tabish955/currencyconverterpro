@@ -176,6 +176,30 @@
   animation: float-particle 25s infinite ease-in-out 1.5s;
 }
 
+.particle-6 {
+  width: 9px;
+  height: 9px;
+  top: 30%;
+  left: 10%;
+  animation: float-particle 19s infinite ease-in-out 0.5s;
+}
+
+.particle-7 {
+  width: 5px;
+  height: 5px;
+  bottom: 10%;
+  left: 30%;
+  animation: float-particle 17s infinite ease-in-out 3s;
+}
+
+.particle-8 {
+  width: 6px;
+  height: 6px;
+  top: 15%;
+  right: 25%;
+  animation: float-particle 21s infinite ease-in-out 2.5s;
+}
+
 @keyframes float-particle {
   0%, 100% {
     transform: translate(0, 0) rotate(0deg);
@@ -189,4 +213,39 @@
   75% {
     transform: translate(-50px, 30px) rotate(270deg);
   }
+}
+
+/* Input focus glow effect */
+.focus-ring {
+  transition: box-shadow 0.3s ease;
+}
+
+.focus-ring:focus-within {
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.3);
+}
+
+/* Button hover effects */
+.button-hover {
+  transition: all 0.3s ease;
+}
+
+.button-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 7px 14px rgba(50, 50, 93, 0.1), 0 3px 6px rgba(0, 0, 0, 0.08);
+}
+
+/* Dropdown animation */
+@keyframes dropdown-appear {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdown-animate {
+  animation: dropdown-appear 0.2s ease-out forwards;
 }

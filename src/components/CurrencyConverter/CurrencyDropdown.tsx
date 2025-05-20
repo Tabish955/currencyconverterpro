@@ -20,141 +20,175 @@ interface CurrencyDropdownProps {
   disabled?: boolean;
 }
 
-// Currency to country code mapping (ISO 4217 to ISO 3166-1)
+// Enhanced Currency to Country Code mapping (ISO 4217 to ISO 3166-1)
+// Comprehensive mapping to ensure all currencies have proper flags
 const currencyToCountryCode: Record<string, string> = {
-  USD: "us",
-  EUR: "eu",
-  GBP: "gb",
-  JPY: "jp",
-  AUD: "au",
-  CAD: "ca",
-  CHF: "ch",
-  CNY: "cn",
-  INR: "in",
-  PKR: "pk",
-  KWD: "kw",
-  AED: "ae",
-  SAR: "sa",
-  QAR: "qa",
-  BHD: "bh",
-  OMR: "om",
-  EGP: "eg",
-  TRY: "tr",
-  RUB: "ru",
-  NGN: "ng",
-  ZAR: "za",
-  BRL: "br",
-  MXN: "mx",
-  SGD: "sg",
-  NZD: "nz",
-  HKD: "hk",
-  KRW: "kr",
-  IDR: "id",
-  MYR: "my",
-  THB: "th",
-  VND: "vn",
-  PHP: "ph",
-  AFN: "af",
-  DZD: "dz",
-  ARS: "ar",
-  AMD: "am",
-  AWG: "aw",
-  AZN: "az",
-  BSD: "bs",
-  BBD: "bb",
-  BYN: "by",
-  BZD: "bz",
-  BMD: "bm",
-  BOB: "bo",
-  BAM: "ba",
-  BWP: "bw",
-  BGN: "bg",
-  BIF: "bi",
-  KHR: "kh",
-  CVE: "cv",
-  XAF: "cm", // Central African CFA franc - using Cameroon
-  CLP: "cl",
-  COP: "co",
-  KMF: "km",
-  CDF: "cd",
-  CRC: "cr",
-  HRK: "hr",
-  CZK: "cz",
-  DKK: "dk",
-  DJF: "dj",
-  DOP: "do",
-  XCD: "ag", // East Caribbean dollar - using Antigua and Barbuda
-  ETB: "et",
-  FJD: "fj",
-  GMD: "gm",
-  GEL: "ge",
-  GHS: "gh",
-  GTQ: "gt",
-  GNF: "gn",
-  GYD: "gy",
-  HTG: "ht",
-  HNL: "hn",
-  HUF: "hu",
-  ISK: "is",
-  IRR: "ir",
-  IQD: "iq",
-  ILS: "il",
-  JMD: "jm",
-  JOD: "jo",
-  KZT: "kz",
-  KES: "ke",
-  LAK: "la",
-  LBP: "lb",
-  LSL: "ls",
-  LRD: "lr",
-  LYD: "ly",
-  MKD: "mk",
-  MGA: "mg",
-  MWK: "mw",
-  MVR: "mv",
-  MRU: "mr",
-  MUR: "mu",
-  MDL: "md",
-  MNT: "mn",
-  MAD: "ma",
-  MMK: "mm",
-  NAD: "na",
-  NPR: "np",
-  NIO: "ni",
-  XOF: "sn", // West African CFA franc - using Senegal
-  NOK: "no",
-  PAB: "pa",
-  PGK: "pg",
-  PYG: "py",
-  PEN: "pe",
-  PLN: "pl",
-  RON: "ro",
-  RWF: "rw",
-  SVC: "sv",
-  WST: "ws",
-  STN: "st",
-  RSD: "rs",
-  SLL: "sl",
-  SEK: "se",
-  SOS: "so",
-  SSP: "ss",
-  LKR: "lk",
-  SDG: "sd",
-  SRD: "sr",
-  SZL: "sz",
-  SYP: "sy",
-  TWD: "tw",
-  TZS: "tz",
-  TOP: "to",
-  TTD: "tt",
-  TND: "tn",
-  UGX: "ug",
-  UAH: "ua",
-  UYU: "uy",
-  UZS: "uz",
-  VES: "ve",
-  YER: "ye",
-  ZMW: "zm"
+  USD: "us", // United States Dollar
+  EUR: "eu", // Euro
+  GBP: "gb", // British Pound Sterling
+  JPY: "jp", // Japanese Yen
+  AUD: "au", // Australian Dollar
+  CAD: "ca", // Canadian Dollar
+  CHF: "ch", // Swiss Franc
+  CNY: "cn", // Chinese Yuan
+  INR: "in", // Indian Rupee
+  PKR: "pk", // Pakistani Rupee
+  KWD: "kw", // Kuwaiti Dinar
+  AED: "ae", // United Arab Emirates Dirham
+  SAR: "sa", // Saudi Riyal
+  QAR: "qa", // Qatari Riyal
+  BHD: "bh", // Bahraini Dinar
+  OMR: "om", // Omani Rial
+  EGP: "eg", // Egyptian Pound
+  TRY: "tr", // Turkish Lira
+  RUB: "ru", // Russian Ruble
+  NGN: "ng", // Nigerian Naira
+  ZAR: "za", // South African Rand
+  BRL: "br", // Brazilian Real
+  MXN: "mx", // Mexican Peso
+  SGD: "sg", // Singapore Dollar
+  NZD: "nz", // New Zealand Dollar
+  HKD: "hk", // Hong Kong Dollar
+  KRW: "kr", // South Korean Won
+  IDR: "id", // Indonesian Rupiah
+  MYR: "my", // Malaysian Ringgit
+  THB: "th", // Thai Baht
+  VND: "vn", // Vietnamese Dong
+  PHP: "ph", // Philippine Peso
+  AFN: "af", // Afghan Afghani
+  DZD: "dz", // Algerian Dinar
+  ARS: "ar", // Argentine Peso
+  AMD: "am", // Armenian Dram
+  AWG: "aw", // Aruban Florin
+  AZN: "az", // Azerbaijani Manat
+  BSD: "bs", // Bahamian Dollar
+  BBD: "bb", // Barbadian Dollar
+  BYN: "by", // Belarusian Ruble
+  BZD: "bz", // Belize Dollar
+  BMD: "bm", // Bermudan Dollar
+  BOB: "bo", // Bolivian Boliviano
+  BAM: "ba", // Bosnia-Herzegovina Convertible Mark
+  BWP: "bw", // Botswanan Pula
+  BGN: "bg", // Bulgarian Lev
+  BIF: "bi", // Burundian Franc
+  KHR: "kh", // Cambodian Riel
+  CVE: "cv", // Cape Verdean Escudo
+  XAF: "cm", // Central African CFA Franc - using Cameroon
+  CLP: "cl", // Chilean Peso
+  COP: "co", // Colombian Peso
+  KMF: "km", // Comorian Franc
+  CDF: "cd", // Congolese Franc
+  CRC: "cr", // Costa Rican Colón
+  HRK: "hr", // Croatian Kuna
+  CZK: "cz", // Czech Republic Koruna
+  DKK: "dk", // Danish Krone
+  DJF: "dj", // Djiboutian Franc
+  DOP: "do", // Dominican Peso
+  XCD: "ag", // East Caribbean Dollar - using Antigua and Barbuda
+  ETB: "et", // Ethiopian Birr
+  FJD: "fj", // Fijian Dollar
+  GMD: "gm", // Gambian Dalasi
+  GEL: "ge", // Georgian Lari
+  GHS: "gh", // Ghanaian Cedi
+  GTQ: "gt", // Guatemalan Quetzal
+  GNF: "gn", // Guinean Franc
+  GYD: "gy", // Guyanaese Dollar
+  HTG: "ht", // Haitian Gourde
+  HNL: "hn", // Honduran Lempira
+  HUF: "hu", // Hungarian Forint
+  ISK: "is", // Icelandic Króna
+  IRR: "ir", // Iranian Rial
+  IQD: "iq", // Iraqi Dinar
+  ILS: "il", // Israeli New Shekel
+  JMD: "jm", // Jamaican Dollar
+  JOD: "jo", // Jordanian Dinar
+  KZT: "kz", // Kazakhstani Tenge
+  KES: "ke", // Kenyan Shilling
+  LAK: "la", // Laotian Kip
+  LBP: "lb", // Lebanese Pound
+  LSL: "ls", // Lesotho Loti
+  LRD: "lr", // Liberian Dollar
+  LYD: "ly", // Libyan Dinar
+  MKD: "mk", // Macedonian Denar
+  MGA: "mg", // Malagasy Ariary
+  MWK: "mw", // Malawian Kwacha
+  MVR: "mv", // Maldivian Rufiyaa
+  MRU: "mr", // Mauritanian Ouguiya
+  MUR: "mu", // Mauritian Rupee
+  MDL: "md", // Moldovan Leu
+  MNT: "mn", // Mongolian Tugrik
+  MAD: "ma", // Moroccan Dirham
+  MMK: "mm", // Myanmar Kyat
+  NAD: "na", // Namibian Dollar
+  NPR: "np", // Nepalese Rupee
+  NIO: "ni", // Nicaraguan Córdoba
+  XOF: "sn", // West African CFA Franc - using Senegal
+  NOK: "no", // Norwegian Krone
+  PAB: "pa", // Panamanian Balboa
+  PGK: "pg", // Papua New Guinean Kina
+  PYG: "py", // Paraguayan Guarani
+  PEN: "pe", // Peruvian Nuevo Sol
+  PLN: "pl", // Polish Zloty
+  RON: "ro", // Romanian Leu
+  RWF: "rw", // Rwandan Franc
+  SVC: "sv", // Salvadoran Colón
+  WST: "ws", // Samoan Tala
+  STN: "st", // São Tomé and Príncipe Dobra
+  RSD: "rs", // Serbian Dinar
+  SLL: "sl", // Sierra Leonean Leone
+  SEK: "se", // Swedish Krona
+  SOS: "so", // Somali Shilling
+  SSP: "ss", // South Sudanese Pound
+  LKR: "lk", // Sri Lankan Rupee
+  SDG: "sd", // Sudanese Pound
+  SRD: "sr", // Surinamese Dollar
+  SZL: "sz", // Swazi Lilangeni
+  SYP: "sy", // Syrian Pound
+  TWD: "tw", // New Taiwan Dollar
+  TZS: "tz", // Tanzanian Shilling
+  TOP: "to", // Tongan Paʻanga
+  TTD: "tt", // Trinidad and Tobago Dollar
+  TND: "tn", // Tunisian Dinar
+  UGX: "ug", // Ugandan Shilling
+  UAH: "ua", // Ukrainian Hryvnia
+  UYU: "uy", // Uruguayan Peso
+  UZS: "uz", // Uzbekistan Som
+  VES: "ve", // Venezuelan Bolívar Soberano
+  YER: "ye", // Yemeni Rial
+  ZMW: "zm", // Zambian Kwacha
+  XPF: "pf", // CFP Franc - using French Polynesia
+  CUP: "cu", // Cuban Peso
+  FKP: "fk", // Falkland Islands Pound
+  GIP: "gi", // Gibraltar Pound
+  GGP: "gg", // Guernsey Pound
+  IMP: "im", // Isle of Man Pound
+  JEP: "je", // Jersey Pound
+  KPW: "kp", // North Korean Won
+  LVL: "lv", // Latvian Lats (historical)
+  LTL: "lt", // Lithuanian Litas (historical)
+  SHP: "sh", // Saint Helena Pound
+  SCR: "sc", // Seychellois Rupee
+  SBD: "sb", // Solomon Islands Dollar
+  TVD: "tv", // Tuvaluan Dollar
+  ZWD: "zw", // Zimbabwean Dollar (historical)
+  TMT: "tm", // Turkmenistan Manat
+  TJS: "tj", // Tajikistani Somoni
+  ANG: "cw", // Netherlands Antillean Guilder - using Curaçao
+  AOA: "ao", // Angolan Kwanza
+  BND: "bn", // Brunei Dollar
+  CUC: "cu", // Cuban Convertible Peso
+  ERN: "er", // Eritrean Nakfa
+  FOK: "fo", // Faroese Króna
+  KID: "ki", // Kiribati Dollar
+  MOP: "mo", // Macanese Pataca
+  SLE: "sl", // Sierra Leonean Leone (new)
+  // Handling special cases
+  XAU: "un", // Gold Ounce - using UN flag
+  XAG: "un", // Silver Ounce - using UN flag
+  XPT: "un", // Platinum Ounce - using UN flag
+  XDR: "un", // Special Drawing Rights - using UN flag
+  XTS: "un", // Testing Currency Code - using UN flag
+  XXX: "un"  // Unknown Currency - using UN flag
 };
 
 // Currency aliases for improved search
@@ -168,7 +202,6 @@ const currencyAliases: Record<string, string[]> = {
   KWD: ["kuwaiti dinar", "kuwait", "dinar"],
   AED: ["dirham", "emirati dirham", "uae", "united arab emirates", "dubai", "abu dhabi"],
   SAR: ["saudi riyal", "saudi arabia", "riyal"],
-  // Add more aliases as needed for other common currencies
   CAD: ["canadian dollar", "canada"],
   AUD: ["australian dollar", "australia"],
   NZD: ["new zealand dollar", "new zealand", "kiwi"],
@@ -184,7 +217,18 @@ const currencyAliases: Record<string, string[]> = {
   BRL: ["brazilian real", "brazil"],
   ZAR: ["south african rand", "south africa"],
   RUB: ["russian ruble", "russia"],
-  TRY: ["turkish lira", "turkey"]
+  TRY: ["turkish lira", "turkey"],
+  KRW: ["korean won", "south korea", "korea"],
+  TWD: ["taiwan dollar", "taiwan"],
+  ANG: ["netherlands antillean guilder", "netherlands antilles", "curacao", "sint maarten"],
+  AOA: ["angolan kwanza", "angola"],
+  BND: ["brunei dollar", "brunei"],
+  CUC: ["cuban convertible peso", "cuba"],
+  ERN: ["eritrean nakfa", "eritrea"],
+  FOK: ["faroese króna", "faroe islands"],
+  KID: ["kiribati dollar", "kiribati"],
+  MOP: ["macanese pataca", "macau"],
+  SLE: ["sierra leonean leone", "sierra leone"]
 };
 
 const CurrencyDropdown = ({
@@ -308,7 +352,7 @@ const CurrencyDropdown = ({
       <button
         id={id}
         className={`w-full flex items-center justify-between py-3 px-3 border border-gray-300 rounded-md bg-white text-left shadow-sm hover:shadow-md transition-all duration-300 ${
-          disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+          disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:border-blue-500 focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50"
         }`}
         onClick={() => !disabled && setIsOpen(!isOpen)}
         onKeyDown={handleKeyDown}
@@ -341,14 +385,20 @@ const CurrencyDropdown = ({
       </button>
 
       {isOpen && (
-        <div className="absolute z-50 mt-1 w-72 md:w-96 bg-white border border-gray-200 rounded-md shadow-lg">
+        <div 
+          className="absolute z-50 mt-1 w-72 md:w-96 bg-white border border-gray-200 rounded-md shadow-lg animate-fade-in"
+          style={{ 
+            animation: 'fade-in 0.2s ease-out',
+            transformOrigin: 'top center'
+          }}
+        >
           <div className="sticky top-0 bg-white p-2 border-b border-gray-200 z-10">
             <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
               <input
                 ref={searchInputRef}
                 type="text"
-                className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                 placeholder="Search currencies, countries, or codes..."
                 value={searchTerm}
                 onChange={(e) => {
@@ -373,7 +423,7 @@ const CurrencyDropdown = ({
                 filteredCurrencies.map((currency, index) => (
                   <li
                     key={currency.code}
-                    className={`px-3 py-2 cursor-pointer transition-colors ${
+                    className={`px-3 py-2 cursor-pointer transition-all duration-150 ${
                       currency.code === value ? "bg-blue-100" : "hover:bg-blue-50"
                     } ${index === highlightedIndex ? "bg-blue-50" : ""}`}
                     onClick={() => {

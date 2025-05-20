@@ -12,6 +12,10 @@ const Index = () => {
       <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-gradient-to-r from-green-200/20 to-emerald-200/20 rounded-full blur-3xl transform -translate-x-1/2 -translate-y-1/2 animate-float-fast"></div>
       <div className="absolute bottom-1/4 right-1/3 w-64 h-64 bg-gradient-to-l from-yellow-200/20 to-orange-200/20 rounded-full blur-3xl animate-pulse-gentle"></div>
       
+      {/* Additional animated layers for professional effect */}
+      <div className="absolute top-1/4 left-1/3 w-48 h-48 bg-gradient-to-r from-blue-300/15 to-cyan-300/15 rounded-full blur-3xl animate-floating-light"></div>
+      <div className="absolute bottom-1/3 right-1/4 w-72 h-72 bg-gradient-to-l from-purple-300/10 to-pink-300/10 rounded-full blur-3xl animate-glow"></div>
+      
       {/* Animated particles */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="particle particle-1"></div>
@@ -19,6 +23,9 @@ const Index = () => {
         <div className="particle particle-3"></div>
         <div className="particle particle-4"></div>
         <div className="particle particle-5"></div>
+        <div className="particle particle-6"></div>
+        <div className="particle particle-7"></div>
+        <div className="particle particle-8"></div>
       </div>
       
       <div className="w-full max-w-4xl animate-fade-in z-10">
@@ -26,7 +33,7 @@ const Index = () => {
           Currency Converter
         </h1>
         
-        <Card className="overflow-hidden backdrop-blur-sm border-gray-200 shadow-2xl transition-all duration-300 rounded-xl bg-white/95 hover:shadow-blue-200/50">
+        <Card className="overflow-hidden backdrop-blur-sm border-gray-200 shadow-2xl transition-all duration-300 rounded-xl bg-white/95 hover:shadow-blue-200/50 transform hover:-translate-y-1">
           <CardContent className="p-6 md:p-8 relative overflow-hidden">
             {/* Enhanced decorative elements */}
             <div className="absolute -top-24 -right-24 w-48 h-48 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-full blur-2xl"></div>
@@ -37,8 +44,8 @@ const Index = () => {
           </CardContent>
         </Card>
         
-        <div className="mt-6 text-center text-sm">
-          <p className="text-indigo-700 font-medium">Exchange rates updated in real-time with accurate data</p>
+        <div className="mt-6 text-center text-sm animate-fade-in" style={{ animationDelay: '0.3s' }}>
+          <p className="text-indigo-700 font-medium">Real-time exchange rates from ExchangeRate.host API</p>
           <p className="text-blue-600 mt-1">Supports 170+ currencies worldwide</p>
         </div>
       </div>
