@@ -7,41 +7,7 @@
   text-align: center;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
-}
-
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
-}
-
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
-}
+/* ... keep existing code (logo animation and basic app styles) */
 
 /* Currency converter specific styles */
 .currency-input:focus {
@@ -160,4 +126,67 @@
 .fi {
   line-height: 1em;
   vertical-align: middle;
+}
+
+/* Floating particles */
+.particle {
+  position: absolute;
+  border-radius: 50%;
+  background: linear-gradient(to right, rgba(255,255,255,0.3), rgba(220,220,255,0.5));
+  pointer-events: none;
+}
+
+.particle-1 {
+  width: 5px;
+  height: 5px;
+  top: 20%;
+  left: 20%;
+  animation: float-particle 15s infinite ease-in-out;
+}
+
+.particle-2 {
+  width: 8px;
+  height: 8px;
+  top: 40%;
+  right: 30%;
+  animation: float-particle 20s infinite ease-in-out 1s;
+}
+
+.particle-3 {
+  width: 6px;
+  height: 6px;
+  bottom: 30%;
+  left: 40%;
+  animation: float-particle 18s infinite ease-in-out 2s;
+}
+
+.particle-4 {
+  width: 4px;
+  height: 4px;
+  top: 70%;
+  right: 15%;
+  animation: float-particle 22s infinite ease-in-out;
+}
+
+.particle-5 {
+  width: 7px;
+  height: 7px;
+  bottom: 20%;
+  right: 40%;
+  animation: float-particle 25s infinite ease-in-out 1.5s;
+}
+
+@keyframes float-particle {
+  0%, 100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  25% {
+    transform: translate(50px, 30px) rotate(90deg);
+  }
+  50% {
+    transform: translate(0, 60px) rotate(180deg);
+  }
+  75% {
+    transform: translate(-50px, 30px) rotate(270deg);
+  }
 }

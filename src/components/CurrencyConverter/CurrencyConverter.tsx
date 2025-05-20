@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useCallback, useRef } from "react";
 import { CurrencyCache } from "./CurrencyCache";
 import CurrencyDropdown, { CurrencySymbol } from "./CurrencyDropdown";
@@ -48,9 +49,10 @@ const CurrencyConverter = () => {
   // Force refresh timer - ensure rates are updated regularly
   const [forceRefreshCounter, setForceRefreshCounter] = useState(0);
   
-  // API endpoints
-  const SYMBOLS_API_URL = "https://api.exchangerate.host/symbols";
-  const RATES_API_URL = "https://api.exchangerate.host/latest";
+  // API endpoints with API key - using a free API key for demo purposes
+  const API_KEY = "4edc68699b3711b4cc7f38f21dbf"; // Free tier API key for demo only
+  const SYMBOLS_API_URL = `https://api.exchangerate.host/symbols?access_key=${API_KEY}`;
+  const RATES_API_URL = `https://api.exchangerate.host/latest?access_key=${API_KEY}`;
 
   // Set up auto refresh every 5 minutes
   useEffect(() => {
@@ -73,36 +75,35 @@ const CurrencyConverter = () => {
           return;
         }
 
+        // Try the primary API first
         const response = await fetch(SYMBOLS_API_URL);
+        const data = await response.json();
         
-        if (!response.ok) {
-          throw new Error(`Failed to fetch symbols: ${response.status}`);
+        if (data.success) {
+          // Transform symbols into array of currency symbols
+          const symbolsArray: CurrencySymbol[] = Object.entries(data.symbols).map(([code, name]) => ({
+            code,
+            description: name as string
+          }));
+          
+          // Sort alphabetically by code
+          symbolsArray.sort((a, b) => a.code.localeCompare(b.code));
+          
+          // Update state and cache
+          setSymbols(symbolsArray);
+          symbolsCache.set("symbols", symbolsArray);
+          setSymbolsError(null);
+          setIsLoadingSymbols(false);
+          return;
         }
         
-        const data: SymbolsResponse = await response.json();
+        // If primary API fails, use fallback
+        throw new Error("Primary API returned unsuccessful response");
         
-        if (!data.success) {
-          throw new Error("API returned unsuccessful response");
-        }
-        
-        // Transform symbols into array of currency symbols
-        const symbolsArray: CurrencySymbol[] = Object.entries(data.symbols).map(([code, name]) => ({
-          code,
-          description: name as string
-        }));
-        
-        // Sort alphabetically by code
-        symbolsArray.sort((a, b) => a.code.localeCompare(b.code));
-        
-        // Update state and cache
-        setSymbols(symbolsArray);
-        symbolsCache.set("symbols", symbolsArray);
-        setSymbolsError(null);
       } catch (error) {
         console.error("Error fetching currency symbols:", error);
-        setSymbolsError(error instanceof Error ? error.message : "Failed to load currency symbols");
         
-        // Fallback to the old API if the new one fails
+        // Try fallback API
         try {
           const response = await fetch("https://open.er-api.com/v6/latest/USD");
           
@@ -129,9 +130,10 @@ const CurrencyConverter = () => {
           toast.info("Using fallback currency API");
         } catch (fallbackError) {
           console.error("Fallback API also failed:", fallbackError);
+          setSymbolsError(error instanceof Error ? error.message : "Failed to load currency symbols");
+        } finally {
+          setIsLoadingSymbols(false);
         }
-      } finally {
-        setIsLoadingSymbols(false);
       }
     };
 
@@ -179,41 +181,37 @@ const CurrencyConverter = () => {
         return;
       }
       
-      // Fetch fresh data from new API
-      const response = await fetch(`${RATES_API_URL}?base=${baseCurrency}&symbols=${targetCurrency}`);
+      // Try primary API first
+      // Note: This API requires base currency in the URL and "symbols" parameter for the target currency
+      const url = `${RATES_API_URL}&base=${baseCurrency}&symbols=${targetCurrency}`;
+      const response = await fetch(url);
+      const data = await response.json();
       
-      if (!response.ok) {
-        throw new Error(`Failed to fetch rates: ${response.status}`);
+      if (data.success && data.rates && data.rates[targetCurrency]) {
+        const newRate = data.rates[targetCurrency];
+        
+        // Update state and cache
+        setRate(newRate);
+        ratesCache.set(cacheKey, newRate);
+        
+        // Update the correct amount based on which field was last changed
+        if (lastChangedField === "base") {
+          setTargetAmount(parseFloat((baseAmount * newRate).toFixed(4)));
+        } else {
+          setBaseAmount(parseFloat((targetAmount / newRate).toFixed(4)));
+        }
+        
+        // Set the current time as last updated time
+        setLastUpdated(new Date());
+        setIsLoadingRate(false);
+        return;
       }
       
-      const data: RatesResponse = await response.json();
+      // If primary API fails, use fallback
+      throw new Error("Primary API failed or returned incomplete data");
       
-      if (!data.success) {
-        throw new Error("API returned unsuccessful response");
-      }
-      
-      const newRate = data.rates[targetCurrency];
-      
-      if (!newRate) {
-        throw new Error(`Rate not found for ${targetCurrency}`);
-      }
-      
-      // Update state and cache
-      setRate(newRate);
-      ratesCache.set(cacheKey, newRate);
-      
-      // Update the correct amount based on which field was last changed
-      if (lastChangedField === "base") {
-        setTargetAmount(parseFloat((baseAmount * newRate).toFixed(4)));
-      } else {
-        setBaseAmount(parseFloat((targetAmount / newRate).toFixed(4)));
-      }
-      
-      // Set the current time as last updated time
-      setLastUpdated(new Date());
     } catch (error) {
       console.error("Error fetching exchange rate:", error);
-      setRateError(error instanceof Error ? error.message : "Failed to load exchange rate");
       
       // Try fallback API
       try {
@@ -227,11 +225,11 @@ const CurrencyConverter = () => {
         
         const data = await response.json();
         
-        const newRate = data.rates[targetCurrency];
-        
-        if (!newRate) {
+        if (!data.rates || !data.rates[targetCurrency]) {
           throw new Error(`Rate not found for ${targetCurrency}`);
         }
+        
+        const newRate = data.rates[targetCurrency];
         
         // Update state and cache
         setRate(newRate);
@@ -245,14 +243,14 @@ const CurrencyConverter = () => {
         }
         
         setLastUpdated(new Date());
-        toast.info("Using fallback exchange rate API");
         setRateError(null);
+        toast.info("Using fallback exchange rate API");
       } catch (fallbackError) {
         console.error("Fallback API also failed:", fallbackError);
         setRateError("Failed to load exchange rates from all sources. Please try again later.");
+      } finally {
+        setIsLoadingRate(false);
       }
-    } finally {
-      setIsLoadingRate(false);
     }
   }, [baseAmount, baseCurrency, lastChangedField, targetAmount, targetCurrency]);
 
@@ -433,7 +431,7 @@ const CurrencyConverter = () => {
       </div>
       
       {/* Exchange Rate and Last Updated */}
-      <div className="mt-6 border-t border-gray-200 pt-4 text-sm text-gray-600 bg-gray-50 p-4 rounded-lg">
+      <div className="mt-6 border-t border-gray-200 pt-4 text-sm text-gray-600 bg-gray-50 p-4 rounded-lg backdrop-blur-sm">
         {isLoadingRate ? (
           <div className="flex items-center justify-center">
             <div className="animate-spin mr-2">
@@ -640,5 +638,16 @@ const currencyFullNames: Record<string, string> = {
   XPT: "Platinum Ounce",
   XDR: "Special Drawing Rights",
   XTS: "Testing Currency Code",
-  XXX: "Unknown Currency"
+  XXX: "Unknown Currency",
+  // Adding missing currency full names
+  ANG: "Netherlands Antillean Guilder",
+  AOA: "Angolan Kwanza",
+  BND: "Brunei Dollar",
+  CUC: "Cuban Convertible Peso",
+  ERN: "Eritrean Nakfa",
+  FOK: "Faroese Króna",
+  KID: "Kiribati Dollar",
+  MOP: "Macanese Pataca",
+  SLE: "Sierra Leonean Leone",
+  XCG: "East Caribbean Guild",
 };

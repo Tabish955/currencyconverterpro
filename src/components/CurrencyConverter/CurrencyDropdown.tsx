@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { ChevronDown, ChevronUp, Search } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -166,8 +167,24 @@ const currencyAliases: Record<string, string[]> = {
   PKR: ["pakistani rupee", "pakistan"],
   KWD: ["kuwaiti dinar", "kuwait", "dinar"],
   AED: ["dirham", "emirati dirham", "uae", "united arab emirates", "dubai", "abu dhabi"],
-  SAR: ["saudi riyal", "saudi arabia", "riyal"]
-  // Add more aliases as needed
+  SAR: ["saudi riyal", "saudi arabia", "riyal"],
+  // Add more aliases as needed for other common currencies
+  CAD: ["canadian dollar", "canada"],
+  AUD: ["australian dollar", "australia"],
+  NZD: ["new zealand dollar", "new zealand", "kiwi"],
+  CHF: ["swiss franc", "switzerland"],
+  CNY: ["chinese yuan", "china", "renminbi"],
+  HKD: ["hong kong dollar", "hong kong"],
+  SGD: ["singapore dollar", "singapore"],
+  MYR: ["malaysian ringgit", "malaysia"],
+  THB: ["thai baht", "thailand"],
+  IDR: ["indonesian rupiah", "indonesia"],
+  PHP: ["philippine peso", "philippines"],
+  MXN: ["mexican peso", "mexico"],
+  BRL: ["brazilian real", "brazil"],
+  ZAR: ["south african rand", "south africa"],
+  RUB: ["russian ruble", "russia"],
+  TRY: ["turkish lira", "turkey"]
 };
 
 const CurrencyDropdown = ({
