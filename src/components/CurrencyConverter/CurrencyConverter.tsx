@@ -5,54 +5,106 @@ import CurrencyDropdown, { CurrencySymbol } from "./CurrencyDropdown";
 import CurrencyInput from "./CurrencyInput";
 import ErrorDisplay from "./ErrorDisplay";
 import LoadingState from "./LoadingState";
-import { ArrowDownUp, RefreshCw } from "lucide-react";
+import { ArrowDownUp, RefreshCw, WifiOff } from "lucide-react";
 import { toast } from "sonner";
+import { 
+  retryWithBackoff,
+  saveToCache,
+  getFromCache,
+  getLastUpdateTime,
+  formatRelativeTime,
+  CACHE_KEYS
+} from "./ApiUtils";
+
+// Updated API endpoints for free access without API key
+const SYMBOLS_API_URL = "https://openexchangerates.org/api/currencies.json";
+const RATES_BASE_URL = "https://open.er-api.com/v6/latest";
 
 // Type definitions
 interface SymbolsResponse {
-  success: boolean;
-  symbols: Record<string, string>;
+  [key: string]: string;
 }
 
 interface RatesResponse {
-  success: boolean;
+  result: string;
+  base_code: string;
+  time_last_update_utc: string;
   rates: Record<string, number>;
-  base: string;
-  date: string;
 }
 
 // Initialize cache
 const symbolsCache = new CurrencyCache<CurrencySymbol[]>(24 * 60 * 60 * 1000); // 24 hours 
 const ratesCache = new CurrencyCache<number>(5 * 60 * 1000); // 5 minutes
 
+// Map ISO currency codes to country codes for flags
+const currencyToCountryMap: Record<string, string> = {
+  EUR: "eu", // European Union
+  USD: "us", // United States
+  JPY: "jp", // Japan
+  GBP: "gb", // United Kingdom
+  AUD: "au", // Australia
+  CAD: "ca", // Canada
+  CHF: "ch", // Switzerland
+  CNY: "cn", // China
+  HKD: "hk", // Hong Kong
+  NZD: "nz", // New Zealand
+  SEK: "se", // Sweden
+  KRW: "kr", // South Korea
+  SGD: "sg", // Singapore
+  NOK: "no", // Norway
+  MXN: "mx", // Mexico
+  INR: "in", // India
+  RUB: "ru", // Russia
+  ZAR: "za", // South Africa
+  TRY: "tr", // Turkey
+  BRL: "br", // Brazil
+  TWD: "tw", // Taiwan
+  DKK: "dk", // Denmark
+  PLN: "pl", // Poland
+  THB: "th", // Thailand
+  IDR: "id", // Indonesia
+  HUF: "hu", // Hungary
+  CZK: "cz", // Czech Republic
+  ILS: "il", // Israel
+  CLP: "cl", // Chile
+  PHP: "ph", // Philippines
+  AED: "ae", // United Arab Emirates
+  COP: "co", // Colombia
+  SAR: "sa", // Saudi Arabia
+  MYR: "my", // Malaysia
+  RON: "ro", // Romania
+  // Add more mappings as needed
+};
+
 const CurrencyConverter = () => {
   // State for currency symbols
   const [symbols, setSymbols] = useState<CurrencySymbol[]>([]);
   const [isLoadingSymbols, setIsLoadingSymbols] = useState(true);
   const [symbolsError, setSymbolsError] = useState<string | null>(null);
-
+  const [symbolsRetryAttempt, setSymbolsRetryAttempt] = useState(0);
+  
+  // State for offline mode
+  const [isOfflineMode, setIsOfflineMode] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  
   // State for selected currencies and amounts
   const [baseAmount, setBaseAmount] = useState(1);
   const [targetAmount, setTargetAmount] = useState(0);
-  const [baseCurrency, setBaseCurrency] = useState("KWD"); // Set default to KWD (Kuwaiti Dinar)
-  const [targetCurrency, setTargetCurrency] = useState("PKR"); // Set default to PKR (Pakistani Rupee)
+  const [baseCurrency, setBaseCurrency] = useState("USD"); // Default to USD
+  const [targetCurrency, setTargetCurrency] = useState("EUR"); // Default to EUR
   
   // Track which field was last changed to prevent ping-pong effect
   const [lastChangedField, setLastChangedField] = useState<"base" | "target">("base");
-
+  
   // State for exchange rate
   const [rate, setRate] = useState<number | null>(null);
   const [isLoadingRate, setIsLoadingRate] = useState(false);
   const [rateError, setRateError] = useState<string | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-
+  const [rateRetryAttempt, setRateRetryAttempt] = useState(0);
+  
   // Force refresh timer - ensure rates are updated regularly
   const [forceRefreshCounter, setForceRefreshCounter] = useState(0);
   
-  // API endpoints for ExchangeRate.host API
-  const SYMBOLS_API_URL = "https://api.exchangerate.host/symbols";
-  const RATES_BASE_URL = "https://api.exchangerate.host/latest";
-
   // Set up auto refresh every 5 minutes
   useEffect(() => {
     const refreshInterval = setInterval(() => {
@@ -61,57 +113,78 @@ const CurrencyConverter = () => {
     
     return () => clearInterval(refreshInterval);
   }, []);
-
+  
   // Fetch currency symbols
-  useEffect(() => {
-    const fetchSymbols = async () => {
-      try {
-        // Check cache first
-        const cachedSymbols = symbolsCache.get("symbols");
-        if (cachedSymbols) {
-          setSymbols(cachedSymbols);
-          setIsLoadingSymbols(false);
-          return;
-        }
-
+  const fetchSymbols = useCallback(async (retry = false) => {
+    try {
+      setIsLoadingSymbols(true);
+      if (retry) setSymbolsRetryAttempt(prev => prev + 1);
+      setSymbolsError(null);
+      
+      // Check cache first
+      const cachedSymbols = symbolsCache.get("symbols") || getFromCache<CurrencySymbol[]>(CACHE_KEYS.SYMBOLS);
+      if (cachedSymbols && !retry) {
+        setSymbols(cachedSymbols);
+        setIsLoadingSymbols(false);
+        return;
+      }
+      
+      // Fetch with retry logic
+      const data = await retryWithBackoff<SymbolsResponse>(async () => {
         const response = await fetch(SYMBOLS_API_URL);
         if (!response.ok) {
           throw new Error(`Failed to fetch symbols: ${response.status}`);
         }
+        return response.json();
+      });
+      
+      // Transform symbols into array of currency symbols
+      const symbolsArray: CurrencySymbol[] = Object.entries(data).map(([code, name]) => {
+        // Find country code for flag
+        const countryCode = currencyToCountryMap[code] || code.substring(0, 2).toLowerCase();
         
-        const data: SymbolsResponse = await response.json();
+        return {
+          code,
+          description: name as string,
+          countryCode
+        };
+      });
+      
+      // Sort alphabetically by code
+      symbolsArray.sort((a, b) => a.code.localeCompare(b.code));
+      
+      // Update state and cache
+      setSymbols(symbolsArray);
+      symbolsCache.set("symbols", symbolsArray);
+      saveToCache(CACHE_KEYS.SYMBOLS, symbolsArray);
+      setSymbolsError(null);
+      setIsOfflineMode(false);
+      
+    } catch (error) {
+      console.error("Error fetching currency symbols:", error);
+      
+      // Try to get from localStorage as last resort
+      const cachedSymbols = getFromCache<CurrencySymbol[]>(CACHE_KEYS.SYMBOLS);
+      if (cachedSymbols && cachedSymbols.length > 0) {
+        setSymbols(cachedSymbols);
+        setIsOfflineMode(true);
         
-        if (data.success) {
-          // Transform symbols into array of currency symbols
-          const symbolsArray: CurrencySymbol[] = Object.entries(data.symbols).map(([code, name]) => ({
-            code,
-            description: name as string
-          }));
-          
-          // Sort alphabetically by code
-          symbolsArray.sort((a, b) => a.code.localeCompare(b.code));
-          
-          // Update state and cache
-          setSymbols(symbolsArray);
-          symbolsCache.set("symbols", symbolsArray);
-          setSymbolsError(null);
-        } else {
-          throw new Error("API returned unsuccessful response");
-        }
-      } catch (error) {
-        console.error("Error fetching currency symbols:", error);
-        setSymbolsError(error instanceof Error ? error.message : "Failed to load currency symbols");
-        toast.error("Failed to load currencies. Please try again.");
-      } finally {
-        setIsLoadingSymbols(false);
+        const lastUpdateTime = getLastUpdateTime();
+        if (lastUpdateTime) setLastUpdated(lastUpdateTime);
+        
+        toast.warning("Using cached currency data. Some information may be outdated.");
+      } else {
+        setSymbolsError("Failed to load currency data. Please check your connection and try again.");
+        toast.error("Unable to load currency data");
       }
-    };
-
-    fetchSymbols();
+    } finally {
+      setIsLoadingSymbols(false);
+      setSymbolsRetryAttempt(0);
+    }
   }, []);
-
+  
   // Fetch exchange rate when currencies change or when conversion is needed
-  const fetchExchangeRate = useCallback(async () => {
+  const fetchExchangeRate = useCallback(async (retry = false) => {
     // Don't fetch if currencies are the same
     if (baseCurrency === targetCurrency) {
       setRate(1);
@@ -129,74 +202,120 @@ const CurrencyConverter = () => {
     
     try {
       setIsLoadingRate(true);
+      if (retry) setRateRetryAttempt(prev => prev + 1);
       setRateError(null);
       
       // Generate cache key
       const cacheKey = `${baseCurrency}-${targetCurrency}`;
       
-      // Check cache first
+      // Check in-memory cache first
       const cachedRate = ratesCache.get(cacheKey);
-      if (cachedRate !== null) {
+      if (cachedRate !== null && !retry) {
         setRate(cachedRate);
-        
-        // Update amounts based on which field was last changed
-        if (lastChangedField === "base") {
-          setTargetAmount(parseFloat((baseAmount * cachedRate).toFixed(4)));
-        } else {
-          setBaseAmount(parseFloat((targetAmount / cachedRate).toFixed(4)));
-        }
-        
+        updateAmounts(cachedRate);
         setLastUpdated(new Date());
         setIsLoadingRate(false);
         return;
       }
       
-      // Direct API call to ExchangeRate.host
-      const url = `${RATES_BASE_URL}?base=${baseCurrency}&symbols=${targetCurrency}`;
-      const response = await fetch(url);
+      // Check localStorage cache
+      const localCacheKey = `${CACHE_KEYS.RATES_PREFIX}${cacheKey}`;
+      const cachedRateData = !retry ? getFromCache<{rate: number, timestamp: string}>(localCacheKey) : null;
       
-      if (!response.ok) {
-        throw new Error(`Failed to fetch rates: ${response.status}`);
+      if (cachedRateData && !retry) {
+        setRate(cachedRateData.rate);
+        updateAmounts(cachedRateData.rate);
+        setLastUpdated(new Date(cachedRateData.timestamp));
+        setIsLoadingRate(false);
+        return;
       }
       
-      const data = await response.json();
+      // Fetch with retry logic
+      const data = await retryWithBackoff<RatesResponse>(async () => {
+        // Using Open Exchange Rates API which allows direct base-to-target conversion
+        const url = `${RATES_BASE_URL}/${baseCurrency}`;
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch rates: ${response.status}`);
+        }
+        
+        return response.json();
+      });
       
-      if (data.success !== false && data.rates && data.rates[targetCurrency]) {
+      if (data.result === "success" && data.rates && data.rates[targetCurrency]) {
         const newRate = data.rates[targetCurrency];
         
         // Update state and cache
         setRate(newRate);
         ratesCache.set(cacheKey, newRate);
         
+        // Store in localStorage with timestamp
+        const timestamp = new Date();
+        saveToCache(localCacheKey, {
+          rate: newRate,
+          timestamp: timestamp.toISOString()
+        });
+        
         // Update the correct amount based on which field was last changed
-        if (lastChangedField === "base") {
-          setTargetAmount(parseFloat((baseAmount * newRate).toFixed(4)));
-        } else {
-          setBaseAmount(parseFloat((targetAmount / newRate).toFixed(4)));
-        }
+        updateAmounts(newRate);
         
         // Set the current time as last updated time
-        setLastUpdated(new Date());
+        setLastUpdated(timestamp);
         setRateError(null);
+        setIsOfflineMode(false);
       } else {
         throw new Error(`Rate not found for ${targetCurrency}`);
       }
     } catch (error) {
       console.error("Error fetching exchange rate:", error);
-      setRateError("Failed to load exchange rates. Please try again later.");
-      toast.error("Failed to get current rates. Please try again.");
+      
+      // Try to get from localStorage as last resort
+      const localCacheKey = `${CACHE_KEYS.RATES_PREFIX}${baseCurrency}-${targetCurrency}`;
+      const cachedRateData = getFromCache<{rate: number, timestamp: string}>(localCacheKey);
+      
+      if (cachedRateData) {
+        // Use cached data but show a notification
+        setRate(cachedRateData.rate);
+        updateAmounts(cachedRateData.rate);
+        setLastUpdated(new Date(cachedRateData.timestamp));
+        setIsOfflineMode(true);
+        
+        toast.warning(
+          `Using cached exchange rates from ${formatRelativeTime(new Date(cachedRateData.timestamp))}`,
+          { icon: <WifiOff className="h-4 w-4" /> }
+        );
+      } else {
+        setRateError("Failed to load exchange rates. Please try again later.");
+        toast.error("Unable to get current rates");
+      }
     } finally {
       setIsLoadingRate(false);
+      setRateRetryAttempt(0);
     }
   }, [baseAmount, baseCurrency, lastChangedField, targetAmount, targetCurrency]);
-
+  
+  // Helper function to update amounts based on the rate and which field was last changed
+  const updateAmounts = (currentRate: number) => {
+    if (lastChangedField === "base") {
+      setTargetAmount(parseFloat((baseAmount * currentRate).toFixed(4)));
+    } else {
+      setBaseAmount(parseFloat((targetAmount / currentRate).toFixed(4)));
+    }
+  };
+  
+  // Initial load of symbols
+  useEffect(() => {
+    fetchSymbols();
+  }, [fetchSymbols]);
+  
   // Effect to trigger rate fetch when currencies change or the forceRefreshCounter changes
   useEffect(() => {
     if (baseCurrency && targetCurrency) {
       fetchExchangeRate();
     }
   }, [baseCurrency, targetCurrency, fetchExchangeRate, forceRefreshCounter]);
-
+  
   // Handle base amount change
   const handleBaseAmountChange = (value: number) => {
     setBaseAmount(value);
@@ -211,7 +330,7 @@ const CurrencyConverter = () => {
       fetchExchangeRate();
     }
   };
-
+  
   // Handle target amount change
   const handleTargetAmountChange = (value: number) => {
     setTargetAmount(value);
@@ -226,20 +345,20 @@ const CurrencyConverter = () => {
       fetchExchangeRate();
     }
   };
-
+  
   // Handle currency changes
   const handleBaseCurrencyChange = (value: string) => {
     setBaseCurrency(value);
     setLastChangedField("base");
     // Rate fetch will be triggered by useEffect
   };
-
+  
   const handleTargetCurrencyChange = (value: string) => {
     setTargetCurrency(value);
     setLastChangedField("target");
     // Rate fetch will be triggered by useEffect
   };
-
+  
   // Format the last updated date
   const formattedLastUpdated = lastUpdated 
     ? lastUpdated.toLocaleTimeString(undefined, { 
@@ -248,7 +367,7 @@ const CurrencyConverter = () => {
         hour12: true 
       })
     : '';
-
+  
   // Handle currency swap
   const handleSwapCurrencies = () => {
     // Swap currencies
@@ -262,7 +381,7 @@ const CurrencyConverter = () => {
     setBaseAmount(tempTargetAmount);
     setTargetAmount(tempBaseAmount);
   };
-
+  
   // Manual rate refresh
   const handleRefreshRate = () => {
     // Force clear the cache for this currency pair
@@ -270,23 +389,54 @@ const CurrencyConverter = () => {
     ratesCache.remove(cacheKey);
     
     // Fetch fresh rates
-    fetchExchangeRate();
+    fetchExchangeRate(true);
     
     toast.success("Refreshing exchange rates");
   };
-
-  // Show loading state if we're still loading the initial symbols
-  if (isLoadingSymbols) {
-    return <LoadingState message="Loading currencies..." />;
+  
+  // If we're still loading the initial symbols and there's no error, show loading state
+  if (isLoadingSymbols && !symbolsError) {
+    return <LoadingState message="Loading currencies..." attempt={symbolsRetryAttempt || undefined} />;
   }
-
-  // Show error if we failed to load symbols
-  if (symbolsError) {
-    return <ErrorDisplay message={symbolsError} />;
+  
+  // If we have a fatal error and no cached data, show the full error screen
+  if (symbolsError && symbols.length === 0) {
+    return <ErrorDisplay message={symbolsError} onRetry={() => fetchSymbols(true)} />;
   }
-
+  
   return (
     <div className="w-full">
+      {/* Offline mode banner */}
+      {isOfflineMode && lastUpdated && (
+        <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg animate-fade-in">
+          <div className="flex items-center">
+            <WifiOff className="h-4 w-4 text-amber-500 mr-2" />
+            <span className="text-sm text-amber-700">
+              Offline mode: showing last known rates from {formatRelativeTime(lastUpdated)}
+            </span>
+            <button
+              onClick={() => {
+                fetchSymbols(true);
+                fetchExchangeRate(true);
+              }}
+              className="ml-auto text-xs bg-amber-100 hover:bg-amber-200 text-amber-800 px-2 py-1 rounded-md transition-colors flex items-center"
+            >
+              <RefreshCw className="h-3 w-3 mr-1" />
+              Go online
+            </button>
+          </div>
+        </div>
+      )}
+      
+      {/* Rate error display (non-blocking) */}
+      {rateError && (
+        <ErrorDisplay 
+          message={rateError} 
+          onRetry={() => fetchExchangeRate(true)} 
+          inline 
+        />
+      )}
+      
       {/* Currency Converter Form */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Base Currency Column */}
@@ -313,7 +463,7 @@ const CurrencyConverter = () => {
             />
           </div>
         </div>
-
+        
         {/* Swap Button (visible only on mobile) */}
         <div className="md:hidden flex justify-center my-2">
           <button
@@ -325,7 +475,7 @@ const CurrencyConverter = () => {
             <ArrowDownUp className="h-5 w-5" />
           </button>
         </div>
-
+        
         {/* Target Currency Column */}
         <div className="transition-all duration-300 hover:transform hover:translate-y-[-5px]">
           <div className="mb-3 relative">
@@ -333,7 +483,7 @@ const CurrencyConverter = () => {
               <label htmlFor="targetAmount" className="block text-sm font-medium text-gray-700">
                 To
               </label>
-
+              
               {/* Swap Button (visible only on desktop) */}
               <button
                 onClick={handleSwapCurrencies}
@@ -345,7 +495,7 @@ const CurrencyConverter = () => {
                 <span>Swap</span>
               </button>
             </div>
-
+            
             <div className="mb-2">
               <CurrencyDropdown
                 id="targetCurrency"
@@ -373,18 +523,7 @@ const CurrencyConverter = () => {
             <div className="animate-spin mr-2">
               <RefreshCw className="h-4 w-4" />
             </div>
-            <span>Fetching latest rates...</span>
-          </div>
-        ) : rateError ? (
-          <div className="text-red-600 flex items-center justify-center">
-            <span>{rateError}</span>
-            <button
-              onClick={handleRefreshRate}
-              className="ml-2 text-blue-500 hover:text-blue-600 underline"
-              aria-label="Try again"
-            >
-              Try again
-            </button>
+            <span>Fetching latest rates{rateRetryAttempt > 0 ? ` (attempt ${rateRetryAttempt} of 3)` : ''}...</span>
           </div>
         ) : rate ? (
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
@@ -395,7 +534,9 @@ const CurrencyConverter = () => {
             </div>
             {lastUpdated && (
               <div className="flex items-center mt-2 sm:mt-0">
-                <span className="text-gray-500 mr-2">Updated {formattedLastUpdated}</span>
+                <span className="text-gray-500 mr-2">
+                  {isOfflineMode ? 'Cached' : 'Updated'} {formattedLastUpdated}
+                </span>
                 <button
                   onClick={handleRefreshRate}
                   className="text-blue-500 hover:text-blue-600 flex items-center bg-white px-3 py-1 rounded-md shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-105"

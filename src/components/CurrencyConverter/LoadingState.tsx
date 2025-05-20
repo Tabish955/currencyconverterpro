@@ -3,9 +3,10 @@ import React from "react";
 
 interface LoadingStateProps {
   message: string;
+  attempt?: number;
 }
 
-const LoadingState = ({ message }: LoadingStateProps) => {
+const LoadingState = ({ message, attempt }: LoadingStateProps) => {
   return (
     <div className="w-full max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden backdrop-blur-sm animate-fade-in">
       <div className="p-8">
@@ -17,7 +18,9 @@ const LoadingState = ({ message }: LoadingStateProps) => {
             </div>
           </div>
           <p className="text-gray-600 text-xl font-medium">{message}</p>
-          <p className="text-gray-400 text-sm mt-2">This will only take a moment</p>
+          <p className="text-gray-400 text-sm mt-2">
+            {attempt ? `Attempt ${attempt} of 3...` : 'This will only take a moment'}
+          </p>
         </div>
       </div>
     </div>
