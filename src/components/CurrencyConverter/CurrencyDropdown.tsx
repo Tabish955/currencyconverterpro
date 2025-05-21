@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { ChevronDown, ChevronUp, Search } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -165,7 +166,108 @@ const currencyToCountryMap: Record<string, string> = {
   XAU: "un", // Gold - UN flag
   XAG: "un", // Silver - UN flag
   XDR: "un", // SDR - UN flag
-  // Removed the duplicate DOP entry
+  // Additional currencies
+  AFN: "af", // Afghanistan
+  AOA: "ao", // Angola
+  ARS: "ar", // Argentina
+  AMD: "am", // Armenia
+  AWG: "aw", // Aruba
+  AZN: "az", // Azerbaijan
+  BSD: "bs", // Bahamas
+  BHD: "bh", // Bahrain
+  BDT: "bd", // Bangladesh
+  BBD: "bb", // Barbados
+  BYN: "by", // Belarus
+  BZD: "bz", // Belize
+  BMD: "bm", // Bermuda
+  BTN: "bt", // Bhutan
+  BOB: "bo", // Bolivia
+  BAM: "ba", // Bosnia and Herzegovina
+  BWP: "bw", // Botswana
+  BND: "bn", // Brunei
+  BIF: "bi", // Burundi
+  KHR: "kh", // Cambodia
+  CVE: "cv", // Cape Verde
+  KYD: "ky", // Cayman Islands
+  XAF: "cm", // Central African CFA franc
+  XPF: "pf", // CFP franc
+  CDF: "cd", // Congo
+  CUP: "cu", // Cuba
+  DJF: "dj", // Djibouti
+  DOP: "do", // Dominican Republic
+  XCD: "gd", // Eastern Caribbean dollar
+  SVC: "sv", // El Salvador
+  ERN: "er", // Eritrea
+  SZL: "sz", // Eswatini
+  ETB: "et", // Ethiopia
+  FKP: "fk", // Falkland Islands
+  GMD: "gm", // Gambia
+  GEL: "ge", // Georgia
+  GHS: "gh", // Ghana
+  GIP: "gi", // Gibraltar
+  GTQ: "gt", // Guatemala
+  GGP: "gg", // Guernsey
+  GNF: "gn", // Guinea
+  GYD: "gy", // Guyana
+  HTG: "ht", // Haiti
+  HNL: "hn", // Honduras
+  IMP: "im", // Isle of Man
+  JEP: "je", // Jersey
+  KES: "ke", // Kenya
+  KGS: "kg", // Kyrgyzstan
+  LAK: "la", // Laos
+  LBP: "lb", // Lebanon
+  LSL: "ls", // Lesotho
+  LRD: "lr", // Liberia
+  LYD: "ly", // Libya
+  MOP: "mo", // Macau
+  MGA: "mg", // Madagascar
+  MWK: "mw", // Malawi
+  MVR: "mv", // Maldives
+  MRU: "mr", // Mauritania
+  MUR: "mu", // Mauritius
+  MDL: "md", // Moldova
+  MNT: "mn", // Mongolia
+  MAD: "ma", // Morocco
+  MZN: "mz", // Mozambique
+  MMK: "mm", // Myanmar
+  NAD: "na", // Namibia
+  NPR: "np", // Nepal
+  NIO: "ni", // Nicaragua
+  NGN: "ng", // Nigeria
+  MKD: "mk", // North Macedonia
+  OMR: "om", // Oman
+  PAB: "pa", // Panama
+  PGK: "pg", // Papua New Guinea
+  PYG: "py", // Paraguay
+  PEN: "pe", // Peru
+  QAR: "qa", // Qatar
+  RWF: "rw", // Rwanda
+  WST: "ws", // Samoa
+  STN: "st", // São Tomé and Príncipe
+  RSD: "rs", // Serbia
+  SCR: "sc", // Seychelles
+  SLL: "sl", // Sierra Leone
+  SBD: "sb", // Solomon Islands
+  SOS: "so", // Somalia
+  SSP: "ss", // South Sudan
+  LKR: "lk", // Sri Lanka
+  SDG: "sd", // Sudan
+  SRD: "sr", // Suriname
+  SYP: "sy", // Syria
+  TJS: "tj", // Tajikistan
+  TZS: "tz", // Tanzania
+  TOP: "to", // Tonga
+  TTD: "tt", // Trinidad and Tobago
+  TMT: "tm", // Turkmenistan
+  UGX: "ug", // Uganda
+  UYU: "uy", // Uruguay
+  UZS: "uz", // Uzbekistan
+  VUV: "vu", // Vanuatu
+  VES: "ve", // Venezuela
+  YER: "ye", // Yemen
+  ZMW: "zm", // Zambia
+  ZWL: "zw"  // Zimbabwe
 };
 
 // Currency aliases for improved search
@@ -212,7 +314,9 @@ const currencyAliases: Record<string, string[]> = {
   MATIC: ["polygon", "matic"],
   AVAX: ["avalanche", "avax"],
   LINK: ["chainlink", "link"],
-  UNI: ["uniswap", "uni"]
+  UNI: ["uniswap", "uni"],
+  AFN: ["afghan afghani", "afghanistan"],
+  LKR: ["sri lankan rupee", "sri lanka"]
 };
 
 const CurrencyDropdown = ({
@@ -221,7 +325,7 @@ const CurrencyDropdown = ({
   onChange,
   currencies,
   disabled = false,
-  includeCrypto = false,
+  includeCrypto = true, // Changed default to true to always include crypto
   recentlyUsed = [],
 }: CurrencyDropdownProps) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -310,18 +414,13 @@ const CurrencyDropdown = ({
       ? fuseRef.current.search(searchTerm).map(result => result.item)
       : enrichedCurrencies;
 
-  // Determine which currencies to show based on includeCrypto prop
-  const displayedCurrencies = includeCrypto 
-    ? filteredCurrencies 
-    : filteredCurrencies.filter(currency => !currency.isCrypto);
-
   // Get recently used currencies - Fix the type predicate error
   const recentCurrencies = recentlyUsed
     .map(code => enrichedCurrencies.find(c => c.code === code))
     .filter((c): c is typeof enrichedCurrencies[0] => c !== undefined);
 
   // Group currencies by type (fiat and crypto)
-  const groupedCurrencies = displayedCurrencies.reduce<{
+  const groupedCurrencies = filteredCurrencies.reduce<{
     fiat: CurrencySymbol[];
     crypto: CurrencySymbol[];
   }>((acc, currency) => {
@@ -350,7 +449,7 @@ const CurrencyDropdown = ({
       case "ArrowDown":
         e.preventDefault();
         setHighlightedIndex((prevIndex) =>
-          Math.min(prevIndex + 1, displayedCurrencies.length - 1)
+          Math.min(prevIndex + 1, filteredCurrencies.length - 1)
         );
         scrollToHighlighted();
         break;
@@ -361,8 +460,8 @@ const CurrencyDropdown = ({
         break;
       case "Enter":
         e.preventDefault();
-        if (displayedCurrencies[highlightedIndex]) {
-          onChange(displayedCurrencies[highlightedIndex].code);
+        if (filteredCurrencies[highlightedIndex]) {
+          onChange(filteredCurrencies[highlightedIndex].code);
           setIsOpen(false);
           setSearchTerm("");
         }
@@ -501,11 +600,15 @@ const CurrencyDropdown = ({
 
       {isOpen && (
         <div 
-          className={`absolute ${dropdownPosition === 'top' ? 'bottom-full mb-1' : 'top-full mt-1'} left-0 z-50 w-72 md:w-96 bg-white border border-gray-200 rounded-md shadow-lg animate-fade-in fixed-dropdown`}
+          className={`fixed ${dropdownPosition === 'top' ? 'bottom-auto' : 'top-auto'} left-0 z-[9999] w-72 md:w-96 bg-white border border-gray-200 rounded-md shadow-lg animate-fade-in`}
           style={{ 
             animation: 'fade-in 0.2s ease-out',
             transformOrigin: dropdownPosition === 'top' ? 'bottom center' : 'top center',
-            maxHeight: '80vh'
+            maxHeight: '80vh',
+            position: 'absolute',
+            [dropdownPosition === 'top' ? 'bottom' : 'top']: '100%',
+            marginTop: dropdownPosition === 'top' ? '' : '4px',
+            marginBottom: dropdownPosition === 'top' ? '4px' : '',
           }}
         >
           <div className="sticky top-0 bg-white p-2 border-b border-gray-200 z-10">
@@ -552,7 +655,7 @@ const CurrencyDropdown = ({
               )}
 
               {/* Crypto Currency Section */}
-              {includeCrypto && groupedCurrencies.crypto.length > 0 && (
+              {groupedCurrencies.crypto.length > 0 && (
                 <>
                   <li className="px-3 py-2 text-xs font-semibold text-gray-500 bg-gray-50">
                     Cryptocurrencies
@@ -571,13 +674,13 @@ const CurrencyDropdown = ({
                     Fiat Currencies
                   </li>
                   {groupedCurrencies.fiat.map((currency, index) => 
-                    renderCurrencyItem(currency, recentCurrencies.length + (includeCrypto ? groupedCurrencies.crypto.length : 0) + index)
+                    renderCurrencyItem(currency, recentCurrencies.length + groupedCurrencies.crypto.length + index)
                   )}
                 </>
               )}
 
               {/* No results */}
-              {displayedCurrencies.length === 0 && (
+              {filteredCurrencies.length === 0 && (
                 <li className="px-3 py-4 text-gray-500 text-center">
                   No currencies found
                 </li>
