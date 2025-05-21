@@ -201,15 +201,11 @@ const currencyToCountryMap: Record<string, string> = {
   CLF: "cl", // Chilean UF
   CUP: "cu", // Cuba
   CUC: "cu", // Cuban Convertible Peso
-  DOP: "do", // Dominican Republic (already defined)
   MGA: "mg", // Madagascar
   LAK: "la", // Laos
   MMK: "mm", // Myanmar
   STN: "st", // São Tomé and Príncipe
   SCR: "sc", // Seychelles
-  PGK: "pg", // Papua New Guinea (already defined)
-  TWD: "tw", // Taiwan (already defined)
-  UAH: "ua", // Ukraine (already defined)
   VES: "ve", // Venezuela
   ZWL: "zw", // Zimbabwe
   ADA: "un", // Cardano (use UN flag as fallback for crypto)
@@ -220,8 +216,8 @@ const currencyToCountryMap: Record<string, string> = {
   AVAX: "un", // Avalanche
   MATIC: "un", // Polygon
   XRP: "un", // Ripple
-  USDT: "un", // Tether
-  // Ensure all currencies have a flag - fallback to UN flag for any currency not explicitly mapped
+  USDT: "un" // Tether
+  // Removed duplicate entries that were causing the TypeScript errors
 };
 
 // Keep recent currencies for quick access

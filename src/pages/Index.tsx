@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import CurrencyConverter from "../components/CurrencyConverter/CurrencyConverter";
 import { Card, CardContent } from "@/components/ui/card";
@@ -70,7 +69,8 @@ const Index = () => {
       </div>
       
       {/* Add styles for fixed dropdowns */}
-      <style jsx>{`
+      <style>
+        {`
         .fixed-dropdown {
           max-height: 70vh;
           overflow-y: auto;
@@ -231,7 +231,8 @@ const Index = () => {
           from { opacity: 0; transform: translateY(10px); }
           to { opacity: 1; transform: translateY(0); }
         }
-      `}</style>
+      `}
+      </style>
       
       <div className="w-full max-w-4xl animate-fade-in z-10">
         <h1 className="text-4xl md:text-5xl font-bold mb-6 text-center bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent drop-shadow-sm">

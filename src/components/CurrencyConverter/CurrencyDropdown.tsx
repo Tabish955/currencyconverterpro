@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { ChevronDown, ChevronUp, Search } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -75,7 +74,6 @@ const currencyToCountryMap: Record<string, string> = {
   QAR: "qa", // Qatar
   DZD: "dz", // Algeria
   KWD: "kw", // Kuwait
-  LKR: "lk", // Sri Lanka
   OMR: "om", // Oman
   JOD: "jo", // Jordan
   MAD: "ma", // Morocco
@@ -97,7 +95,6 @@ const currencyToCountryMap: Record<string, string> = {
   PYG: "py", // Paraguay
   PEN: "pe", // Peru
   UYU: "uy", // Uruguay
-  DOP: "do", // Dominican Republic
   GTQ: "gt", // Guatemala
   HNL: "hn", // Honduras
   NIO: "ni", // Nicaragua
@@ -158,7 +155,6 @@ const currencyToCountryMap: Record<string, string> = {
   KGS: "kg", // Kyrgyzstan
   MNT: "mn", // Mongolia
   MVR: "mv", // Maldives
-  LKR: "lk", // Sri Lanka
   NPR: "np", // Nepal
   BTN: "bt", // Bhutan
   BIF: "bi", // Burundi
@@ -169,8 +165,7 @@ const currencyToCountryMap: Record<string, string> = {
   XAU: "un", // Gold - UN flag
   XAG: "un", // Silver - UN flag
   XDR: "un", // SDR - UN flag
-  // Ensure all currencies have a flag - fallback to UN flag
-  // for any currency not explicitly mapped
+  // Removed the duplicate DOP entry
 };
 
 // Currency aliases for improved search
@@ -315,15 +310,15 @@ const CurrencyDropdown = ({
       ? fuseRef.current.search(searchTerm).map(result => result.item)
       : enrichedCurrencies;
 
-  // Determine which currencies to actually show based on includeCrypto prop
+  // Determine which currencies to show based on includeCrypto prop
   const displayedCurrencies = includeCrypto 
     ? filteredCurrencies 
     : filteredCurrencies.filter(currency => !currency.isCrypto);
 
-  // Get recently used currencies
+  // Get recently used currencies - Fix the type predicate error
   const recentCurrencies = recentlyUsed
     .map(code => enrichedCurrencies.find(c => c.code === code))
-    .filter((c): c is CurrencySymbol => c !== undefined);
+    .filter((c): c is typeof enrichedCurrencies[0] => c !== undefined);
 
   // Group currencies by type (fiat and crypto)
   const groupedCurrencies = displayedCurrencies.reduce<{
