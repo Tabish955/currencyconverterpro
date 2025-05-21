@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import CurrencyConverter from "../components/CurrencyConverter/CurrencyConverter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Toaster } from "@/components/ui/sonner";
@@ -8,6 +8,43 @@ import { Bitcoin, ArrowDownUp } from "lucide-react";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("fiat");
+
+  // Parse URL parameters for deep linking
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const from = searchParams.get('from');
+    const to = searchParams.get('to');
+    const amount = searchParams.get('amount');
+    
+    // If we have from/to params, switch to appropriate tab
+    if (from && to) {
+      const isFromCrypto = ['BTC', 'ETH', 'USDT', 'BNB', 'SOL', 'XRP', 'ADA', 'DOGE'].includes(from);
+      const isToCrypto = ['BTC', 'ETH', 'USDT', 'BNB', 'SOL', 'XRP', 'ADA', 'DOGE'].includes(to);
+      
+      if (isFromCrypto || isToCrypto) {
+        setActiveTab("crypto");
+      } else {
+        setActiveTab("fiat");
+      }
+    }
+  }, []);
+
+  // Add keyboard shortcut listener for tab switching
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Alt+1 for Fiat, Alt+2 for Crypto
+      if (e.altKey) {
+        if (e.key === '1') {
+          setActiveTab('fiat');
+        } else if (e.key === '2') {
+          setActiveTab('crypto');
+        }
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   return <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-indigo-100 via-blue-50 to-purple-100 p-4 overflow-hidden relative">
       {/* Enhanced animated floating background elements */}
@@ -32,6 +69,170 @@ const Index = () => {
         <div className="particle particle-8"></div>
       </div>
       
+      {/* Add styles for fixed dropdowns */}
+      <style jsx>{`
+        .fixed-dropdown {
+          max-height: 70vh;
+          overflow-y: auto;
+          z-index: 9999;
+        }
+        
+        @media (max-width: 640px) {
+          .fixed-dropdown {
+            width: 95vw !important;
+            left: 50%;
+            transform: translateX(-50%);
+          }
+        }
+        
+        /* Enhance particle animations */
+        .particle {
+          position: absolute;
+          border-radius: 50%;
+          background: rgba(255, 255, 255, 0.5);
+          box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+          pointer-events: none;
+        }
+        
+        .particle-1 {
+          width: 8px; height: 8px;
+          top: 20%; left: 10%;
+          animation: float 25s ease-in-out infinite alternate;
+        }
+        
+        .particle-2 {
+          width: 12px; height: 12px;
+          top: 30%; right: 15%;
+          animation: float 20s ease-in-out infinite alternate-reverse;
+        }
+        
+        .particle-3 {
+          width: 7px; height: 7px;
+          bottom: 20%; left: 20%;
+          animation: float 15s ease-in-out infinite alternate;
+        }
+        
+        .particle-4 {
+          width: 10px; height: 10px;
+          top: 60%; right: 25%;
+          animation: float 22s ease-in-out infinite alternate-reverse;
+        }
+        
+        .particle-5 {
+          width: 6px; height: 6px;
+          bottom: 35%; left: 35%;
+          animation: float 18s ease-in-out infinite alternate;
+        }
+        
+        .particle-6 {
+          width: 14px; height: 14px;
+          top: 40%; right: 10%;
+          animation: float 30s ease-in-out infinite alternate-reverse;
+        }
+        
+        .particle-7 {
+          width: 9px; height: 9px;
+          bottom: 15%; right: 30%;
+          animation: float 24s ease-in-out infinite alternate;
+        }
+        
+        .particle-8 {
+          width: 5px; height: 5px;
+          top: 75%; left: 22%;
+          animation: float 27s ease-in-out infinite alternate-reverse;
+        }
+        
+        @keyframes float {
+          0% {
+            transform: translateY(0) translateX(0);
+          }
+          50% {
+            transform: translateY(-20px) translateX(10px);
+          }
+          100% {
+            transform: translateY(10px) translateX(-15px);
+          }
+        }
+        
+        @keyframes floating-light {
+          0% { opacity: 0.3; }
+          50% { opacity: 0.5; }
+          100% { opacity: 0.3; }
+        }
+        
+        .animate-floating-light {
+          animation: floating-light 5s ease-in-out infinite;
+        }
+        
+        @keyframes glow {
+          0% { opacity: 0.2; }
+          50% { opacity: 0.3; }
+          100% { opacity: 0.2; }
+        }
+        
+        .animate-glow {
+          animation: glow 7s ease-in-out infinite;
+        }
+        
+        @keyframes float-slow {
+          0% {
+            transform: translateY(0) rotate(0deg);
+          }
+          100% {
+            transform: translateY(-10px) rotate(3deg);
+          }
+        }
+        
+        @keyframes float-medium {
+          0% {
+            transform: translateY(0) rotate(0deg);
+          }
+          100% {
+            transform: translateY(-15px) rotate(-2deg);
+          }
+        }
+        
+        @keyframes float-fast {
+          0% {
+            transform: translateY(0) rotate(0deg);
+          }
+          100% {
+            transform: translateY(-20px) rotate(5deg);
+          }
+        }
+        
+        @keyframes pulse-gentle {
+          0% { opacity: 0.3; transform: scale(1); }
+          50% { opacity: 0.4; transform: scale(1.05); }
+          100% { opacity: 0.3; transform: scale(1); }
+        }
+        
+        .animate-float-slow {
+          animation: float-slow 15s ease-in-out infinite alternate;
+        }
+        
+        .animate-float-medium {
+          animation: float-medium 12s ease-in-out infinite alternate;
+        }
+        
+        .animate-float-fast {
+          animation: float-fast 10s ease-in-out infinite alternate;
+        }
+        
+        .animate-pulse-gentle {
+          animation: pulse-gentle 8s ease-in-out infinite;
+        }
+        
+        .animate-fade-in {
+          animation: fade-in 0.5s ease-out;
+        }
+        
+        @keyframes fade-in {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+      
       <div className="w-full max-w-4xl animate-fade-in z-10">
         <h1 className="text-4xl md:text-5xl font-bold mb-6 text-center bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent drop-shadow-sm">
           Currency Converter
@@ -43,10 +244,12 @@ const Index = () => {
               <TabsTrigger value="fiat" className="flex items-center gap-2">
                 <ArrowDownUp className="h-4 w-4" />
                 <span>Fiat</span>
+                <kbd className="hidden md:inline-flex ml-1 text-[10px] font-mono bg-black/10 px-1 rounded">Alt+1</kbd>
               </TabsTrigger>
               <TabsTrigger value="crypto" className="flex items-center gap-2">
                 <Bitcoin className="h-4 w-4" />
                 <span>Crypto</span>
+                <kbd className="hidden md:inline-flex ml-1 text-[10px] font-mono bg-black/10 px-1 rounded">Alt+2</kbd>
               </TabsTrigger>
             </TabsList>
           </div>
@@ -78,6 +281,11 @@ const Index = () => {
               "Supports 170+ currencies worldwide" : 
               "Supports major cryptocurrencies and fiat currencies"}
           </p>
+          <div className="text-gray-500 text-xs mt-2">
+            Keyboard shortcuts: <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-600 border border-gray-300">Alt+1</kbd> for Fiat, 
+            <kbd className="ml-1 px-1.5 py-0.5 bg-gray-100 rounded text-gray-600 border border-gray-300">Alt+2</kbd> for Crypto,
+            <kbd className="ml-1 px-1.5 py-0.5 bg-gray-100 rounded text-gray-600 border border-gray-300">/</kbd> for Search
+          </div>
         </div>
       </div>
       <Toaster position="top-center" />

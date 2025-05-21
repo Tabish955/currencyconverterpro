@@ -50,7 +50,7 @@ const symbolsCache = new CurrencyCache<CurrencySymbol[]>(24 * 60 * 60 * 1000); /
 const ratesCache = new CurrencyCache<Record<string, number>>(5 * 60 * 1000); // 5 minutes
 const cryptoPricesCache = new CurrencyCache<CryptoPrice>(2 * 60 * 1000); // 2 minutes
 
-// Map ISO currency codes to country codes for flags
+// Map ISO currency codes to country codes for flags - ensure complete coverage
 const currencyToCountryMap: Record<string, string> = {
   EUR: "eu", // European Union
   USD: "us", // United States
@@ -89,9 +89,149 @@ const currencyToCountryMap: Record<string, string> = {
   RON: "ro", // Romania
   PKR: "pk", // Pakistan
   BDT: "bd", // Bangladesh
-  // Add all the additional mappings from the CurrencyDropdown component
-  // ... keep existing code (currencyToCountryMap) the same...
+  VND: "vn", // Vietnam
+  UAH: "ua", // Ukraine
+  NGN: "ng", // Nigeria
+  EGP: "eg", // Egypt
+  KZT: "kz", // Kazakhstan
+  QAR: "qa", // Qatar
+  DZD: "dz", // Algeria
+  KWD: "kw", // Kuwait
+  LKR: "lk", // Sri Lanka
+  OMR: "om", // Oman
+  JOD: "jo", // Jordan
+  MAD: "ma", // Morocco
+  BHD: "bh", // Bahrain
+  XAF: "cf", // Central African Republic (CFA Franc)
+  XOF: "sn", // Senegal (West African CFA Franc)
+  XPF: "pf", // French Polynesia (CFP Franc)
+  TND: "tn", // Tunisia
+  GHS: "gh", // Ghana
+  UGX: "ug", // Uganda
+  TZS: "tz", // Tanzania
+  KES: "ke", // Kenya
+  XCD: "ag", // Antigua and Barbuda (East Caribbean Dollar)
+  BBD: "bb", // Barbados
+  BSD: "bs", // Bahamas
+  BZD: "bz", // Belize
+  BMD: "bm", // Bermuda
+  BOB: "bo", // Bolivia
+  PYG: "py", // Paraguay
+  PEN: "pe", // Peru
+  UYU: "uy", // Uruguay
+  DOP: "do", // Dominican Republic
+  GTQ: "gt", // Guatemala
+  HNL: "hn", // Honduras
+  NIO: "ni", // Nicaragua
+  CRC: "cr", // Costa Rica
+  PAB: "pa", // Panama
+  JMD: "jm", // Jamaica
+  TTD: "tt", // Trinidad and Tobago
+  AWG: "aw", // Aruba
+  ANG: "cw", // Curaçao
+  SRD: "sr", // Suriname
+  GYD: "gy", // Guyana
+  FJD: "fj", // Fiji
+  PGK: "pg", // Papua New Guinea
+  TOP: "to", // Tonga
+  SBD: "sb", // Solomon Islands
+  VUV: "vu", // Vanuatu
+  WST: "ws", // Samoa
+  KID: "ki", // Kiribati
+  BND: "bn", // Brunei
+  FKP: "fk", // Falkland Islands
+  GIP: "gi", // Gibraltar
+  SHP: "sh", // Saint Helena
+  SSP: "ss", // South Sudan
+  SDG: "sd", // Sudan
+  SYP: "sy", // Syria
+  LBP: "lb", // Lebanon
+  IRR: "ir", // Iran
+  IQD: "iq", // Iraq
+  LYD: "ly", // Libya
+  YER: "ye", // Yemen
+  MRU: "mr", // Mauritania
+  ETB: "et", // Ethiopia
+  SOS: "so", // Somalia
+  DJF: "dj", // Djibouti
+  ERN: "er", // Eritrea
+  SZL: "sz", // Eswatini
+  LSL: "ls", // Lesotho
+  NAD: "na", // Namibia
+  BWP: "bw", // Botswana
+  MWK: "mw", // Malawi
+  ZMW: "zm", // Zambia
+  MZN: "mz", // Mozambique
+  MDL: "md", // Moldova
+  ALL: "al", // Albania
+  MKD: "mk", // North Macedonia
+  BAM: "ba", // Bosnia and Herzegovina
+  RSD: "rs", // Serbia
+  BGN: "bg", // Bulgaria
+  HRK: "hr", // Croatia
+  ISK: "is", // Iceland
+  GEL: "ge", // Georgia
+  AZN: "az", // Azerbaijan
+  ARM: "am", // Armenia
+  BYN: "by", // Belarus
+  UZS: "uz", // Uzbekistan
+  TMT: "tm", // Turkmenistan
+  TJS: "tj", // Tajikistan
+  KGS: "kg", // Kyrgyzstan
+  MNT: "mn", // Mongolia
+  MVR: "mv", // Maldives
+  NPR: "np", // Nepal
+  BTN: "bt", // Bhutan
+  BIF: "bi", // Burundi
+  RWF: "rw", // Rwanda
+  SLL: "sl", // Sierra Leone
+  GMD: "gm", // Gambia
+  GNF: "gn", // Guinea
+  XAU: "un", // Gold - UN flag
+  XAG: "un", // Silver - UN flag
+  XDR: "un", // SDR - UN flag
+  // Additional mappings for comprehensive coverage
+  AFN: "af", // Afghanistan
+  AOA: "ao", // Angola
+  ARS: "ar", // Argentina
+  CVE: "cv", // Cape Verde
+  CDF: "cd", // Democratic Republic of the Congo
+  KHR: "kh", // Cambodia
+  KYD: "ky", // Cayman Islands
+  CLF: "cl", // Chilean UF
+  CUP: "cu", // Cuba
+  CUC: "cu", // Cuban Convertible Peso
+  DOP: "do", // Dominican Republic (already defined)
+  MGA: "mg", // Madagascar
+  LAK: "la", // Laos
+  MMK: "mm", // Myanmar
+  STN: "st", // São Tomé and Príncipe
+  SCR: "sc", // Seychelles
+  PGK: "pg", // Papua New Guinea (already defined)
+  TWD: "tw", // Taiwan (already defined)
+  UAH: "ua", // Ukraine (already defined)
+  VES: "ve", // Venezuela
+  ZWL: "zw", // Zimbabwe
+  ADA: "un", // Cardano (use UN flag as fallback for crypto)
+  SOL: "un", // Solana
+  DOGE: "un", // Dogecoin
+  DOT: "un", // Polkadot
+  LINK: "un", // Chainlink
+  AVAX: "un", // Avalanche
+  MATIC: "un", // Polygon
+  XRP: "un", // Ripple
+  USDT: "un", // Tether
+  // Ensure all currencies have a flag - fallback to UN flag for any currency not explicitly mapped
 };
+
+// Keep recent currencies for quick access
+interface RecentlyUsedState {
+  items: string[];
+  lastUpdated: number;
+}
+
+const MAX_RECENT_ITEMS = 5;
+const RECENT_CACHE_KEY = "recently-used-currencies";
 
 const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
   // State for currency symbols
@@ -105,13 +245,16 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   
   // State for selected currencies and amounts
-  const [baseAmount, setBaseAmount] = useState(1);
+  const [baseAmount, setBaseAmount] = useState(1); // Always default to 1
   const [targetAmount, setTargetAmount] = useState(0);
   const [baseCurrency, setBaseCurrency] = useState(mode === "crypto" ? "BTC" : "USD"); // Default to USD or BTC
   const [targetCurrency, setTargetCurrency] = useState(mode === "crypto" ? "USD" : "EUR"); // Default to EUR or USD
   
   // Track which field was last changed to prevent ping-pong effect
   const [lastChangedField, setLastChangedField] = useState<"base" | "target">("base");
+  
+  // State for recently used currencies
+  const [recentlyUsed, setRecentlyUsed] = useState<string[]>([]);
   
   // State for exchange rates
   const [rates, setRates] = useState<Record<string, number> | null>(null);
@@ -127,6 +270,46 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
   // Force refresh timer - ensure rates are updated regularly
   const [forceRefreshCounter, setForceRefreshCounter] = useState(0);
   
+  // Load recently used currencies from localStorage on initial load
+  useEffect(() => {
+    try {
+      const savedRecent = localStorage.getItem(RECENT_CACHE_KEY);
+      if (savedRecent) {
+        const parsed: RecentlyUsedState = JSON.parse(savedRecent);
+        // Check if data is too old (older than 30 days)
+        const isExpired = Date.now() - parsed.lastUpdated > 30 * 24 * 60 * 60 * 1000;
+        if (!isExpired && Array.isArray(parsed.items)) {
+          setRecentlyUsed(parsed.items.slice(0, MAX_RECENT_ITEMS));
+        }
+      }
+    } catch (e) {
+      console.error("Error loading recently used currencies:", e);
+    }
+  }, []);
+  
+  // Save recently used currencies to localStorage when they change
+  useEffect(() => {
+    if (recentlyUsed.length > 0) {
+      try {
+        localStorage.setItem(RECENT_CACHE_KEY, JSON.stringify({
+          items: recentlyUsed.slice(0, MAX_RECENT_ITEMS),
+          lastUpdated: Date.now()
+        }));
+      } catch (e) {
+        console.error("Error saving recently used currencies:", e);
+      }
+    }
+  }, [recentlyUsed]);
+  
+  // Helper to update recently used currencies
+  const updateRecentlyUsed = useCallback((currencyCode: string) => {
+    setRecentlyUsed(prev => {
+      // Remove if already exists, then add to front
+      const filtered = prev.filter(code => code !== currencyCode);
+      return [currencyCode, ...filtered].slice(0, MAX_RECENT_ITEMS);
+    });
+  }, []);
+  
   // Set up auto refresh every 5 minutes for fiat, 2 minutes for crypto
   useEffect(() => {
     const refreshInterval = setInterval(() => {
@@ -135,7 +318,13 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
     
     return () => clearInterval(refreshInterval);
   }, [mode]);
-  
+
+  // Reset base amount to 1 when changing currencies
+  useEffect(() => {
+    setBaseAmount(1);
+    setLastChangedField("base");
+  }, [baseCurrency]);
+
   // Fetch currency symbols from the cached source
   const fetchSymbols = useCallback(async (retry = false) => {
     try {
@@ -172,7 +361,8 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
             code,
             description: name as string,
             countryCode,
-            isCrypto: false
+            isCrypto: false,
+            group: "fiat" // Add group information
           };
         });
         
@@ -182,6 +372,7 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
           description: crypto.name,
           isCrypto: true,
           cryptoId: crypto.id,
+          group: "crypto", // Add group information
           // For now we'll add placeholder for the image, later we can fetch actual images
           image: `https://assets.coingecko.com/coins/images/1/small/bitcoin.png`.replace('bitcoin', crypto.id)
         }));
@@ -224,7 +415,8 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
             code,
             description: name as string,
             countryCode,
-            isCrypto: false
+            isCrypto: false,
+            group: "fiat" // Add group information
           };
         });
         
@@ -626,15 +818,23 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
   
   // Handle currency changes
   const handleBaseCurrencyChange = (value: string) => {
-    setBaseCurrency(value);
-    setLastChangedField("base");
-    // Rate fetch will be triggered by useEffect
+    if (baseCurrency !== value) {
+      setBaseCurrency(value);
+      setLastChangedField("base");
+      // Add to recently used currencies
+      updateRecentlyUsed(value);
+      // Rate fetch will be triggered by useEffect
+    }
   };
   
   const handleTargetCurrencyChange = (value: string) => {
-    setTargetCurrency(value);
-    setLastChangedField("target");
-    // Rate fetch will be triggered by useEffect
+    if (targetCurrency !== value) {
+      setTargetCurrency(value);
+      setLastChangedField("target");
+      // Add to recently used currencies
+      updateRecentlyUsed(value);
+      // Rate fetch will be triggered by useEffect
+    }
   };
   
   // Format the last updated date
@@ -656,8 +856,10 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
     
     setBaseCurrency(tempTargetCurrency);
     setTargetCurrency(tempBaseCurrency);
-    setBaseAmount(tempTargetAmount);
-    setTargetAmount(tempBaseAmount);
+    
+    // Maintain the proper direction (base to target)
+    setBaseAmount(1); // Reset to 1 for clarity
+    setLastChangedField("base"); // Reset to base as last changed
   };
   
   // Manual rate refresh
@@ -754,8 +956,10 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
                 id="baseCurrency"
                 value={baseCurrency}
                 onChange={handleBaseCurrencyChange}
-                currencies={displayedCurrencies}
+                currencies={symbols}
                 disabled={isLoadingRate || isLoadingCrypto}
+                includeCrypto={mode === "crypto"}
+                recentlyUsed={recentlyUsed}
               />
             </div>
             <CurrencyInput
@@ -776,7 +980,7 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
             className="p-3 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 animate-pulse-gentle"
             aria-label="Swap currencies"
           >
-            <ArrowDownUp className="h-5 w-5" />
+            <ArrowDownUp className="h-5 w-5 transform transition-transform duration-300 hover:rotate-180" />
           </button>
         </div>
         
@@ -795,7 +999,7 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
                 className="hidden md:flex items-center space-x-2 text-blue-600 hover:text-blue-800 text-sm bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded-full transition-all duration-300 transform hover:scale-105"
                 aria-label="Swap currencies"
               >
-                <ArrowDownUp className="h-4 w-4" />
+                <ArrowDownUp className="h-4 w-4 transform transition-transform duration-300 hover:rotate-180" />
                 <span>Swap</span>
               </button>
             </div>
@@ -805,8 +1009,10 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
                 id="targetCurrency"
                 value={targetCurrency}
                 onChange={handleTargetCurrencyChange}
-                currencies={displayedCurrencies}
+                currencies={symbols}
                 disabled={isLoadingRate || isLoadingCrypto}
+                includeCrypto={mode === "crypto"}
+                recentlyUsed={recentlyUsed}
               />
             </div>
             <CurrencyInput
@@ -833,9 +1039,9 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
             <div className="flex items-center bg-white px-4 py-2 rounded-md shadow-sm animate-pulse-gentle">
               {/* For fiat-to-fiat rates */}
-              {currentRate && !isCryptoCurrency(baseCurrency) && !isCryptoCurrency(targetCurrency) && (
+              {rates && !isCryptoCurrency(baseCurrency) && !isCryptoCurrency(targetCurrency) && (
                 <span className="font-medium">
-                  1 {baseCurrency} = <span className="font-bold text-blue-700">{currentRate.toFixed(4)}</span> {targetCurrency}
+                  1 {baseCurrency} = <span className="font-bold text-blue-700">{(rates[targetCurrency] || 0).toFixed(4)}</span> {targetCurrency}
                 </span>
               )}
               

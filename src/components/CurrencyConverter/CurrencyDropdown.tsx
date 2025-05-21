@@ -14,6 +14,7 @@ export interface CurrencySymbol {
   cryptoId?: string;
   image?: string;
   aliases?: string[];
+  group?: 'fiat' | 'crypto'; // For grouping in the dropdown
 }
 
 interface CurrencyDropdownProps {
@@ -23,6 +24,7 @@ interface CurrencyDropdownProps {
   currencies: CurrencySymbol[];
   disabled?: boolean;
   includeCrypto?: boolean;
+  recentlyUsed?: string[]; // Added recently used currencies
 }
 
 // Map ISO currency codes to country codes for flags
@@ -225,6 +227,7 @@ const CurrencyDropdown = ({
   currencies,
   disabled = false,
   includeCrypto = false,
+  recentlyUsed = [],
 }: CurrencyDropdownProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -232,6 +235,7 @@ const CurrencyDropdown = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
+  const [dropdownPosition, setDropdownPosition] = useState<'bottom' | 'top'>('bottom');
 
   // Prepare currency data with country codes and aliases
   const enrichedCurrencies = currencies.map(currency => ({
@@ -252,6 +256,29 @@ const CurrencyDropdown = ({
       includeScore: true
     });
   }, [currencies]);
+
+  // Handle dropdown positioning to prevent overflow
+  useEffect(() => {
+    const updateDropdownPosition = () => {
+      if (dropdownRef.current) {
+        const rect = dropdownRef.current.getBoundingClientRect();
+        const availableBottom = window.innerHeight - rect.bottom;
+        // If less than 300px available at bottom, position dropdown above
+        setDropdownPosition(availableBottom < 300 ? 'top' : 'bottom');
+      }
+    };
+
+    if (isOpen) {
+      updateDropdownPosition();
+      window.addEventListener('scroll', updateDropdownPosition);
+      window.addEventListener('resize', updateDropdownPosition);
+    }
+
+    return () => {
+      window.removeEventListener('scroll', updateDropdownPosition);
+      window.removeEventListener('resize', updateDropdownPosition);
+    };
+  }, [isOpen]);
 
   // Handle outside clicks to close dropdown
   useEffect(() => {
@@ -288,6 +315,29 @@ const CurrencyDropdown = ({
       ? fuseRef.current.search(searchTerm).map(result => result.item)
       : enrichedCurrencies;
 
+  // Determine which currencies to actually show based on includeCrypto prop
+  const displayedCurrencies = includeCrypto 
+    ? filteredCurrencies 
+    : filteredCurrencies.filter(currency => !currency.isCrypto);
+
+  // Get recently used currencies
+  const recentCurrencies = recentlyUsed
+    .map(code => enrichedCurrencies.find(c => c.code === code))
+    .filter((c): c is CurrencySymbol => c !== undefined);
+
+  // Group currencies by type (fiat and crypto)
+  const groupedCurrencies = displayedCurrencies.reduce<{
+    fiat: CurrencySymbol[];
+    crypto: CurrencySymbol[];
+  }>((acc, currency) => {
+    if (currency.isCrypto) {
+      acc.crypto.push(currency);
+    } else {
+      acc.fiat.push(currency);
+    }
+    return acc;
+  }, { fiat: [], crypto: [] });
+
   // Handle keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (!isOpen) {
@@ -305,7 +355,7 @@ const CurrencyDropdown = ({
       case "ArrowDown":
         e.preventDefault();
         setHighlightedIndex((prevIndex) =>
-          Math.min(prevIndex + 1, filteredCurrencies.length - 1)
+          Math.min(prevIndex + 1, displayedCurrencies.length - 1)
         );
         scrollToHighlighted();
         break;
@@ -316,14 +366,20 @@ const CurrencyDropdown = ({
         break;
       case "Enter":
         e.preventDefault();
-        if (filteredCurrencies[highlightedIndex]) {
-          onChange(filteredCurrencies[highlightedIndex].code);
+        if (displayedCurrencies[highlightedIndex]) {
+          onChange(displayedCurrencies[highlightedIndex].code);
           setIsOpen(false);
           setSearchTerm("");
         }
         break;
       case "Tab":
         setIsOpen(false);
+        break;
+      case "/":
+        if (!isOpen) {
+          e.preventDefault();
+          setIsOpen(true);
+        }
         break;
     }
   };
@@ -336,6 +392,62 @@ const CurrencyDropdown = ({
       });
     }
   };
+
+  // Render a currency list item
+  const renderCurrencyItem = (currency: CurrencySymbol, index: number) => (
+    <li
+      key={currency.code}
+      className={`px-3 py-2 cursor-pointer transition-all duration-150 ${
+        currency.code === value ? "bg-blue-100" : "hover:bg-blue-50"
+      } ${index === highlightedIndex ? "bg-blue-50" : ""}`}
+      onClick={() => {
+        onChange(currency.code);
+        setIsOpen(false);
+        setSearchTerm("");
+      }}
+      role="option"
+      aria-selected={currency.code === value}
+    >
+      <div className="flex items-center">
+        {currency.isCrypto ? (
+          currency.image ? (
+            <img
+              src={currency.image}
+              alt={currency.code}
+              className="w-5 h-5 mr-2 rounded-full flex-shrink-0"
+              onError={(e) => {
+                // Fallback icon if image fails to load
+                (e.target as HTMLImageElement).style.display = 'none';
+              }}
+            />
+          ) : (
+            <span className="w-5 h-5 mr-2 rounded-full bg-yellow-400 flex items-center justify-center text-xs font-bold flex-shrink-0">
+              {currency.code.substring(0, 1)}
+            </span>
+          )
+        ) : (
+          currency.countryCode && (
+            <span 
+              className={`fi fi-${currency.countryCode} mr-2 flex-shrink-0`}
+              style={{ width: '1.2em', height: '1em' }}
+              aria-hidden="true"
+            ></span>
+          )
+        )}
+        <div className="flex flex-col">
+          <div className="flex items-center">
+            <span className="font-bold">{currency.code}</span>
+            {currency.isCrypto && (
+              <span className="ml-2 text-xs px-1.5 py-0.5 bg-yellow-100 text-yellow-800 rounded">Crypto</span>
+            )}
+          </div>
+          <span className="text-gray-500 text-sm truncate">
+            {currency.description}
+          </span>
+        </div>
+      </div>
+    </li>
+  );
 
   return (
     <div className="relative inline-block w-full" ref={dropdownRef}>
@@ -394,10 +506,11 @@ const CurrencyDropdown = ({
 
       {isOpen && (
         <div 
-          className="absolute z-50 mt-1 w-72 md:w-96 bg-white border border-gray-200 rounded-md shadow-lg animate-fade-in"
+          className={`absolute ${dropdownPosition === 'top' ? 'bottom-full mb-1' : 'top-full mt-1'} left-0 z-50 w-72 md:w-96 bg-white border border-gray-200 rounded-md shadow-lg animate-fade-in fixed-dropdown`}
           style={{ 
             animation: 'fade-in 0.2s ease-out',
-            transformOrigin: 'top center'
+            transformOrigin: dropdownPosition === 'top' ? 'bottom center' : 'top center',
+            maxHeight: '80vh'
           }}
         >
           <div className="sticky top-0 bg-white p-2 border-b border-gray-200 z-10">
@@ -416,10 +529,13 @@ const CurrencyDropdown = ({
                 onKeyDown={handleKeyDown}
                 aria-controls="currency-list"
               />
+              <kbd className="absolute right-3 top-2.5 hidden md:flex items-center justify-center rounded border border-gray-200 bg-gray-100 px-1.5 text-xs text-gray-500">
+                /
+              </kbd>
             </div>
           </div>
 
-          <ScrollArea className="h-72">
+          <ScrollArea className="h-[calc(80vh-50px)]">
             <ul 
               id="currency-list"
               ref={listRef}
@@ -427,62 +543,46 @@ const CurrencyDropdown = ({
               role="listbox"
               tabIndex={-1}
             >
-              {filteredCurrencies.length > 0 ? (
-                filteredCurrencies.map((currency, index) => (
-                  <li
-                    key={currency.code}
-                    className={`px-3 py-2 cursor-pointer transition-all duration-150 ${
-                      currency.code === value ? "bg-blue-100" : "hover:bg-blue-50"
-                    } ${index === highlightedIndex ? "bg-blue-50" : ""}`}
-                    onClick={() => {
-                      onChange(currency.code);
-                      setIsOpen(false);
-                      setSearchTerm("");
-                    }}
-                    role="option"
-                    aria-selected={currency.code === value}
-                  >
-                    <div className="flex items-center">
-                      {currency.isCrypto ? (
-                        currency.image ? (
-                          <img
-                            src={currency.image}
-                            alt={currency.code}
-                            className="w-5 h-5 mr-2 rounded-full flex-shrink-0"
-                            onError={(e) => {
-                              // Fallback icon if image fails to load
-                              (e.target as HTMLImageElement).style.display = 'none';
-                            }}
-                          />
-                        ) : (
-                          <span className="w-5 h-5 mr-2 rounded-full bg-yellow-400 flex items-center justify-center text-xs font-bold flex-shrink-0">
-                            {currency.code.substring(0, 1)}
-                          </span>
-                        )
-                      ) : (
-                        currency.countryCode && (
-                          <span 
-                            className={`fi fi-${currency.countryCode} mr-2 flex-shrink-0`}
-                            style={{ width: '1.2em', height: '1em' }}
-                            aria-hidden="true"
-                          ></span>
-                        )
-                      )}
-                      <div className="flex flex-col">
-                        <div className="flex items-center">
-                          <span className="font-bold">{currency.code}</span>
-                          {currency.isCrypto && (
-                            <span className="ml-2 text-xs px-1.5 py-0.5 bg-yellow-100 text-yellow-800 rounded">Crypto</span>
-                          )}
-                        </div>
-                        <span className="text-gray-500 text-sm truncate">
-                          {currency.description}
-                        </span>
-                      </div>
-                    </div>
+              {/* Recently Used Section */}
+              {recentCurrencies.length > 0 && searchTerm === '' && (
+                <>
+                  <li className="px-3 py-2 text-xs font-semibold text-gray-500 bg-gray-50">
+                    Recently Used
                   </li>
-                ))
-              ) : (
+                  {recentCurrencies.map((currency, index) => 
+                    renderCurrencyItem(currency, index)
+                  )}
+                  <li className="border-b border-gray-200 my-1"></li>
+                </>
+              )}
+
+              {/* Crypto Currency Section */}
+              {includeCrypto && groupedCurrencies.crypto.length > 0 && (
+                <>
+                  <li className="px-3 py-2 text-xs font-semibold text-gray-500 bg-gray-50">
+                    Cryptocurrencies
+                  </li>
+                  {groupedCurrencies.crypto.map((currency, index) => 
+                    renderCurrencyItem(currency, recentCurrencies.length + index)
+                  )}
+                  <li className="border-b border-gray-200 my-1"></li>
+                </>
+              )}
+
+              {/* Fiat Currency Section */}
+              {groupedCurrencies.fiat.length > 0 && (
+                <>
+                  <li className="px-3 py-2 text-xs font-semibold text-gray-500 bg-gray-50">
+                    Fiat Currencies
+                  </li>
+                  {groupedCurrencies.fiat.map((currency, index) => 
+                    renderCurrencyItem(currency, recentCurrencies.length + (includeCrypto ? groupedCurrencies.crypto.length : 0) + index)
+                  )}
+                </>
+              )}
+
+              {/* No results */}
+              {displayedCurrencies.length === 0 && (
                 <li className="px-3 py-4 text-gray-500 text-center">
                   No currencies found
                 </li>

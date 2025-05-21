@@ -103,6 +103,7 @@ const CurrencyInput = ({
         id={id}
         type="text"
         inputMode="decimal" // Use numeric keyboard on mobile
+        pattern="[0-9]*\.?[0-9]*" // This helps with validating input format
         value={inputValue}
         onChange={handleInputChange}
         onFocus={handleFocus}
