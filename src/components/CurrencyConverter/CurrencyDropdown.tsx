@@ -4,11 +4,15 @@ import { ChevronDown, ChevronUp, Search } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import Fuse from 'fuse.js';
 import 'flag-icons/css/flag-icons.min.css';
+import { isCryptoCurrency, cryptoSymbolToId } from "./CryptoApiUtils";
 
 export interface CurrencySymbol {
   code: string;
   description: string;
   countryCode?: string;
+  isCrypto?: boolean;
+  cryptoId?: string;
+  image?: string;
   aliases?: string[];
 }
 
@@ -18,177 +22,153 @@ interface CurrencyDropdownProps {
   onChange: (value: string) => void;
   currencies: CurrencySymbol[];
   disabled?: boolean;
+  includeCrypto?: boolean;
 }
 
-// Enhanced Currency to Country Code mapping (ISO 4217 to ISO 3166-1)
-// Comprehensive mapping to ensure all currencies have proper flags
-const currencyToCountryCode: Record<string, string> = {
-  USD: "us", // United States Dollar
-  EUR: "eu", // Euro
-  GBP: "gb", // British Pound Sterling
-  JPY: "jp", // Japanese Yen
-  AUD: "au", // Australian Dollar
-  CAD: "ca", // Canadian Dollar
-  CHF: "ch", // Swiss Franc
-  CNY: "cn", // Chinese Yuan
-  INR: "in", // Indian Rupee
-  PKR: "pk", // Pakistani Rupee
-  KWD: "kw", // Kuwaiti Dinar
-  AED: "ae", // United Arab Emirates Dirham
-  SAR: "sa", // Saudi Riyal
-  QAR: "qa", // Qatari Riyal
-  BHD: "bh", // Bahraini Dinar
-  OMR: "om", // Omani Rial
-  EGP: "eg", // Egyptian Pound
-  TRY: "tr", // Turkish Lira
-  RUB: "ru", // Russian Ruble
-  NGN: "ng", // Nigerian Naira
-  ZAR: "za", // South African Rand
-  BRL: "br", // Brazilian Real
-  MXN: "mx", // Mexican Peso
-  SGD: "sg", // Singapore Dollar
-  NZD: "nz", // New Zealand Dollar
-  HKD: "hk", // Hong Kong Dollar
-  KRW: "kr", // South Korean Won
-  IDR: "id", // Indonesian Rupiah
-  MYR: "my", // Malaysian Ringgit
-  THB: "th", // Thai Baht
-  VND: "vn", // Vietnamese Dong
-  PHP: "ph", // Philippine Peso
-  AFN: "af", // Afghan Afghani
-  DZD: "dz", // Algerian Dinar
-  ARS: "ar", // Argentine Peso
-  AMD: "am", // Armenian Dram
-  AWG: "aw", // Aruban Florin
-  AZN: "az", // Azerbaijani Manat
-  BSD: "bs", // Bahamian Dollar
-  BBD: "bb", // Barbadian Dollar
-  BYN: "by", // Belarusian Ruble
-  BZD: "bz", // Belize Dollar
-  BMD: "bm", // Bermudan Dollar
-  BOB: "bo", // Bolivian Boliviano
-  BAM: "ba", // Bosnia-Herzegovina Convertible Mark
-  BWP: "bw", // Botswanan Pula
-  BGN: "bg", // Bulgarian Lev
-  BIF: "bi", // Burundian Franc
-  KHR: "kh", // Cambodian Riel
-  CVE: "cv", // Cape Verdean Escudo
-  XAF: "cm", // Central African CFA Franc - using Cameroon
-  CLP: "cl", // Chilean Peso
-  COP: "co", // Colombian Peso
-  KMF: "km", // Comorian Franc
-  CDF: "cd", // Congolese Franc
-  CRC: "cr", // Costa Rican Colón
-  HRK: "hr", // Croatian Kuna
-  CZK: "cz", // Czech Republic Koruna
-  DKK: "dk", // Danish Krone
-  DJF: "dj", // Djiboutian Franc
-  DOP: "do", // Dominican Peso
-  XCD: "ag", // East Caribbean Dollar - using Antigua and Barbuda
-  ETB: "et", // Ethiopian Birr
-  FJD: "fj", // Fijian Dollar
-  GMD: "gm", // Gambian Dalasi
-  GEL: "ge", // Georgian Lari
-  GHS: "gh", // Ghanaian Cedi
-  GTQ: "gt", // Guatemalan Quetzal
-  GNF: "gn", // Guinean Franc
-  GYD: "gy", // Guyanaese Dollar
-  HTG: "ht", // Haitian Gourde
-  HNL: "hn", // Honduran Lempira
-  HUF: "hu", // Hungarian Forint
-  ISK: "is", // Icelandic Króna
-  IRR: "ir", // Iranian Rial
-  IQD: "iq", // Iraqi Dinar
-  ILS: "il", // Israeli New Shekel
-  JMD: "jm", // Jamaican Dollar
-  JOD: "jo", // Jordanian Dinar
-  KZT: "kz", // Kazakhstani Tenge
-  KES: "ke", // Kenyan Shilling
-  LAK: "la", // Laotian Kip
-  LBP: "lb", // Lebanese Pound
-  LSL: "ls", // Lesotho Loti
-  LRD: "lr", // Liberian Dollar
-  LYD: "ly", // Libyan Dinar
-  MKD: "mk", // Macedonian Denar
-  MGA: "mg", // Malagasy Ariary
-  MWK: "mw", // Malawian Kwacha
-  MVR: "mv", // Maldivian Rufiyaa
-  MRU: "mr", // Mauritanian Ouguiya
-  MUR: "mu", // Mauritian Rupee
-  MDL: "md", // Moldovan Leu
-  MNT: "mn", // Mongolian Tugrik
-  MAD: "ma", // Moroccan Dirham
-  MMK: "mm", // Myanmar Kyat
-  NAD: "na", // Namibian Dollar
-  NPR: "np", // Nepalese Rupee
-  NIO: "ni", // Nicaraguan Córdoba
-  XOF: "sn", // West African CFA Franc - using Senegal
-  NOK: "no", // Norwegian Krone
-  PAB: "pa", // Panamanian Balboa
-  PGK: "pg", // Papua New Guinean Kina
-  PYG: "py", // Paraguayan Guarani
-  PEN: "pe", // Peruvian Nuevo Sol
-  PLN: "pl", // Polish Zloty
-  RON: "ro", // Romanian Leu
-  RWF: "rw", // Rwandan Franc
-  SVC: "sv", // Salvadoran Colón
-  WST: "ws", // Samoan Tala
-  STN: "st", // São Tomé and Príncipe Dobra
-  RSD: "rs", // Serbian Dinar
-  SLL: "sl", // Sierra Leonean Leone
-  SEK: "se", // Swedish Krona
-  SOS: "so", // Somali Shilling
-  SSP: "ss", // South Sudanese Pound
-  LKR: "lk", // Sri Lankan Rupee
-  SDG: "sd", // Sudanese Pound
-  SRD: "sr", // Surinamese Dollar
-  SZL: "sz", // Swazi Lilangeni
-  SYP: "sy", // Syrian Pound
-  TWD: "tw", // New Taiwan Dollar
-  TZS: "tz", // Tanzanian Shilling
-  TOP: "to", // Tongan Paʻanga
-  TTD: "tt", // Trinidad and Tobago Dollar
-  TND: "tn", // Tunisian Dinar
-  UGX: "ug", // Ugandan Shilling
-  UAH: "ua", // Ukrainian Hryvnia
-  UYU: "uy", // Uruguayan Peso
-  UZS: "uz", // Uzbekistan Som
-  VES: "ve", // Venezuelan Bolívar Soberano
-  YER: "ye", // Yemeni Rial
-  ZMW: "zm", // Zambian Kwacha
-  XPF: "pf", // CFP Franc - using French Polynesia
-  CUP: "cu", // Cuban Peso
-  FKP: "fk", // Falkland Islands Pound
-  GIP: "gi", // Gibraltar Pound
-  GGP: "gg", // Guernsey Pound
-  IMP: "im", // Isle of Man Pound
-  JEP: "je", // Jersey Pound
-  KPW: "kp", // North Korean Won
-  LVL: "lv", // Latvian Lats (historical)
-  LTL: "lt", // Lithuanian Litas (historical)
-  SHP: "sh", // Saint Helena Pound
-  SCR: "sc", // Seychellois Rupee
-  SBD: "sb", // Solomon Islands Dollar
-  TVD: "tv", // Tuvaluan Dollar
-  ZWD: "zw", // Zimbabwean Dollar (historical)
-  TMT: "tm", // Turkmenistan Manat
-  TJS: "tj", // Tajikistani Somoni
-  ANG: "cw", // Netherlands Antillean Guilder - using Curaçao
-  AOA: "ao", // Angolan Kwanza
-  BND: "bn", // Brunei Dollar
-  CUC: "cu", // Cuban Convertible Peso
-  ERN: "er", // Eritrean Nakfa
-  FOK: "fo", // Faroese Króna
-  KID: "ki", // Kiribati Dollar
-  MOP: "mo", // Macanese Pataca
-  SLE: "sl", // Sierra Leonean Leone (new)
-  // Handling special cases
-  XAU: "un", // Gold Ounce - using UN flag
-  XAG: "un", // Silver Ounce - using UN flag
-  XPT: "un", // Platinum Ounce - using UN flag
-  XDR: "un", // Special Drawing Rights - using UN flag
-  XTS: "un", // Testing Currency Code - using UN flag
-  XXX: "un"  // Unknown Currency - using UN flag
+// Map ISO currency codes to country codes for flags
+const currencyToCountryMap: Record<string, string> = {
+  EUR: "eu", // European Union
+  USD: "us", // United States
+  JPY: "jp", // Japan
+  GBP: "gb", // United Kingdom
+  AUD: "au", // Australia
+  CAD: "ca", // Canada
+  CHF: "ch", // Switzerland
+  CNY: "cn", // China
+  HKD: "hk", // Hong Kong
+  NZD: "nz", // New Zealand
+  SEK: "se", // Sweden
+  KRW: "kr", // South Korea
+  SGD: "sg", // Singapore
+  NOK: "no", // Norway
+  MXN: "mx", // Mexico
+  INR: "in", // India
+  RUB: "ru", // Russia
+  ZAR: "za", // South Africa
+  TRY: "tr", // Turkey
+  BRL: "br", // Brazil
+  TWD: "tw", // Taiwan
+  DKK: "dk", // Denmark
+  PLN: "pl", // Poland
+  THB: "th", // Thailand
+  IDR: "id", // Indonesia
+  HUF: "hu", // Hungary
+  CZK: "cz", // Czech Republic
+  ILS: "il", // Israel
+  CLP: "cl", // Chile
+  PHP: "ph", // Philippines
+  AED: "ae", // United Arab Emirates
+  COP: "co", // Colombia
+  SAR: "sa", // Saudi Arabia
+  MYR: "my", // Malaysia
+  RON: "ro", // Romania
+  // Additional mappings for previously missing flags
+  PKR: "pk", // Pakistan
+  BDT: "bd", // Bangladesh
+  VND: "vn", // Vietnam
+  UAH: "ua", // Ukraine
+  NGN: "ng", // Nigeria
+  EGP: "eg", // Egypt
+  KZT: "kz", // Kazakhstan
+  QAR: "qa", // Qatar
+  DZD: "dz", // Algeria
+  KWD: "kw", // Kuwait
+  LKR: "lk", // Sri Lanka
+  OMR: "om", // Oman
+  JOD: "jo", // Jordan
+  MAD: "ma", // Morocco
+  BHD: "bh", // Bahrain
+  XAF: "cf", // Central African Republic (CFA Franc)
+  XOF: "sn", // Senegal (West African CFA Franc)
+  XPF: "pf", // French Polynesia (CFP Franc)
+  TND: "tn", // Tunisia
+  GHS: "gh", // Ghana
+  UGX: "ug", // Uganda
+  TZS: "tz", // Tanzania
+  KES: "ke", // Kenya
+  XCD: "ag", // Antigua and Barbuda (East Caribbean Dollar)
+  BBD: "bb", // Barbados
+  BSD: "bs", // Bahamas
+  BZD: "bz", // Belize
+  BMD: "bm", // Bermuda
+  BOB: "bo", // Bolivia
+  PYG: "py", // Paraguay
+  PEN: "pe", // Peru
+  UYU: "uy", // Uruguay
+  DOP: "do", // Dominican Republic
+  GTQ: "gt", // Guatemala
+  HNL: "hn", // Honduras
+  NIO: "ni", // Nicaragua
+  CRC: "cr", // Costa Rica
+  PAB: "pa", // Panama
+  JMD: "jm", // Jamaica
+  TTD: "tt", // Trinidad and Tobago
+  AWG: "aw", // Aruba
+  ANG: "cw", // Curaçao
+  SRD: "sr", // Suriname
+  GYD: "gy", // Guyana
+  FJD: "fj", // Fiji
+  PGK: "pg", // Papua New Guinea
+  TOP: "to", // Tonga
+  SBD: "sb", // Solomon Islands
+  VUV: "vu", // Vanuatu
+  WST: "ws", // Samoa
+  KID: "ki", // Kiribati
+  BND: "bn", // Brunei
+  FKP: "fk", // Falkland Islands
+  GIP: "gi", // Gibraltar
+  SHP: "sh", // Saint Helena
+  SSP: "ss", // South Sudan
+  SDG: "sd", // Sudan
+  SYP: "sy", // Syria
+  LBP: "lb", // Lebanon
+  IRR: "ir", // Iran
+  IQD: "iq", // Iraq
+  LYD: "ly", // Libya
+  YER: "ye", // Yemen
+  MRU: "mr", // Mauritania
+  ETB: "et", // Ethiopia
+  SOS: "so", // Somalia
+  DJF: "dj", // Djibouti
+  ERN: "er", // Eritrea
+  SZL: "sz", // Eswatini
+  LSL: "ls", // Lesotho
+  NAD: "na", // Namibia
+  BWP: "bw", // Botswana
+  MWK: "mw", // Malawi
+  ZMW: "zm", // Zambia
+  MZN: "mz", // Mozambique
+  MDL: "md", // Moldova
+  ALL: "al", // Albania
+  MKD: "mk", // North Macedonia
+  BAM: "ba", // Bosnia and Herzegovina
+  RSD: "rs", // Serbia
+  BGN: "bg", // Bulgaria
+  HRK: "hr", // Croatia
+  ISK: "is", // Iceland
+  GEL: "ge", // Georgia
+  AZN: "az", // Azerbaijan
+  ARM: "am", // Armenia
+  BYN: "by", // Belarus
+  UZS: "uz", // Uzbekistan
+  TMT: "tm", // Turkmenistan
+  TJS: "tj", // Tajikistan
+  KGS: "kg", // Kyrgyzstan
+  MNT: "mn", // Mongolia
+  MVR: "mv", // Maldives
+  LKR: "lk", // Sri Lanka
+  NPR: "np", // Nepal
+  BTN: "bt", // Bhutan
+  BIF: "bi", // Burundi
+  RWF: "rw", // Rwanda
+  SLL: "sl", // Sierra Leone
+  GMD: "gm", // Gambia
+  GNF: "gn", // Guinea
+  XAU: "un", // Gold - UN flag
+  XAG: "un", // Silver - UN flag
+  XDR: "un", // SDR - UN flag
+  // Ensure all currencies have a flag - fallback to UN flag
+  // for any currency not explicitly mapped
 };
 
 // Currency aliases for improved search
@@ -220,15 +200,22 @@ const currencyAliases: Record<string, string[]> = {
   TRY: ["turkish lira", "turkey"],
   KRW: ["korean won", "south korea", "korea"],
   TWD: ["taiwan dollar", "taiwan"],
-  ANG: ["netherlands antillean guilder", "netherlands antilles", "curacao", "sint maarten"],
-  AOA: ["angolan kwanza", "angola"],
-  BND: ["brunei dollar", "brunei"],
-  CUC: ["cuban convertible peso", "cuba"],
-  ERN: ["eritrean nakfa", "eritrea"],
-  FOK: ["faroese króna", "faroe islands"],
-  KID: ["kiribati dollar", "kiribati"],
-  MOP: ["macanese pataca", "macau"],
-  SLE: ["sierra leonean leone", "sierra leone"]
+  // Crypto aliases
+  BTC: ["bitcoin", "btc", "xbt", "crypto"],
+  ETH: ["ethereum", "ether"],
+  USDT: ["tether", "stablecoin"],
+  BNB: ["binance coin", "binance"],
+  SOL: ["solana"],
+  XRP: ["ripple", "xrp"],
+  ADA: ["cardano", "ada"],
+  DOT: ["polkadot", "dot"],
+  DOGE: ["dogecoin", "doge", "meme coin"],
+  SHIB: ["shiba inu", "shib", "meme coin"],
+  LTC: ["litecoin", "ltc"],
+  MATIC: ["polygon", "matic"],
+  AVAX: ["avalanche", "avax"],
+  LINK: ["chainlink", "link"],
+  UNI: ["uniswap", "uni"]
 };
 
 const CurrencyDropdown = ({
@@ -237,6 +224,7 @@ const CurrencyDropdown = ({
   onChange,
   currencies,
   disabled = false,
+  includeCrypto = false,
 }: CurrencyDropdownProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -248,8 +236,10 @@ const CurrencyDropdown = ({
   // Prepare currency data with country codes and aliases
   const enrichedCurrencies = currencies.map(currency => ({
     ...currency,
-    countryCode: currencyToCountryCode[currency.code] || "un", // Fallback to UN flag
-    aliases: currencyAliases[currency.code] || []
+    countryCode: currency.isCrypto ? undefined : currencyToCountryMap[currency.code] || "un", // Fallback to UN flag
+    aliases: currency.isCrypto ? 
+      currencyAliases[currency.code] || [] : 
+      currencyAliases[currency.code] || []
   }));
 
   // Setup Fuse.js for fuzzy search
@@ -363,12 +353,30 @@ const CurrencyDropdown = ({
         <span className="truncate font-medium flex items-center">
           {selectedCurrency ? (
             <span className="flex items-center">
-              {selectedCurrency.countryCode && (
-                <span 
-                  className={`fi fi-${selectedCurrency.countryCode} mr-2`} 
-                  style={{ width: '1.2em', height: '1em' }}
-                  aria-hidden="true"
-                ></span>
+              {selectedCurrency.isCrypto ? (
+                selectedCurrency.image ? (
+                  <img 
+                    src={selectedCurrency.image} 
+                    alt={selectedCurrency.code}
+                    className="w-5 h-5 mr-2 rounded-full"
+                    onError={(e) => {
+                      // Fallback icon if image fails to load
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                ) : (
+                  <span className="w-5 h-5 mr-2 rounded-full bg-yellow-400 flex items-center justify-center text-xs font-bold">
+                    {selectedCurrency.code.substring(0, 1)}
+                  </span>
+                )
+              ) : (
+                selectedCurrency.countryCode && (
+                  <span 
+                    className={`fi fi-${selectedCurrency.countryCode} mr-2`} 
+                    style={{ width: '1.2em', height: '1em' }}
+                    aria-hidden="true"
+                  ></span>
+                )
               )}
               <span className="font-bold">{selectedCurrency.code}</span>
               <span className="text-gray-500 ml-2">({selectedCurrency.description})</span>
@@ -435,16 +443,37 @@ const CurrencyDropdown = ({
                     aria-selected={currency.code === value}
                   >
                     <div className="flex items-center">
-                      {currency.countryCode && (
-                        <span 
-                          className={`fi fi-${currency.countryCode} mr-2 flex-shrink-0`}
-                          style={{ width: '1.2em', height: '1em' }}
-                          aria-hidden="true"
-                        ></span>
+                      {currency.isCrypto ? (
+                        currency.image ? (
+                          <img
+                            src={currency.image}
+                            alt={currency.code}
+                            className="w-5 h-5 mr-2 rounded-full flex-shrink-0"
+                            onError={(e) => {
+                              // Fallback icon if image fails to load
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <span className="w-5 h-5 mr-2 rounded-full bg-yellow-400 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                            {currency.code.substring(0, 1)}
+                          </span>
+                        )
+                      ) : (
+                        currency.countryCode && (
+                          <span 
+                            className={`fi fi-${currency.countryCode} mr-2 flex-shrink-0`}
+                            style={{ width: '1.2em', height: '1em' }}
+                            aria-hidden="true"
+                          ></span>
+                        )
                       )}
                       <div className="flex flex-col">
                         <div className="flex items-center">
                           <span className="font-bold">{currency.code}</span>
+                          {currency.isCrypto && (
+                            <span className="ml-2 text-xs px-1.5 py-0.5 bg-yellow-100 text-yellow-800 rounded">Crypto</span>
+                          )}
                         </div>
                         <span className="text-gray-500 text-sm truncate">
                           {currency.description}
