@@ -280,7 +280,8 @@ const CurrencyDropdown = ({
     image: currency.isCrypto ? cryptoIcons[currency.code] || undefined : undefined,
     aliases: currency.isCrypto ? 
       currencyAliases[currency.code] || [] : 
-      currencyAliases[currency.code] || []
+      currencyAliases[currency.code] || [],
+    group: currency.isCrypto ? 'crypto' as const : 'fiat' as const
   }));
 
   // Setup Fuse.js for fuzzy search
@@ -449,13 +450,14 @@ const CurrencyDropdown = ({
               className="w-5 h-5 mr-2 rounded-full flex-shrink-0"
               onError={(e) => {
                 // Fallback icon if image fails to load
-                (e.target as HTMLImageElement).style.display = 'none';
-                const parent = (e.target as HTMLImageElement).parentElement;
+                const imgElement = e.currentTarget as HTMLImageElement;
+                imgElement.style.display = 'none';
+                const parent = imgElement.parentElement;
                 if (parent) {
                   const fallback = document.createElement('span');
                   fallback.className = 'w-5 h-5 mr-2 rounded-full bg-yellow-400 flex items-center justify-center text-xs font-bold flex-shrink-0';
                   fallback.innerText = currency.code.substring(0, 1);
-                  parent.insertBefore(fallback, e.target);
+                  parent.insertBefore(fallback, imgElement);
                 }
               }}
             />
@@ -514,13 +516,14 @@ const CurrencyDropdown = ({
                     className="w-5 h-5 mr-2 rounded-full"
                     onError={(e) => {
                       // Fallback icon if image fails to load
-                      (e.target as HTMLImageElement).style.display = 'none';
-                      const parent = (e.target as HTMLImageElement).parentElement;
+                      const imgElement = e.currentTarget as HTMLImageElement;
+                      imgElement.style.display = 'none';
+                      const parent = imgElement.parentElement;
                       if (parent) {
                         const fallback = document.createElement('span');
                         fallback.className = 'w-5 h-5 mr-2 rounded-full bg-yellow-400 flex items-center justify-center text-xs font-bold flex-shrink-0';
                         fallback.innerText = selectedCurrency.code.substring(0, 1);
-                        parent.insertBefore(fallback, e.target);
+                        parent.insertBefore(fallback, imgElement);
                       }
                     }}
                   />
