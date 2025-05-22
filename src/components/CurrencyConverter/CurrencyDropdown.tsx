@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { ChevronDown, ChevronUp, Search } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -64,7 +63,7 @@ const currencyToCountryMap: Record<string, string> = {
   SAR: "sa", // Saudi Arabia
   MYR: "my", // Malaysia
   RON: "ro", // Romania
-  // Additional mappings for previously missing flags
+  // Additional mappings
   PKR: "pk", // Pakistan
   BDT: "bd", // Bangladesh
   VND: "vn", // Vietnam
@@ -166,108 +165,34 @@ const currencyToCountryMap: Record<string, string> = {
   XAU: "un", // Gold - UN flag
   XAG: "un", // Silver - UN flag
   XDR: "un", // SDR - UN flag
-  // Additional currencies
+  // More currencies
   AFN: "af", // Afghanistan
   AOA: "ao", // Angola
   ARS: "ar", // Argentina
   AMD: "am", // Armenia
-  AWG: "aw", // Aruba
-  AZN: "az", // Azerbaijan
-  BSD: "bs", // Bahamas
-  BHD: "bh", // Bahrain
-  BDT: "bd", // Bangladesh
-  BBD: "bb", // Barbados
-  BYN: "by", // Belarus
-  BZD: "bz", // Belize
-  BMD: "bm", // Bermuda
-  BTN: "bt", // Bhutan
-  BOB: "bo", // Bolivia
-  BAM: "ba", // Bosnia and Herzegovina
-  BWP: "bw", // Botswana
-  BND: "bn", // Brunei
-  BIF: "bi", // Burundi
-  KHR: "kh", // Cambodia
   CVE: "cv", // Cape Verde
   KYD: "ky", // Cayman Islands
   XAF: "cm", // Central African CFA franc
-  XPF: "pf", // CFP franc
   CDF: "cd", // Congo
   CUP: "cu", // Cuba
-  DJF: "dj", // Djibouti
   DOP: "do", // Dominican Republic
-  XCD: "gd", // Eastern Caribbean dollar
   SVC: "sv", // El Salvador
-  ERN: "er", // Eritrea
-  SZL: "sz", // Eswatini
-  ETB: "et", // Ethiopia
-  FKP: "fk", // Falkland Islands
-  GMD: "gm", // Gambia
-  GEL: "ge", // Georgia
-  GHS: "gh", // Ghana
-  GIP: "gi", // Gibraltar
-  GTQ: "gt", // Guatemala
-  GGP: "gg", // Guernsey
-  GNF: "gn", // Guinea
-  GYD: "gy", // Guyana
   HTG: "ht", // Haiti
-  HNL: "hn", // Honduras
   IMP: "im", // Isle of Man
   JEP: "je", // Jersey
-  KES: "ke", // Kenya
-  KGS: "kg", // Kyrgyzstan
+  KHR: "kh", // Cambodia
   LAK: "la", // Laos
-  LBP: "lb", // Lebanon
-  LSL: "ls", // Lesotho
   LRD: "lr", // Liberia
-  LYD: "ly", // Libya
   MOP: "mo", // Macau
   MGA: "mg", // Madagascar
-  MWK: "mw", // Malawi
-  MVR: "mv", // Maldives
-  MRU: "mr", // Mauritania
   MUR: "mu", // Mauritius
-  MDL: "md", // Moldova
-  MNT: "mn", // Mongolia
-  MAD: "ma", // Morocco
-  MZN: "mz", // Mozambique
   MMK: "mm", // Myanmar
-  NAD: "na", // Namibia
-  NPR: "np", // Nepal
-  NIO: "ni", // Nicaragua
-  NGN: "ng", // Nigeria
-  MKD: "mk", // North Macedonia
-  OMR: "om", // Oman
-  PAB: "pa", // Panama
-  PGK: "pg", // Papua New Guinea
-  PYG: "py", // Paraguay
-  PEN: "pe", // Peru
-  QAR: "qa", // Qatar
-  RWF: "rw", // Rwanda
-  WST: "ws", // Samoa
-  STN: "st", // São Tomé and Príncipe
-  RSD: "rs", // Serbia
   SCR: "sc", // Seychelles
-  SLL: "sl", // Sierra Leone
-  SBD: "sb", // Solomon Islands
-  SOS: "so", // Somalia
-  SSP: "ss", // South Sudan
+  STN: "st", // São Tomé and Príncipe
   LKR: "lk", // Sri Lanka
-  SDG: "sd", // Sudan
-  SRD: "sr", // Suriname
-  SYP: "sy", // Syria
-  TJS: "tj", // Tajikistan
-  TZS: "tz", // Tanzania
-  TOP: "to", // Tonga
-  TTD: "tt", // Trinidad and Tobago
-  TMT: "tm", // Turkmenistan
-  UGX: "ug", // Uganda
-  UYU: "uy", // Uruguay
-  UZS: "uz", // Uzbekistan
-  VUV: "vu", // Vanuatu
   VES: "ve", // Venezuela
-  YER: "ye", // Yemen
-  ZMW: "zm", // Zambia
   ZWL: "zw"  // Zimbabwe
+  // Any additional currencies should be added here, ensuring no duplicates
 };
 
 // Currency aliases for improved search
@@ -414,10 +339,10 @@ const CurrencyDropdown = ({
       ? fuseRef.current.search(searchTerm).map(result => result.item)
       : enrichedCurrencies;
 
-  // Get recently used currencies - Fix the type predicate error
+  // Get recently used currencies
   const recentCurrencies = recentlyUsed
     .map(code => enrichedCurrencies.find(c => c.code === code))
-    .filter((c): c is typeof enrichedCurrencies[0] => c !== undefined);
+    .filter((c): c is CurrencySymbol => c !== undefined);
 
   // Group currencies by type (fiat and crypto)
   const groupedCurrencies = filteredCurrencies.reduce<{
