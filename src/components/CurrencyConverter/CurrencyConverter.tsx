@@ -15,13 +15,6 @@ import {
   CACHE_KEYS,
   API_ENDPOINTS
 } from "./ApiUtils";
-import {
-  fetchCryptoPrices,
-  TOP_CRYPTOS,
-  cryptoSymbolToId,
-  isCryptoCurrency,
-  CRYPTO_CACHE_KEYS
-} from "./CryptoApiUtils";
 
 // Type definitions
 interface SymbolsResponse {
@@ -35,20 +28,13 @@ interface RatesResponse {
   time_last_updated: number;
 }
 
-interface CryptoPrice {
-  [cryptoId: string]: {
-    [currency: string]: number;
-  };
-}
-
 interface CurrencyConverterProps {
-  mode?: "fiat" | "crypto";
+  mode?: "fiat"; // Only fiat mode is supported now
 }
 
 // Initialize cache
 const symbolsCache = new CurrencyCache<CurrencySymbol[]>(24 * 60 * 60 * 1000); // 24 hours 
 const ratesCache = new CurrencyCache<Record<string, number>>(5 * 60 * 1000); // 5 minutes
-const cryptoPricesCache = new CurrencyCache<CryptoPrice>(2 * 60 * 1000); // 2 minutes
 
 // Map ISO currency codes to country codes for flags - ensure complete coverage
 const currencyToCountryMap: Record<string, string> = {
@@ -207,17 +193,7 @@ const currencyToCountryMap: Record<string, string> = {
   STN: "st", // São Tomé and Príncipe
   SCR: "sc", // Seychelles
   VES: "ve", // Venezuela
-  ZWL: "zw", // Zimbabwe
-  ADA: "un", // Cardano (use UN flag as fallback for crypto)
-  SOL: "un", // Solana
-  DOGE: "un", // Dogecoin
-  DOT: "un", // Polkadot
-  LINK: "un", // Chainlink
-  AVAX: "un", // Avalanche
-  MATIC: "un", // Polygon
-  XRP: "un", // Ripple
-  USDT: "un" // Tether
-  // Removed duplicate entries that were causing the TypeScript errors
+  ZWL: "zw" // Zimbabwe
 };
 
 // Keep recent currencies for quick access
@@ -243,8 +219,8 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
   // State for selected currencies and amounts
   const [baseAmount, setBaseAmount] = useState(1); // Always default to 1
   const [targetAmount, setTargetAmount] = useState(0);
-  const [baseCurrency, setBaseCurrency] = useState(mode === "crypto" ? "BTC" : "USD"); // Default to USD or BTC
-  const [targetCurrency, setTargetCurrency] = useState(mode === "crypto" ? "USD" : "EUR"); // Default to EUR or USD
+  const [baseCurrency, setBaseCurrency] = useState("USD"); // Default to USD
+  const [targetCurrency, setTargetCurrency] = useState("EUR"); // Default to EUR
   
   // Track which field was last changed to prevent ping-pong effect
   const [lastChangedField, setLastChangedField] = useState<"base" | "target">("base");
@@ -257,11 +233,6 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
   const [isLoadingRate, setIsLoadingRate] = useState(false);
   const [rateError, setRateError] = useState<string | null>(null);
   const [rateRetryAttempt, setRateRetryAttempt] = useState(0);
-  
-  // State for crypto prices
-  const [cryptoPrices, setCryptoPrices] = useState<CryptoPrice | null>(null);
-  const [isLoadingCrypto, setIsLoadingCrypto] = useState(false);
-  const [cryptoError, setCryptoError] = useState<string | null>(null);
   
   // Force refresh timer - ensure rates are updated regularly
   const [forceRefreshCounter, setForceRefreshCounter] = useState(0);
@@ -306,14 +277,14 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
     });
   }, []);
   
-  // Set up auto refresh every 5 minutes for fiat, 2 minutes for crypto
+  // Set up auto refresh every 5 minutes for fiat rates
   useEffect(() => {
     const refreshInterval = setInterval(() => {
       setForceRefreshCounter(prev => prev + 1);
-    }, mode === "crypto" ? 2 * 60 * 1000 : 5 * 60 * 1000); 
+    }, 5 * 60 * 1000); 
     
     return () => clearInterval(refreshInterval);
-  }, [mode]);
+  }, []);
 
   // Reset base amount to 1 when changing currencies
   useEffect(() => {
@@ -328,110 +299,49 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
       if (retry) setSymbolsRetryAttempt(prev => prev + 1);
       setSymbolsError(null);
       
-      // Combine fiat and crypto currencies based on mode
-      if (mode === "crypto") {
-        // For crypto mode, include both crypto and fiat currencies
-        // Check cache first
-        const cachedSymbols = symbolsCache.get("symbols-crypto") || getFromCache<CurrencySymbol[]>(CACHE_KEYS.SYMBOLS);
-        if (cachedSymbols && !retry) {
-          setSymbols(cachedSymbols);
-          setIsLoadingSymbols(false);
-          return;
-        }
-        
-        // Fetch fiat symbols with retry logic
-        const data = await retryWithBackoff<SymbolsResponse>(async () => {
-          const response = await fetch("https://openexchangerates.org/api/currencies.json");
-          if (!response.ok) {
-            throw new Error(`Failed to fetch symbols: ${response.status}`);
-          }
-          return response.json();
-        });
-        
-        // Transform symbols into array of currency symbols
-        let symbolsArray: CurrencySymbol[] = Object.entries(data).map(([code, name]) => {
-          // Find country code for flag
-          const countryCode = currencyToCountryMap[code] || code.substring(0, 2).toLowerCase();
-          
-          return {
-            code,
-            description: name as string,
-            countryCode,
-            isCrypto: false,
-            group: "fiat" // Add group information
-          };
-        });
-        
-        // Add cryptocurrency symbols
-        const cryptoSymbols: CurrencySymbol[] = TOP_CRYPTOS.map(crypto => ({
-          code: crypto.symbol,
-          description: crypto.name,
-          isCrypto: true,
-          cryptoId: crypto.id,
-          group: "crypto", // Add group information
-          // For now we'll add placeholder for the image, later we can fetch actual images
-          image: `https://assets.coingecko.com/coins/images/1/small/bitcoin.png`.replace('bitcoin', crypto.id)
-        }));
-        
-        // Combine and sort alphabetically by code
-        const combinedSymbols = [...cryptoSymbols, ...symbolsArray];
-        combinedSymbols.sort((a, b) => a.code.localeCompare(b.code));
-        
-        // Update state and cache
-        setSymbols(combinedSymbols);
-        symbolsCache.set("symbols-crypto", combinedSymbols);
-        saveToCache(CRYPTO_CACHE_KEYS.COINS_LIST, combinedSymbols);
-        setSymbolsError(null);
-        setIsOfflineMode(false);
-      } else {
-        // For fiat mode, only include fiat currencies (original behavior)
-        // Check cache first
-        const cachedSymbols = symbolsCache.get("symbols") || getFromCache<CurrencySymbol[]>(CACHE_KEYS.SYMBOLS);
-        if (cachedSymbols && !retry) {
-          setSymbols(cachedSymbols);
-          setIsLoadingSymbols(false);
-          return;
-        }
-        
-        // Fetch with retry logic
-        const data = await retryWithBackoff<SymbolsResponse>(async () => {
-          const response = await fetch("https://openexchangerates.org/api/currencies.json");
-          if (!response.ok) {
-            throw new Error(`Failed to fetch symbols: ${response.status}`);
-          }
-          return response.json();
-        });
-        
-        // Transform symbols into array of currency symbols
-        const symbolsArray: CurrencySymbol[] = Object.entries(data).map(([code, name]) => {
-          // Find country code for flag
-          const countryCode = currencyToCountryMap[code] || code.substring(0, 2).toLowerCase();
-          
-          return {
-            code,
-            description: name as string,
-            countryCode,
-            isCrypto: false,
-            group: "fiat" // Add group information
-          };
-        });
-        
-        // Sort alphabetically by code
-        symbolsArray.sort((a, b) => a.code.localeCompare(b.code));
-        
-        // Update state and cache
-        setSymbols(symbolsArray);
-        symbolsCache.set("symbols", symbolsArray);
-        saveToCache(CACHE_KEYS.SYMBOLS, symbolsArray);
-        setSymbolsError(null);
-        setIsOfflineMode(false);
+      // Check cache first
+      const cachedSymbols = symbolsCache.get("symbols") || getFromCache<CurrencySymbol[]>(CACHE_KEYS.SYMBOLS);
+      if (cachedSymbols && !retry) {
+        setSymbols(cachedSymbols);
+        setIsLoadingSymbols(false);
+        return;
       }
+      
+      // Fetch with retry logic
+      const data = await retryWithBackoff<SymbolsResponse>(async () => {
+        const response = await fetch("https://openexchangerates.org/api/currencies.json");
+        if (!response.ok) {
+          throw new Error(`Failed to fetch symbols: ${response.status}`);
+        }
+        return response.json();
+      });
+      
+      // Transform symbols into array of currency symbols
+      const symbolsArray: CurrencySymbol[] = Object.entries(data).map(([code, name]) => {
+        // Find country code for flag
+        const countryCode = currencyToCountryMap[code] || code.substring(0, 2).toLowerCase();
+        
+        return {
+          code,
+          description: name as string,
+          countryCode
+        };
+      });
+      
+      // Sort alphabetically by code
+      symbolsArray.sort((a, b) => a.code.localeCompare(b.code));
+      
+      // Update state and cache
+      setSymbols(symbolsArray);
+      symbolsCache.set("symbols", symbolsArray);
+      saveToCache(CACHE_KEYS.SYMBOLS, symbolsArray);
+      setSymbolsError(null);
+      setIsOfflineMode(false);
     } catch (error) {
       console.error("Error fetching currency symbols:", error);
       
       // Try to get from localStorage as last resort
-      const cacheKey = mode === "crypto" ? CRYPTO_CACHE_KEYS.COINS_LIST : CACHE_KEYS.SYMBOLS;
-      const cachedSymbols = getFromCache<CurrencySymbol[]>(cacheKey);
+      const cachedSymbols = getFromCache<CurrencySymbol[]>(CACHE_KEYS.SYMBOLS);
       if (cachedSymbols && cachedSymbols.length > 0) {
         setSymbols(cachedSymbols);
         setIsOfflineMode(true);
@@ -448,120 +358,24 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
       setIsLoadingSymbols(false);
       setSymbolsRetryAttempt(0);
     }
-  }, [mode]);
-  
-  // Fetch crypto prices from CoinGecko API
-  const fetchCryptoPricesForConversion = useCallback(async (cryptoCode: string, fiatCode: string, retry = false) => {
-    // Skip unnecessary fetch if both currencies are the same
-    if (cryptoCode === fiatCode) {
-      return {
-        [cryptoSymbolToId[cryptoCode]]: {
-          [fiatCode.toLowerCase()]: 1
-        }
-      };
-    }
-    
-    try {
-      setIsLoadingCrypto(true);
-      setCryptoError(null);
-      
-      // Determine which codes to use for the API call
-      let cryptoId: string;
-      let fiatCodes: string[];
-      
-      // Check if base currency is crypto
-      if (isCryptoCurrency(cryptoCode)) {
-        cryptoId = cryptoSymbolToId[cryptoCode];
-        fiatCodes = [fiatCode.toLowerCase()];
-      } else {
-        // Target currency is crypto
-        cryptoId = cryptoSymbolToId[fiatCode];
-        fiatCodes = [cryptoCode.toLowerCase()];
-      }
-      
-      // Generate cache key
-      const cacheKey = `${cryptoId}-${fiatCodes.join(',')}`;
-      
-      // Check in-memory cache
-      const cachedPrices = cryptoPricesCache.get(cacheKey);
-      if (cachedPrices && !retry) {
-        setCryptoPrices(cachedPrices);
-        setIsLoadingCrypto(false);
-        return cachedPrices;
-      }
-      
-      // Check localStorage cache
-      const localCacheKey = `${CRYPTO_CACHE_KEYS.PRICES_PREFIX}${cacheKey}`;
-      const cachedData = !retry ? getFromCache<{data: CryptoPrice, timestamp: number}>(localCacheKey) : null;
-      
-      if (cachedData && !retry) {
-        setCryptoPrices(cachedData.data);
-        setIsLoadingCrypto(false);
-        setLastUpdated(new Date(cachedData.timestamp));
-        return cachedData.data;
-      }
-      
-      // Fetch with retry logic
-      const prices = await fetchCryptoPrices([cryptoId], fiatCodes);
-      
-      // Cache the results
-      cryptoPricesCache.set(cacheKey, prices);
-      saveToCache(localCacheKey, {
-        data: prices,
-        timestamp: Date.now()
-      });
-      
-      setCryptoPrices(prices);
-      setLastUpdated(new Date());
-      setIsOfflineMode(false);
-      return prices;
-      
-    } catch (error) {
-      console.error("Error fetching crypto prices:", error);
-      
-      // Try to get from localStorage
-      const localCacheKey = `${CRYPTO_CACHE_KEYS.PRICES_PREFIX}${cryptoSymbolToId[cryptoCode]}-${fiatCode.toLowerCase()}`;
-      const cachedData = getFromCache<{data: CryptoPrice, timestamp: number}>(localCacheKey);
-      
-      if (cachedData) {
-        setCryptoPrices(cachedData.data);
-        setLastUpdated(new Date(cachedData.timestamp));
-        setIsOfflineMode(true);
-        
-        toast.warning(
-          `Using cached cryptocurrency prices from ${formatRelativeTime(new Date(cachedData.timestamp))}`,
-          { icon: <WifiOff className="h-4 w-4" /> }
-        );
-        
-        return cachedData.data;
-      } else {
-        setCryptoError("Failed to load cryptocurrency prices. Please try again later.");
-        toast.error("Unable to get current cryptocurrency prices");
-        return null;
-      }
-    } finally {
-      setIsLoadingCrypto(false);
-    }
   }, []);
-  
+
   // Fetch exchange rates using ExchangeRate-API
   const fetchExchangeRates = useCallback(async (base: string, retry = false) => {
-    // Skip if we're dealing with crypto or comparing same currency
-    if (isCryptoCurrency(base) || isCryptoCurrency(targetCurrency) || base === targetCurrency) {
-      if (base === targetCurrency) {
-        const singleRate: Record<string, number> = {};
-        singleRate[targetCurrency] = 1;
-        setRates(singleRate);
-        
-        // Update amounts based on which field was last changed
-        if (lastChangedField === "base") {
-          setTargetAmount(baseAmount);
-        } else {
-          setBaseAmount(targetAmount);
-        }
-        
-        setLastUpdated(new Date());
+    // Skip comparing same currency
+    if (base === targetCurrency) {
+      const singleRate: Record<string, number> = {};
+      singleRate[targetCurrency] = 1;
+      setRates(singleRate);
+      
+      // Update amounts based on which field was last changed
+      if (lastChangedField === "base") {
+        setTargetAmount(baseAmount);
+      } else {
+        setBaseAmount(targetAmount);
       }
+      
+      setLastUpdated(new Date());
       return;
     }
     
@@ -673,110 +487,24 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
     }
   };
   
-  // Helper function to update amounts based on crypto prices
-  const updateCryptoAmounts = (prices: CryptoPrice | null) => {
-    if (!prices) return;
-    
-    // Make sure to use lowercase for fiat codes in API response
-    const baseCurrencyLower = baseCurrency.toLowerCase();
-    const targetCurrencyLower = targetCurrency.toLowerCase();
-    
-    // If both are crypto currencies, we need special handling
-    if (isCryptoCurrency(baseCurrency) && isCryptoCurrency(targetCurrency)) {
-      // For crypto to crypto, we need to convert via a common denominator (USD)
-      const baseId = cryptoSymbolToId[baseCurrency];
-      const targetId = cryptoSymbolToId[targetCurrency];
-      
-      // Try to get both prices in USD
-      const baseUsdPrice = prices[baseId]?.usd;
-      const targetUsdPrice = prices[targetId]?.usd;
-      
-      if (baseUsdPrice && targetUsdPrice) {
-        const rate = baseUsdPrice / targetUsdPrice;
-        
-        if (lastChangedField === "base") {
-          setTargetAmount(parseFloat((baseAmount * rate).toFixed(8)));
-        } else {
-          setBaseAmount(parseFloat((targetAmount / rate).toFixed(8)));
-        }
-      }
-      return;
-    }
-    
-    // For crypto to fiat or fiat to crypto
-    if (isCryptoCurrency(baseCurrency)) {
-      // Base is crypto, target is fiat
-      const cryptoId = cryptoSymbolToId[baseCurrency];
-      if (!prices[cryptoId] || !prices[cryptoId][targetCurrencyLower]) {
-        console.error("Price not found for", baseCurrency, "to", targetCurrency);
-        return;
-      }
-      
-      const rate = prices[cryptoId][targetCurrencyLower];
-      
-      if (lastChangedField === "base") {
-        setTargetAmount(parseFloat((baseAmount * rate).toFixed(4)));
-      } else {
-        setBaseAmount(parseFloat((targetAmount / rate).toFixed(8)));
-      }
-    } else {
-      // Base is fiat, target is crypto
-      const cryptoId = cryptoSymbolToId[targetCurrency];
-      if (!prices[cryptoId] || !prices[cryptoId][baseCurrencyLower]) {
-        console.error("Price not found for", targetCurrency, "in", baseCurrency);
-        return;
-      }
-      
-      const rate = prices[cryptoId][baseCurrencyLower];
-      
-      if (lastChangedField === "base") {
-        setTargetAmount(parseFloat((baseAmount / rate).toFixed(8)));
-      } else {
-        setBaseAmount(parseFloat((targetAmount * rate).toFixed(4)));
-      }
-    }
-  };
-  
   // Initial load of symbols
   useEffect(() => {
     fetchSymbols();
-  }, [fetchSymbols, mode]);
+  }, [fetchSymbols]);
   
   // Effect to trigger rate fetch when currencies change or the forceRefreshCounter changes
   useEffect(() => {
-    // If either currency is crypto, use crypto API
-    if (isCryptoCurrency(baseCurrency) || isCryptoCurrency(targetCurrency)) {
-      fetchCryptoPricesForConversion(baseCurrency, targetCurrency);
-    } else if (baseCurrency) {
-      // Otherwise use fiat API
+    if (baseCurrency) {
       fetchExchangeRates(baseCurrency);
     }
-  }, [baseCurrency, targetCurrency, fetchExchangeRates, fetchCryptoPricesForConversion, forceRefreshCounter]);
-  
-  // Effect to update amounts when crypto prices change
-  useEffect(() => {
-    if (cryptoPrices) {
-      updateCryptoAmounts(cryptoPrices);
-    }
-  }, [cryptoPrices]);
+  }, [baseCurrency, targetCurrency, fetchExchangeRates, forceRefreshCounter]);
   
   // Handle base amount change
   const handleBaseAmountChange = (value: number) => {
     setBaseAmount(value);
     setLastChangedField("base");
     
-    // If dealing with crypto
-    if (isCryptoCurrency(baseCurrency) || isCryptoCurrency(targetCurrency)) {
-      if (cryptoPrices !== null) {
-        updateCryptoAmounts(cryptoPrices);
-      } else {
-        // Trigger price fetch if needed
-        fetchCryptoPricesForConversion(baseCurrency, targetCurrency);
-      }
-      return;
-    }
-    
-    // If rates are available for fiat, calculate target amount without waiting for API
+    // If rates are available, calculate target amount without waiting for API
     if (rates !== null && rates[targetCurrency]) {
       // Use precise math, then round for display only
       setTargetAmount(parseFloat((value * rates[targetCurrency]).toFixed(4)));
@@ -791,18 +519,7 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
     setTargetAmount(value);
     setLastChangedField("target");
     
-    // If dealing with crypto
-    if (isCryptoCurrency(baseCurrency) || isCryptoCurrency(targetCurrency)) {
-      if (cryptoPrices !== null) {
-        updateCryptoAmounts(cryptoPrices);
-      } else {
-        // Trigger price fetch if needed
-        fetchCryptoPricesForConversion(baseCurrency, targetCurrency);
-      }
-      return;
-    }
-    
-    // If rates are available for fiat, calculate base amount without waiting for API
+    // If rates are available, calculate base amount without waiting for API
     if (rates !== null && rates[targetCurrency] !== 0) {
       // Use precise math for inverse calculation
       setBaseAmount(parseFloat((value / rates[targetCurrency]).toFixed(4)));
@@ -847,8 +564,6 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
     // Swap currencies
     const tempBaseCurrency = baseCurrency;
     const tempTargetCurrency = targetCurrency;
-    const tempBaseAmount = baseAmount;
-    const tempTargetAmount = targetAmount;
     
     setBaseCurrency(tempTargetCurrency);
     setTargetCurrency(tempBaseCurrency);
@@ -860,16 +575,10 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
   
   // Manual rate refresh
   const handleRefreshRate = () => {
-    if (isCryptoCurrency(baseCurrency) || isCryptoCurrency(targetCurrency)) {
-      // For crypto, clear the crypto cache
-      fetchCryptoPricesForConversion(baseCurrency, targetCurrency, true);
-    } else {
-      // For fiat, force clear the cache
-      const cacheKey = `rates-${baseCurrency}`;
-      ratesCache.remove(cacheKey);
-      fetchExchangeRates(baseCurrency, true);
-    }
-    
+    // Force clear the cache
+    const cacheKey = `rates-${baseCurrency}`;
+    ratesCache.remove(cacheKey);
+    fetchExchangeRates(baseCurrency, true);
     toast.success("Refreshing rates");
   };
   
@@ -884,18 +593,8 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
   }
   
   // Calculate current rate for display
-  const currentRate = 
-    isCryptoCurrency(baseCurrency) || isCryptoCurrency(targetCurrency) 
-      ? null // We'll handle crypto rate display separately
-      : rates && rates[targetCurrency] 
-        ? rates[targetCurrency] 
-        : null;
-  
-  // Determine which currencies to show based on mode
-  const displayedCurrencies = mode === "crypto" 
-    ? symbols 
-    : symbols.filter(s => !s.isCrypto);
-  
+  const currentRate = rates && rates[targetCurrency] ? rates[targetCurrency] : null;
+
   return (
     <div className="w-full">
       {/* Offline mode banner */}
@@ -909,11 +608,7 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
             <button
               onClick={() => {
                 fetchSymbols(true);
-                if (isCryptoCurrency(baseCurrency) || isCryptoCurrency(targetCurrency)) {
-                  fetchCryptoPricesForConversion(baseCurrency, targetCurrency, true);
-                } else {
-                  fetchExchangeRates(baseCurrency, true);
-                }
+                fetchExchangeRates(baseCurrency, true);
               }}
               className="ml-auto text-xs bg-amber-100 hover:bg-amber-200 text-amber-800 px-2 py-1 rounded-md transition-colors flex items-center"
             >
@@ -925,16 +620,10 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
       )}
       
       {/* Rate error display (non-blocking) */}
-      {(rateError || cryptoError) && (
+      {rateError && (
         <ErrorDisplay 
-          message={rateError || cryptoError || "Error loading rates"} 
-          onRetry={() => {
-            if (isCryptoCurrency(baseCurrency) || isCryptoCurrency(targetCurrency)) {
-              fetchCryptoPricesForConversion(baseCurrency, targetCurrency, true);
-            } else {
-              fetchExchangeRates(baseCurrency, true);
-            }
-          }} 
+          message={rateError || "Error loading rates"} 
+          onRetry={() => fetchExchangeRates(baseCurrency, true)} 
           inline 
         />
       )}
@@ -953,8 +642,7 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
                 value={baseCurrency}
                 onChange={handleBaseCurrencyChange}
                 currencies={symbols}
-                disabled={isLoadingRate || isLoadingCrypto}
-                includeCrypto={mode === "crypto"}
+                disabled={isLoadingRate}
                 recentlyUsed={recentlyUsed}
               />
             </div>
@@ -963,7 +651,7 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
               value={baseAmount}
               onChange={handleBaseAmountChange}
               currencyCode={baseCurrency}
-              disabled={isLoadingRate || isLoadingCrypto}
+              disabled={isLoadingRate}
             />
           </div>
         </div>
@@ -972,7 +660,7 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
         <div className="md:hidden flex justify-center my-2">
           <button
             onClick={handleSwapCurrencies}
-            disabled={isLoadingRate || isLoadingCrypto}
+            disabled={isLoadingRate}
             className="p-3 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 animate-pulse-gentle"
             aria-label="Swap currencies"
           >
@@ -991,7 +679,7 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
               {/* Swap Button (visible only on desktop) */}
               <button
                 onClick={handleSwapCurrencies}
-                disabled={isLoadingRate || isLoadingCrypto}
+                disabled={isLoadingRate}
                 className="hidden md:flex items-center space-x-2 text-blue-600 hover:text-blue-800 text-sm bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded-full transition-all duration-300 transform hover:scale-105"
                 aria-label="Swap currencies"
               >
@@ -1006,8 +694,7 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
                 value={targetCurrency}
                 onChange={handleTargetCurrencyChange}
                 currencies={symbols}
-                disabled={isLoadingRate || isLoadingCrypto}
-                includeCrypto={mode === "crypto"}
+                disabled={isLoadingRate}
                 recentlyUsed={recentlyUsed}
               />
             </div>
@@ -1016,7 +703,7 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
               value={targetAmount}
               onChange={handleTargetAmountChange}
               currencyCode={targetCurrency}
-              disabled={isLoadingRate || isLoadingCrypto}
+              disabled={isLoadingRate}
             />
           </div>
         </div>
@@ -1024,7 +711,7 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
       
       {/* Exchange Rate and Last Updated */}
       <div className="mt-6 border-t border-gray-200 pt-4 text-sm text-gray-600 bg-gray-50 p-4 rounded-lg backdrop-blur-sm animate-fade-in">
-        {isLoadingRate || isLoadingCrypto ? (
+        {isLoadingRate ? (
           <div className="flex items-center justify-center">
             <div className="animate-spin mr-2">
               <RefreshCw className="h-4 w-4" />
@@ -1034,54 +721,9 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
         ) : (
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
             <div className="flex items-center bg-white px-4 py-2 rounded-md shadow-sm animate-pulse-gentle">
-              {/* For fiat-to-fiat rates */}
-              {rates && !isCryptoCurrency(baseCurrency) && !isCryptoCurrency(targetCurrency) && (
-                <span className="font-medium">
-                  1 {baseCurrency} = <span className="font-bold text-blue-700">{(rates[targetCurrency] || 0).toFixed(4)}</span> {targetCurrency}
-                </span>
-              )}
-              
-              {/* For crypto rates */}
-              {(isCryptoCurrency(baseCurrency) || isCryptoCurrency(targetCurrency)) && cryptoPrices && (
-                <span className="font-medium">
-                  {/* For crypto-to-fiat */}
-                  {isCryptoCurrency(baseCurrency) && !isCryptoCurrency(targetCurrency) && (
-                    <>
-                      1 {baseCurrency} = <span className="font-bold text-blue-700">
-                        {cryptoPrices[cryptoSymbolToId[baseCurrency]]?.[targetCurrency.toLowerCase()]?.toFixed(4) || "Loading..."}
-                      </span> {targetCurrency}
-                    </>
-                  )}
-                  
-                  {/* For fiat-to-crypto */}
-                  {!isCryptoCurrency(baseCurrency) && isCryptoCurrency(targetCurrency) && (
-                    <>
-                      1 {baseCurrency} = <span className="font-bold text-blue-700">
-                        {(1 / (cryptoPrices[cryptoSymbolToId[targetCurrency]]?.[baseCurrency.toLowerCase()] || 0)).toFixed(8) || "Loading..."}
-                      </span> {targetCurrency}
-                    </>
-                  )}
-                  
-                  {/* For crypto-to-crypto */}
-                  {isCryptoCurrency(baseCurrency) && isCryptoCurrency(targetCurrency) && (
-                    <>
-                      1 {baseCurrency} = <span className="font-bold text-blue-700">
-                        {(() => {
-                          const baseId = cryptoSymbolToId[baseCurrency];
-                          const targetId = cryptoSymbolToId[targetCurrency];
-                          const baseUsdPrice = cryptoPrices[baseId]?.usd;
-                          const targetUsdPrice = cryptoPrices[targetId]?.usd;
-                          
-                          if (baseUsdPrice && targetUsdPrice) {
-                            return (baseUsdPrice / targetUsdPrice).toFixed(8);
-                          }
-                          return "Loading...";
-                        })()}
-                      </span> {targetCurrency}
-                    </>
-                  )}
-                </span>
-              )}
+              <span className="font-medium">
+                1 {baseCurrency} = <span className="font-bold text-blue-700">{(rates?.[targetCurrency] || 0).toFixed(4)}</span> {targetCurrency}
+              </span>
             </div>
             {lastUpdated && (
               <div className="flex items-center mt-2 sm:mt-0">

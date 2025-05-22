@@ -1,20 +1,15 @@
 
 import { useState, useRef, useEffect } from "react";
-import { ChevronDown, ChevronUp, Search, Bitcoin, Flag } from "lucide-react";
+import { ChevronDown, ChevronUp, Search, Flag } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import Fuse from 'fuse.js';
 import 'flag-icons/css/flag-icons.min.css';
-import { isCryptoCurrency, cryptoSymbolToId } from "./CryptoApiUtils";
 
 export interface CurrencySymbol {
   code: string;
   description: string;
   countryCode?: string;
-  isCrypto?: boolean;
-  cryptoId?: string;
-  image?: string;
   aliases?: string[];
-  group?: 'fiat' | 'crypto'; // For grouping in the dropdown
 }
 
 interface CurrencyDropdownProps {
@@ -23,8 +18,7 @@ interface CurrencyDropdownProps {
   onChange: (value: string) => void;
   currencies: CurrencySymbol[];
   disabled?: boolean;
-  includeCrypto?: boolean;
-  recentlyUsed?: string[]; // Added recently used currencies
+  recentlyUsed?: string[]; // Recently used currencies
 }
 
 // Map ISO currency codes to country codes for flags
@@ -169,7 +163,6 @@ const currencyToCountryMap: Record<string, string> = {
   AOA: "ao", // Angola
   ARS: "ar", // Argentina
   CVE: "cv", // Cape Verde
-  KYD: "ky", // Cayman Islands
   CDF: "cd", // Congo
   CUP: "cu", // Cuba
   DOP: "do", // Dominican Republic
@@ -220,40 +213,8 @@ const currencyAliases: Record<string, string[]> = {
   TRY: ["turkish lira", "turkey"],
   KRW: ["korean won", "south korea", "korea"],
   TWD: ["taiwan dollar", "taiwan"],
-  // Crypto aliases
-  BTC: ["bitcoin", "btc", "xbt", "crypto"],
-  ETH: ["ethereum", "ether"],
-  USDT: ["tether", "stablecoin"],
-  BNB: ["binance coin", "binance"],
-  SOL: ["solana"],
-  XRP: ["ripple", "xrp"],
-  ADA: ["cardano", "ada"],
-  DOT: ["polkadot", "dot"],
-  DOGE: ["dogecoin", "doge", "meme coin"],
-  SHIB: ["shiba inu", "shib", "meme coin"],
-  LTC: ["litecoin", "ltc"],
-  MATIC: ["polygon", "matic"],
-  AVAX: ["avalanche", "avax"],
-  LINK: ["chainlink", "link"],
-  UNI: ["uniswap", "uni"],
   AFN: ["afghan afghani", "afghanistan"],
   LKR: ["sri lankan rupee", "sri lanka"]
-};
-
-// Base URL for crypto icons
-const CRYPTO_ICON_BASE_URL = "https://cryptologos.cc/logos";
-
-// Crypto icon mappings
-const cryptoIcons: Record<string, string> = {
-  BTC: `${CRYPTO_ICON_BASE_URL}/bitcoin-btc-logo.svg`,
-  ETH: `${CRYPTO_ICON_BASE_URL}/ethereum-eth-logo.svg`,
-  USDT: `${CRYPTO_ICON_BASE_URL}/tether-usdt-logo.svg`,
-  BNB: `${CRYPTO_ICON_BASE_URL}/bnb-bnb-logo.svg`,
-  SOL: `${CRYPTO_ICON_BASE_URL}/solana-sol-logo.svg`,
-  XRP: `${CRYPTO_ICON_BASE_URL}/xrp-xrp-logo.svg`,
-  ADA: `${CRYPTO_ICON_BASE_URL}/cardano-ada-logo.svg`,
-  DOGE: `${CRYPTO_ICON_BASE_URL}/dogecoin-doge-logo.svg`,
-  LTC: `${CRYPTO_ICON_BASE_URL}/litecoin-ltc-logo.svg`
 };
 
 const CurrencyDropdown = ({
@@ -262,7 +223,6 @@ const CurrencyDropdown = ({
   onChange,
   currencies,
   disabled = false,
-  includeCrypto = true, // Always include crypto
   recentlyUsed = [],
 }: CurrencyDropdownProps) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -276,12 +236,8 @@ const CurrencyDropdown = ({
   // Prepare currency data with country codes and aliases
   const enrichedCurrencies = currencies.map(currency => ({
     ...currency,
-    countryCode: currency.isCrypto ? undefined : currencyToCountryMap[currency.code] || "un", // Fallback to UN flag
-    image: currency.isCrypto ? cryptoIcons[currency.code] || undefined : undefined,
-    aliases: currency.isCrypto ? 
-      currencyAliases[currency.code] || [] : 
-      currencyAliases[currency.code] || [],
-    group: currency.isCrypto ? 'crypto' as const : 'fiat' as const
+    countryCode: currencyToCountryMap[currency.code] || "un", // Fallback to UN flag
+    aliases: currencyAliases[currency.code] || []
   }));
 
   // Setup Fuse.js for fuzzy search
@@ -358,19 +314,6 @@ const CurrencyDropdown = ({
     .map(code => enrichedCurrencies.find(c => c.code === code))
     .filter((c): c is CurrencySymbol => c !== undefined);
 
-  // Group currencies by type (fiat and crypto)
-  const groupedCurrencies = filteredCurrencies.reduce<{
-    fiat: CurrencySymbol[];
-    crypto: CurrencySymbol[];
-  }>((acc, currency) => {
-    if (currency.isCrypto) {
-      acc.crypto.push(currency);
-    } else {
-      acc.fiat.push(currency);
-    }
-    return acc;
-  }, { fiat: [], crypto: [] });
-
   // Handle keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (!isOpen) {
@@ -442,48 +385,17 @@ const CurrencyDropdown = ({
       aria-selected={currency.code === value}
     >
       <div className="flex items-center">
-        {currency.isCrypto ? (
-          currency.image ? (
-            <img
-              src={currency.image}
-              alt={currency.code}
-              className="w-5 h-5 mr-2 rounded-full flex-shrink-0"
-              onError={(e) => {
-                // Fallback icon if image fails to load
-                const imgElement = e.currentTarget as HTMLImageElement;
-                imgElement.style.display = 'none';
-                const parent = imgElement.parentElement;
-                if (parent) {
-                  const fallback = document.createElement('span');
-                  fallback.className = 'w-5 h-5 mr-2 rounded-full bg-yellow-400 flex items-center justify-center text-xs font-bold flex-shrink-0';
-                  fallback.innerText = currency.code.substring(0, 1);
-                  parent.insertBefore(fallback, imgElement);
-                }
-              }}
-            />
-          ) : (
-            <span className="w-5 h-5 mr-2 rounded-full bg-yellow-400 flex items-center justify-center text-xs font-bold flex-shrink-0">
-              <Bitcoin className="h-3 w-3" />
-            </span>
-          )
+        {currency.countryCode ? (
+          <span 
+            className={`fi fi-${currency.countryCode} mr-2 flex-shrink-0`}
+            style={{ width: '1.2em', height: '1em' }}
+            aria-hidden="true"
+          ></span>
         ) : (
-          currency.countryCode ? (
-            <span 
-              className={`fi fi-${currency.countryCode} mr-2 flex-shrink-0`}
-              style={{ width: '1.2em', height: '1em' }}
-              aria-hidden="true"
-            ></span>
-          ) : (
-            <Flag className="h-4 w-4 mr-2 text-gray-500" />
-          )
+          <Flag className="h-4 w-4 mr-2 text-gray-500" />
         )}
         <div className="flex flex-col">
-          <div className="flex items-center">
-            <span className="font-bold">{currency.code}</span>
-            {currency.isCrypto && (
-              <span className="ml-2 text-xs px-1.5 py-0.5 bg-yellow-100 text-yellow-800 rounded">Crypto</span>
-            )}
-          </div>
+          <span className="font-bold">{currency.code}</span>
           <span className="text-gray-500 text-sm truncate">
             {currency.description}
           </span>
@@ -508,40 +420,14 @@ const CurrencyDropdown = ({
         <span className="truncate font-medium flex items-center">
           {selectedCurrency ? (
             <span className="flex items-center">
-              {selectedCurrency.isCrypto ? (
-                selectedCurrency.image ? (
-                  <img 
-                    src={selectedCurrency.image} 
-                    alt={selectedCurrency.code}
-                    className="w-5 h-5 mr-2 rounded-full"
-                    onError={(e) => {
-                      // Fallback icon if image fails to load
-                      const imgElement = e.currentTarget as HTMLImageElement;
-                      imgElement.style.display = 'none';
-                      const parent = imgElement.parentElement;
-                      if (parent) {
-                        const fallback = document.createElement('span');
-                        fallback.className = 'w-5 h-5 mr-2 rounded-full bg-yellow-400 flex items-center justify-center text-xs font-bold flex-shrink-0';
-                        fallback.innerText = selectedCurrency.code.substring(0, 1);
-                        parent.insertBefore(fallback, imgElement);
-                      }
-                    }}
-                  />
-                ) : (
-                  <span className="w-5 h-5 mr-2 rounded-full bg-yellow-400 flex items-center justify-center text-xs font-bold">
-                    <Bitcoin className="h-3 w-3" />
-                  </span>
-                )
+              {selectedCurrency.countryCode ? (
+                <span 
+                  className={`fi fi-${selectedCurrency.countryCode} mr-2`} 
+                  style={{ width: '1.2em', height: '1em' }}
+                  aria-hidden="true"
+                ></span>
               ) : (
-                selectedCurrency.countryCode ? (
-                  <span 
-                    className={`fi fi-${selectedCurrency.countryCode} mr-2`} 
-                    style={{ width: '1.2em', height: '1em' }}
-                    aria-hidden="true"
-                  ></span>
-                ) : (
-                  <Flag className="h-4 w-4 mr-2 text-gray-500" />
-                )
+                <Flag className="h-4 w-4 mr-2 text-gray-500" />
               )}
               <span className="font-bold">{selectedCurrency.code}</span>
               <span className="text-gray-500 ml-2">({selectedCurrency.description})</span>
@@ -614,27 +500,14 @@ const CurrencyDropdown = ({
                 </>
               )}
 
-              {/* Crypto Currency Section */}
-              {groupedCurrencies.crypto.length > 0 && (
-                <>
-                  <li className="px-3 py-2 text-xs font-semibold text-gray-500 bg-gray-50">
-                    Cryptocurrencies
-                  </li>
-                  {groupedCurrencies.crypto.map((currency, index) => 
-                    renderCurrencyItem(currency, recentCurrencies.length + index)
-                  )}
-                  <li className="border-b border-gray-200 my-1"></li>
-                </>
-              )}
-
               {/* Fiat Currency Section */}
-              {groupedCurrencies.fiat.length > 0 && (
+              {filteredCurrencies.length > 0 && (
                 <>
                   <li className="px-3 py-2 text-xs font-semibold text-gray-500 bg-gray-50">
                     Fiat Currencies
                   </li>
-                  {groupedCurrencies.fiat.map((currency, index) => 
-                    renderCurrencyItem(currency, recentCurrencies.length + groupedCurrencies.crypto.length + index)
+                  {filteredCurrencies.map((currency, index) => 
+                    renderCurrencyItem(currency, recentCurrencies.length + index)
                   )}
                 </>
               )}
