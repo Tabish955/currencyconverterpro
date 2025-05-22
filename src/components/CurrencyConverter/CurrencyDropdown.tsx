@@ -1,5 +1,6 @@
+
 import { useState, useRef, useEffect } from "react";
-import { ChevronDown, ChevronUp, Search } from "lucide-react";
+import { ChevronDown, ChevronUp, Search, Bitcoin, Flag } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import Fuse from 'fuse.js';
 import 'flag-icons/css/flag-icons.min.css';
@@ -63,7 +64,6 @@ const currencyToCountryMap: Record<string, string> = {
   SAR: "sa", // Saudi Arabia
   MYR: "my", // Malaysia
   RON: "ro", // Romania
-  // Additional mappings
   PKR: "pk", // Pakistan
   BDT: "bd", // Bangladesh
   VND: "vn", // Vietnam
@@ -165,14 +165,11 @@ const currencyToCountryMap: Record<string, string> = {
   XAU: "un", // Gold - UN flag
   XAG: "un", // Silver - UN flag
   XDR: "un", // SDR - UN flag
-  // More currencies
   AFN: "af", // Afghanistan
   AOA: "ao", // Angola
   ARS: "ar", // Argentina
-  AMD: "am", // Armenia
   CVE: "cv", // Cape Verde
   KYD: "ky", // Cayman Islands
-  XAF: "cm", // Central African CFA franc
   CDF: "cd", // Congo
   CUP: "cu", // Cuba
   DOP: "do", // Dominican Republic
@@ -192,7 +189,6 @@ const currencyToCountryMap: Record<string, string> = {
   LKR: "lk", // Sri Lanka
   VES: "ve", // Venezuela
   ZWL: "zw"  // Zimbabwe
-  // Any additional currencies should be added here, ensuring no duplicates
 };
 
 // Currency aliases for improved search
@@ -244,13 +240,29 @@ const currencyAliases: Record<string, string[]> = {
   LKR: ["sri lankan rupee", "sri lanka"]
 };
 
+// Base URL for crypto icons
+const CRYPTO_ICON_BASE_URL = "https://cryptologos.cc/logos";
+
+// Crypto icon mappings
+const cryptoIcons: Record<string, string> = {
+  BTC: `${CRYPTO_ICON_BASE_URL}/bitcoin-btc-logo.svg`,
+  ETH: `${CRYPTO_ICON_BASE_URL}/ethereum-eth-logo.svg`,
+  USDT: `${CRYPTO_ICON_BASE_URL}/tether-usdt-logo.svg`,
+  BNB: `${CRYPTO_ICON_BASE_URL}/bnb-bnb-logo.svg`,
+  SOL: `${CRYPTO_ICON_BASE_URL}/solana-sol-logo.svg`,
+  XRP: `${CRYPTO_ICON_BASE_URL}/xrp-xrp-logo.svg`,
+  ADA: `${CRYPTO_ICON_BASE_URL}/cardano-ada-logo.svg`,
+  DOGE: `${CRYPTO_ICON_BASE_URL}/dogecoin-doge-logo.svg`,
+  LTC: `${CRYPTO_ICON_BASE_URL}/litecoin-ltc-logo.svg`
+};
+
 const CurrencyDropdown = ({
   id,
   value,
   onChange,
   currencies,
   disabled = false,
-  includeCrypto = true, // Changed default to true to always include crypto
+  includeCrypto = true, // Always include crypto
   recentlyUsed = [],
 }: CurrencyDropdownProps) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -265,6 +277,7 @@ const CurrencyDropdown = ({
   const enrichedCurrencies = currencies.map(currency => ({
     ...currency,
     countryCode: currency.isCrypto ? undefined : currencyToCountryMap[currency.code] || "un", // Fallback to UN flag
+    image: currency.isCrypto ? cryptoIcons[currency.code] || undefined : undefined,
     aliases: currency.isCrypto ? 
       currencyAliases[currency.code] || [] : 
       currencyAliases[currency.code] || []
@@ -437,20 +450,29 @@ const CurrencyDropdown = ({
               onError={(e) => {
                 // Fallback icon if image fails to load
                 (e.target as HTMLImageElement).style.display = 'none';
+                const parent = (e.target as HTMLImageElement).parentElement;
+                if (parent) {
+                  const fallback = document.createElement('span');
+                  fallback.className = 'w-5 h-5 mr-2 rounded-full bg-yellow-400 flex items-center justify-center text-xs font-bold flex-shrink-0';
+                  fallback.innerText = currency.code.substring(0, 1);
+                  parent.insertBefore(fallback, e.target);
+                }
               }}
             />
           ) : (
             <span className="w-5 h-5 mr-2 rounded-full bg-yellow-400 flex items-center justify-center text-xs font-bold flex-shrink-0">
-              {currency.code.substring(0, 1)}
+              <Bitcoin className="h-3 w-3" />
             </span>
           )
         ) : (
-          currency.countryCode && (
+          currency.countryCode ? (
             <span 
               className={`fi fi-${currency.countryCode} mr-2 flex-shrink-0`}
               style={{ width: '1.2em', height: '1em' }}
               aria-hidden="true"
             ></span>
+          ) : (
+            <Flag className="h-4 w-4 mr-2 text-gray-500" />
           )
         )}
         <div className="flex flex-col">
@@ -493,20 +515,29 @@ const CurrencyDropdown = ({
                     onError={(e) => {
                       // Fallback icon if image fails to load
                       (e.target as HTMLImageElement).style.display = 'none';
+                      const parent = (e.target as HTMLImageElement).parentElement;
+                      if (parent) {
+                        const fallback = document.createElement('span');
+                        fallback.className = 'w-5 h-5 mr-2 rounded-full bg-yellow-400 flex items-center justify-center text-xs font-bold flex-shrink-0';
+                        fallback.innerText = selectedCurrency.code.substring(0, 1);
+                        parent.insertBefore(fallback, e.target);
+                      }
                     }}
                   />
                 ) : (
                   <span className="w-5 h-5 mr-2 rounded-full bg-yellow-400 flex items-center justify-center text-xs font-bold">
-                    {selectedCurrency.code.substring(0, 1)}
+                    <Bitcoin className="h-3 w-3" />
                   </span>
                 )
               ) : (
-                selectedCurrency.countryCode && (
+                selectedCurrency.countryCode ? (
                   <span 
                     className={`fi fi-${selectedCurrency.countryCode} mr-2`} 
                     style={{ width: '1.2em', height: '1em' }}
                     aria-hidden="true"
                   ></span>
+                ) : (
+                  <Flag className="h-4 w-4 mr-2 text-gray-500" />
                 )
               )}
               <span className="font-bold">{selectedCurrency.code}</span>
@@ -525,7 +556,7 @@ const CurrencyDropdown = ({
 
       {isOpen && (
         <div 
-          className={`fixed ${dropdownPosition === 'top' ? 'bottom-auto' : 'top-auto'} left-0 z-[9999] w-72 md:w-96 bg-white border border-gray-200 rounded-md shadow-lg animate-fade-in`}
+          className={`fixed z-[9999] w-72 md:w-96 bg-white border border-gray-200 rounded-md shadow-lg`}
           style={{ 
             animation: 'fade-in 0.2s ease-out',
             transformOrigin: dropdownPosition === 'top' ? 'bottom center' : 'top center',
@@ -534,6 +565,7 @@ const CurrencyDropdown = ({
             [dropdownPosition === 'top' ? 'bottom' : 'top']: '100%',
             marginTop: dropdownPosition === 'top' ? '' : '4px',
             marginBottom: dropdownPosition === 'top' ? '4px' : '',
+            left: '0',
           }}
         >
           <div className="sticky top-0 bg-white p-2 border-b border-gray-200 z-10">
