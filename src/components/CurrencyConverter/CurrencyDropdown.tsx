@@ -18,10 +18,10 @@ interface CurrencyDropdownProps {
   onChange: (value: string) => void;
   currencies: CurrencySymbol[];
   disabled?: boolean;
-  recentlyUsed?: string[]; // Recently used currencies
+  recentlyUsed?: string[];
 }
 
-// Map ISO currency codes to country codes for flags
+// Comprehensive map of ISO currency codes to country codes for flags
 const currencyToCountryMap: Record<string, string> = {
   EUR: "eu", // European Union
   USD: "us", // United States
@@ -30,7 +30,7 @@ const currencyToCountryMap: Record<string, string> = {
   AUD: "au", // Australia
   CAD: "ca", // Canada
   CHF: "ch", // Switzerland
-  CNY: "cn", // China
+  CNY: "cn", // China (Chinese Yuan)
   HKD: "hk", // Hong Kong
   NZD: "nz", // New Zealand
   SEK: "se", // Sweden
@@ -72,15 +72,15 @@ const currencyToCountryMap: Record<string, string> = {
   JOD: "jo", // Jordan
   MAD: "ma", // Morocco
   BHD: "bh", // Bahrain
-  XAF: "cf", // Central African Republic (CFA Franc)
-  XOF: "sn", // Senegal (West African CFA Franc)
-  XPF: "pf", // French Polynesia (CFP Franc)
+  XAF: "cm", // Central African CFA Franc (Cameroon)
+  XOF: "sn", // West African CFA Franc (Senegal)
+  XPF: "pf", // CFP Franc (French Polynesia)
   TND: "tn", // Tunisia
   GHS: "gh", // Ghana
   UGX: "ug", // Uganda
   TZS: "tz", // Tanzania
   KES: "ke", // Kenya
-  XCD: "ag", // Antigua and Barbuda (East Caribbean Dollar)
+  XCD: "ag", // East Caribbean Dollar (Antigua and Barbuda)
   BBD: "bb", // Barbados
   BSD: "bs", // Bahamas
   BZD: "bz", // Belize
@@ -97,7 +97,7 @@ const currencyToCountryMap: Record<string, string> = {
   JMD: "jm", // Jamaica
   TTD: "tt", // Trinidad and Tobago
   AWG: "aw", // Aruba
-  ANG: "cw", // Curaçao
+  ANG: "cw", // Netherlands Antillean Guilder (Curaçao)
   SRD: "sr", // Suriname
   GYD: "gy", // Guyana
   FJD: "fj", // Fiji
@@ -141,7 +141,7 @@ const currencyToCountryMap: Record<string, string> = {
   ISK: "is", // Iceland
   GEL: "ge", // Georgia
   AZN: "az", // Azerbaijan
-  ARM: "am", // Armenia
+  AMD: "am", // Armenia
   BYN: "by", // Belarus
   UZS: "uz", // Uzbekistan
   TMT: "tm", // Turkmenistan
@@ -156,14 +156,11 @@ const currencyToCountryMap: Record<string, string> = {
   SLL: "sl", // Sierra Leone
   GMD: "gm", // Gambia
   GNF: "gn", // Guinea
-  XAU: "un", // Gold - UN flag
-  XAG: "un", // Silver - UN flag
-  XDR: "un", // SDR - UN flag
   AFN: "af", // Afghanistan
   AOA: "ao", // Angola
   ARS: "ar", // Argentina
   CVE: "cv", // Cape Verde
-  CDF: "cd", // Congo
+  CDF: "cd", // Congo (Democratic Republic)
   CUP: "cu", // Cuba
   DOP: "do", // Dominican Republic
   SVC: "sv", // El Salvador
@@ -181,7 +178,27 @@ const currencyToCountryMap: Record<string, string> = {
   STN: "st", // São Tomé and Príncipe
   LKR: "lk", // Sri Lanka
   VES: "ve", // Venezuela
-  ZWL: "zw"  // Zimbabwe
+  ZWL: "zw", // Zimbabwe
+  // Additional currencies that might be missing
+  XAU: "un", // Gold - UN flag as fallback
+  XAG: "un", // Silver - UN flag as fallback
+  XDR: "un", // SDR - UN flag as fallback
+  // European legacy currencies
+  ATS: "at", // Austrian Schilling (Austria)
+  BEF: "be", // Belgian Franc (Belgium)
+  DEM: "de", // Deutsche Mark (Germany)
+  ESP: "es", // Spanish Peseta (Spain)
+  FIM: "fi", // Finnish Markka (Finland)
+  FRF: "fr", // French Franc (France)
+  IEP: "ie", // Irish Pound (Ireland)
+  ITL: "it", // Italian Lira (Italy)
+  LUF: "lu", // Luxembourg Franc (Luxembourg)
+  NLG: "nl", // Dutch Guilder (Netherlands)
+  PTE: "pt", // Portuguese Escudo (Portugal)
+  // African currencies
+  CFA: "cf", // CFA Franc (Central African Republic)
+  XPD: "un", // Palladium
+  XPT: "un", // Platinum
 };
 
 // Currency aliases for improved search
@@ -190,6 +207,7 @@ const currencyAliases: Record<string, string[]> = {
   EUR: ["euro", "europe", "european", "eurozone", "european union", "eu"],
   GBP: ["pound", "british pound", "sterling", "uk", "united kingdom", "britain", "great britain", "england"],
   JPY: ["yen", "japanese yen", "japan"],
+  CNY: ["chinese yuan", "china", "renminbi", "yuan", "chinese"],
   INR: ["indian rupee", "india", "rupee"],
   PKR: ["pakistani rupee", "pakistan"],
   KWD: ["kuwaiti dinar", "kuwait", "dinar"],
@@ -199,7 +217,6 @@ const currencyAliases: Record<string, string[]> = {
   AUD: ["australian dollar", "australia"],
   NZD: ["new zealand dollar", "new zealand", "kiwi"],
   CHF: ["swiss franc", "switzerland"],
-  CNY: ["chinese yuan", "china", "renminbi"],
   HKD: ["hong kong dollar", "hong kong"],
   SGD: ["singapore dollar", "singapore"],
   MYR: ["malaysian ringgit", "malaysia"],
@@ -214,7 +231,8 @@ const currencyAliases: Record<string, string[]> = {
   KRW: ["korean won", "south korea", "korea"],
   TWD: ["taiwan dollar", "taiwan"],
   AFN: ["afghan afghani", "afghanistan"],
-  LKR: ["sri lankan rupee", "sri lanka"]
+  LKR: ["sri lankan rupee", "sri lanka"],
+  AMD: ["armenian dram", "armenia"],
 };
 
 const CurrencyDropdown = ({
@@ -233,11 +251,11 @@ const CurrencyDropdown = ({
   const listRef = useRef<HTMLUListElement>(null);
   const [dropdownPosition, setDropdownPosition] = useState<'bottom' | 'top'>('bottom');
 
-  // Prepare currency data with country codes and aliases
+  // Prepare currency data with country codes and aliases - ensuring all fields are defined
   const enrichedCurrencies = currencies.map(currency => ({
     ...currency,
-    countryCode: currencyToCountryMap[currency.code] || "un", // Fallback to UN flag
-    aliases: currencyAliases[currency.code] || []
+    countryCode: currencyToCountryMap[currency.code] || "un", // Always provide a fallback
+    aliases: currencyAliases[currency.code] || [] // Always provide an array
   }));
 
   // Setup Fuse.js for fuzzy search
@@ -257,7 +275,6 @@ const CurrencyDropdown = ({
       if (dropdownRef.current) {
         const rect = dropdownRef.current.getBoundingClientRect();
         const availableBottom = window.innerHeight - rect.bottom;
-        // If less than 300px available at bottom, position dropdown above
         setDropdownPosition(availableBottom < 300 ? 'top' : 'bottom');
       }
     };
@@ -445,7 +462,7 @@ const CurrencyDropdown = ({
 
       {isOpen && (
         <div 
-          className={`fixed z-[9999] w-72 md:w-96 bg-white border border-gray-200 rounded-md shadow-lg`}
+          className={`fixed z-[9999] w-72 md:w-96 bg-white border border-gray-200 rounded-md shadow-xl`}
           style={{ 
             animation: 'fade-in 0.2s ease-out',
             transformOrigin: dropdownPosition === 'top' ? 'bottom center' : 'top center',
@@ -468,7 +485,7 @@ const CurrencyDropdown = ({
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
-                  setHighlightedIndex(0); // Reset highlight when search changes
+                  setHighlightedIndex(0);
                 }}
                 onKeyDown={handleKeyDown}
                 aria-controls="currency-list"

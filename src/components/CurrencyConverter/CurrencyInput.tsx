@@ -1,6 +1,5 @@
 
 import React, { useState, useRef, useEffect } from "react";
-import { isCryptoCurrency } from "./CryptoApiUtils";
 
 interface CurrencyInputProps {
   id: string;
@@ -23,9 +22,6 @@ const CurrencyInput = ({
   const inputRef = useRef<HTMLInputElement>(null);
   // To track if the input is focused
   const [isFocused, setIsFocused] = useState(false);
-  
-  // Determine if this is a crypto currency for precision display
-  const isCrypto = isCryptoCurrency(currencyCode);
   
   // Update local state when value prop changes
   useEffect(() => {
@@ -71,9 +67,8 @@ const CurrencyInput = ({
       setInputValue("0");
       onChange(0);
     } else {
-      // Format the number to proper precision
-      const precision = isCrypto ? 8 : 4;
-      const formatted = parseFloat(inputValue).toFixed(precision);
+      // Format the number to 4 decimal places for fiat currencies
+      const formatted = parseFloat(inputValue).toFixed(4);
       const numericValue = parseFloat(formatted);
       
       // Ensure the displayed value matches the actual value
