@@ -3,12 +3,9 @@ import { useState, useEffect } from "react";
 import CurrencyConverter from "../components/CurrencyConverter/CurrencyConverter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Toaster } from "@/components/ui/sonner";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Bitcoin, ArrowDownUp } from "lucide-react";
+import { ArrowDownUp } from "lucide-react";
 
 const Index = () => {
-  const [activeTab, setActiveTab] = useState("fiat");
-
   // Parse URL parameters for deep linking
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
@@ -16,34 +13,7 @@ const Index = () => {
     const to = searchParams.get('to');
     const amount = searchParams.get('amount');
     
-    // If we have from/to params, switch to appropriate tab
-    if (from && to) {
-      const isFromCrypto = ['BTC', 'ETH', 'USDT', 'BNB', 'SOL', 'XRP', 'ADA', 'DOGE'].includes(from);
-      const isToCrypto = ['BTC', 'ETH', 'USDT', 'BNB', 'SOL', 'XRP', 'ADA', 'DOGE'].includes(to);
-      
-      if (isFromCrypto || isToCrypto) {
-        setActiveTab("crypto");
-      } else {
-        setActiveTab("fiat");
-      }
-    }
-  }, []);
-
-  // Add keyboard shortcut listener for tab switching
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Alt+1 for Fiat, Alt+2 for Crypto
-      if (e.altKey) {
-        if (e.key === '1') {
-          setActiveTab('fiat');
-        } else if (e.key === '2') {
-          setActiveTab('crypto');
-        }
-      }
-    };
-    
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    console.log('URL params:', { from, to, amount });
   }, []);
 
   return (
@@ -241,53 +211,26 @@ const Index = () => {
           Currency Converter
         </h1>
         
-        <Tabs defaultValue="fiat" value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <div className="flex justify-center mb-6">
-            <TabsList className="grid grid-cols-2 w-64">
-              <TabsTrigger value="fiat" className="flex items-center gap-2">
-                <ArrowDownUp className="h-4 w-4" />
-                <span>Fiat</span>
-                <kbd className="hidden md:inline-flex ml-1 text-[10px] font-mono bg-black/10 px-1 rounded">Alt+1</kbd>
-              </TabsTrigger>
-              <TabsTrigger value="crypto" className="flex items-center gap-2">
-                <Bitcoin className="h-4 w-4" />
-                <span>Crypto</span>
-                <kbd className="hidden md:inline-flex ml-1 text-[10px] font-mono bg-black/10 px-1 rounded">Alt+2</kbd>
-              </TabsTrigger>
-            </TabsList>
-          </div>
-
-          <Card className="overflow-hidden backdrop-blur-sm border-gray-200 shadow-2xl transition-all duration-300 rounded-xl bg-white/95 hover:shadow-blue-200/50 transform hover:-translate-y-1">
-            <CardContent className="p-6 md:p-8 relative overflow-hidden">
-              {/* Enhanced decorative elements */}
-              <div className="absolute -top-24 -right-24 w-48 h-48 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-full blur-2xl"></div>
-              <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-gradient-to-tr from-green-500/10 to-blue-500/10 rounded-full blur-2xl"></div>
-              <div className="absolute top-1/2 right-1/4 w-32 h-32 bg-gradient-to-tl from-yellow-500/5 to-red-500/5 rounded-full blur-2xl"></div>
-              
-              <TabsContent value="fiat" className="mt-0">
-                <CurrencyConverter mode="fiat" />
-              </TabsContent>
-              
-              <TabsContent value="crypto" className="mt-0">
-                <CurrencyConverter mode="crypto" />
-              </TabsContent>
-            </CardContent>
-          </Card>
-        </Tabs>
+        <Card className="overflow-hidden backdrop-blur-sm border-gray-200 shadow-2xl transition-all duration-300 rounded-xl bg-white/95 hover:shadow-blue-200/50 transform hover:-translate-y-1">
+          <CardContent className="p-6 md:p-8 relative overflow-hidden">
+            {/* Enhanced decorative elements */}
+            <div className="absolute -top-24 -right-24 w-48 h-48 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-full blur-2xl"></div>
+            <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-gradient-to-tr from-green-500/10 to-blue-500/10 rounded-full blur-2xl"></div>
+            <div className="absolute top-1/2 right-1/4 w-32 h-32 bg-gradient-to-tl from-yellow-500/5 to-red-500/5 rounded-full blur-2xl"></div>
+            
+            <CurrencyConverter mode="fiat" />
+          </CardContent>
+        </Card>
         
         <div className="mt-6 text-center text-sm animate-fade-in" style={{
         animationDelay: '0.3s'
       }}>
           <p className="text-indigo-700 font-medium">To ensure accuracy click refresh once before using</p>
           <p className="text-blue-600 mt-1">
-            {activeTab === "fiat" ? 
-              "Supports 170+ currencies worldwide" : 
-              "Supports major cryptocurrencies and fiat currencies"}
+            Supports 170+ currencies worldwide
           </p>
           <div className="text-gray-500 text-xs mt-2">
-            Keyboard shortcuts: <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-600 border border-gray-300">Alt+1</kbd> for Fiat, 
-            <kbd className="ml-1 px-1.5 py-0.5 bg-gray-100 rounded text-gray-600 border border-gray-300">Alt+2</kbd> for Crypto,
-            <kbd className="ml-1 px-1.5 py-0.5 bg-gray-100 rounded text-gray-600 border border-gray-300">/</kbd> for Search
+            Keyboard shortcuts: <kbd className="ml-1 px-1.5 py-0.5 bg-gray-100 rounded text-gray-600 border border-gray-300">/</kbd> for Search
           </div>
         </div>
       </div>

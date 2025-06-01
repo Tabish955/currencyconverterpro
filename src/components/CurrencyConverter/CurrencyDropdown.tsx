@@ -179,7 +179,7 @@ const currencyToCountryMap: Record<string, string> = {
   LKR: "lk", // Sri Lanka
   VES: "ve", // Venezuela
   ZWL: "zw", // Zimbabwe
-  // Additional currencies that might be missing
+  // Additional currencies
   XAU: "un", // Gold - UN flag as fallback
   XAG: "un", // Silver - UN flag as fallback
   XDR: "un", // SDR - UN flag as fallback
@@ -195,10 +195,6 @@ const currencyToCountryMap: Record<string, string> = {
   LUF: "lu", // Luxembourg Franc (Luxembourg)
   NLG: "nl", // Dutch Guilder (Netherlands)
   PTE: "pt", // Portuguese Escudo (Portugal)
-  // African currencies
-  CFA: "cf", // CFA Franc (Central African Republic)
-  XPD: "un", // Palladium
-  XPT: "un", // Platinum
 };
 
 // Currency aliases for improved search
@@ -254,8 +250,8 @@ const CurrencyDropdown = ({
   // Prepare currency data with country codes and aliases - ensuring all fields are defined
   const enrichedCurrencies = currencies.map(currency => ({
     ...currency,
-    countryCode: currencyToCountryMap[currency.code] || "un", // Always provide a fallback
-    aliases: currencyAliases[currency.code] || [] // Always provide an array
+    countryCode: currency.countryCode || currencyToCountryMap[currency.code] || "un",
+    aliases: currency.aliases || currencyAliases[currency.code] || []
   }));
 
   // Setup Fuse.js for fuzzy search
@@ -462,12 +458,11 @@ const CurrencyDropdown = ({
 
       {isOpen && (
         <div 
-          className={`fixed z-[9999] w-72 md:w-96 bg-white border border-gray-200 rounded-md shadow-xl`}
+          className={`absolute z-[99999] w-72 md:w-96 bg-white border border-gray-200 rounded-md shadow-xl`}
           style={{ 
             animation: 'fade-in 0.2s ease-out',
             transformOrigin: dropdownPosition === 'top' ? 'bottom center' : 'top center',
             maxHeight: '80vh',
-            position: 'absolute',
             [dropdownPosition === 'top' ? 'bottom' : 'top']: '100%',
             marginTop: dropdownPosition === 'top' ? '' : '4px',
             marginBottom: dropdownPosition === 'top' ? '4px' : '',
