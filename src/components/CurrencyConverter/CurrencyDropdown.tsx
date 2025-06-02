@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { ChevronDown, ChevronUp, Search, Flag } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -200,7 +199,7 @@ const currencyToCountryMap: Record<string, string> = {
 // Currency aliases for improved search
 const currencyAliases: Record<string, string[]> = {
   USD: ["dollar", "us dollar", "american dollar", "america", "united states", "usa", "us", "united states dollar"],
-  EUR: ["euro", "europe", "european", "eurozone", "european union", "eu"],
+  EUR: ["euro", "european", "eurozone", "european union", "eu"],
   GBP: ["pound", "british pound", "sterling", "uk", "united kingdom", "britain", "great britain", "england"],
   JPY: ["yen", "japanese yen", "japan"],
   CNY: ["chinese yuan", "china", "renminbi", "yuan", "chinese"],
@@ -322,10 +321,10 @@ const CurrencyDropdown = ({
       ? fuseRef.current.search(searchTerm).map(result => result.item)
       : enrichedCurrencies;
 
-  // Get recently used currencies
+  // Get recently used currencies - fix the type predicate
   const recentCurrencies = recentlyUsed
     .map(code => enrichedCurrencies.find(c => c.code === code))
-    .filter((c): c is CurrencySymbol => c !== undefined);
+    .filter((c): c is typeof enrichedCurrencies[0] => c !== undefined);
 
   // Handle keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -458,7 +457,7 @@ const CurrencyDropdown = ({
 
       {isOpen && (
         <div 
-          className={`absolute z-[99999] w-72 md:w-96 bg-white border border-gray-200 rounded-md shadow-xl`}
+          className={`absolute z-[999999] w-72 md:w-96 bg-white border border-gray-200 rounded-md shadow-2xl`}
           style={{ 
             animation: 'fade-in 0.2s ease-out',
             transformOrigin: dropdownPosition === 'top' ? 'bottom center' : 'top center',

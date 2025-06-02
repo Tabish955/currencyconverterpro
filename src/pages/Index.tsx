@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import CurrencyConverter from "../components/CurrencyConverter/CurrencyConverter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Toaster } from "@/components/ui/sonner";
-import { ArrowDownUp } from "lucide-react";
+import { ArrowDownUp, Sparkles, TrendingUp, Globe } from "lucide-react";
 
 const Index = () => {
   // Parse URL parameters for deep linking
@@ -17,18 +17,18 @@ const Index = () => {
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-indigo-100 via-blue-50 to-purple-100 p-4 overflow-hidden relative">
-      {/* Enhanced animated floating background elements */}
-      <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-blue-200/30 to-indigo-300/30 rounded-full blur-3xl transform -translate-y-1/2 translate-x-1/4 animate-float-slow"></div>
-      <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-purple-200/30 to-pink-200/30 rounded-full blur-3xl transform translate-y-1/3 -translate-x-1/3 animate-float-medium"></div>
-      <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-gradient-to-r from-green-200/20 to-emerald-200/20 rounded-full blur-3xl transform -translate-x-1/2 -translate-y-1/2 animate-float-fast"></div>
-      <div className="absolute bottom-1/4 right-1/3 w-64 h-64 bg-gradient-to-l from-yellow-200/20 to-orange-200/20 rounded-full blur-3xl animate-pulse-gentle"></div>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-indigo-50 via-blue-50 to-purple-50 p-4 overflow-hidden relative">
+      {/* Enhanced animated floating background elements with improved gradients */}
+      <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-blue-300/20 to-indigo-400/20 rounded-full blur-3xl transform -translate-y-1/2 translate-x-1/4 animate-float-slow"></div>
+      <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-purple-300/20 to-pink-300/20 rounded-full blur-3xl transform translate-y-1/3 -translate-x-1/3 animate-float-medium"></div>
+      <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-gradient-to-r from-green-300/15 to-emerald-300/15 rounded-full blur-3xl transform -translate-x-1/2 -translate-y-1/2 animate-float-fast"></div>
+      <div className="absolute bottom-1/4 right-1/3 w-64 h-64 bg-gradient-to-l from-yellow-300/15 to-orange-300/15 rounded-full blur-3xl animate-pulse-gentle"></div>
       
       {/* Additional animated layers for professional effect */}
-      <div className="absolute top-1/4 left-1/3 w-48 h-48 bg-gradient-to-r from-blue-300/15 to-cyan-300/15 rounded-full blur-3xl animate-floating-light"></div>
-      <div className="absolute bottom-1/3 right-1/4 w-72 h-72 bg-gradient-to-l from-purple-300/10 to-pink-300/10 rounded-full blur-3xl animate-glow"></div>
+      <div className="absolute top-1/4 left-1/3 w-48 h-48 bg-gradient-to-r from-blue-400/10 to-cyan-400/10 rounded-full blur-3xl animate-floating-light"></div>
+      <div className="absolute bottom-1/3 right-1/4 w-72 h-72 bg-gradient-to-l from-purple-400/8 to-pink-400/8 rounded-full blur-3xl animate-glow"></div>
       
-      {/* Animated particles */}
+      {/* Improved animated particles */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="particle particle-1"></div>
         <div className="particle particle-2"></div>
@@ -40,13 +40,13 @@ const Index = () => {
         <div className="particle particle-8"></div>
       </div>
       
-      {/* Add styles for fixed dropdowns */}
+      {/* Enhanced styles */}
       <style>
         {`
         .fixed-dropdown {
           max-height: 70vh;
           overflow-y: auto;
-          z-index: 9999;
+          z-index: 999999;
         }
         
         @media (max-width: 640px) {
@@ -57,12 +57,12 @@ const Index = () => {
           }
         }
         
-        /* Enhance particle animations */
+        /* Enhanced particle animations */
         .particle {
           position: absolute;
           border-radius: 50%;
-          background: rgba(255, 255, 255, 0.5);
-          box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+          background: linear-gradient(45deg, rgba(99, 102, 241, 0.4), rgba(168, 85, 247, 0.4));
+          box-shadow: 0 0 20px rgba(99, 102, 241, 0.6), 0 0 40px rgba(168, 85, 247, 0.4);
           pointer-events: none;
         }
         
@@ -116,34 +116,37 @@ const Index = () => {
         
         @keyframes float {
           0% {
-            transform: translateY(0) translateX(0);
+            transform: translateY(0) translateX(0) scale(1);
+            opacity: 0.7;
           }
           50% {
-            transform: translateY(-20px) translateX(10px);
+            transform: translateY(-30px) translateX(15px) scale(1.1);
+            opacity: 1;
           }
           100% {
-            transform: translateY(10px) translateX(-15px);
+            transform: translateY(15px) translateX(-20px) scale(0.9);
+            opacity: 0.7;
           }
         }
         
         @keyframes floating-light {
-          0% { opacity: 0.3; }
-          50% { opacity: 0.5; }
-          100% { opacity: 0.3; }
+          0% { opacity: 0.2; transform: scale(1); }
+          50% { opacity: 0.4; transform: scale(1.05); }
+          100% { opacity: 0.2; transform: scale(1); }
         }
         
         .animate-floating-light {
-          animation: floating-light 5s ease-in-out infinite;
+          animation: floating-light 6s ease-in-out infinite;
         }
         
         @keyframes glow {
-          0% { opacity: 0.2; }
-          50% { opacity: 0.3; }
-          100% { opacity: 0.2; }
+          0% { opacity: 0.15; transform: scale(1); }
+          50% { opacity: 0.25; transform: scale(1.02); }
+          100% { opacity: 0.15; transform: scale(1); }
         }
         
         .animate-glow {
-          animation: glow 7s ease-in-out infinite;
+          animation: glow 8s ease-in-out infinite;
         }
         
         @keyframes float-slow {
@@ -151,7 +154,7 @@ const Index = () => {
             transform: translateY(0) rotate(0deg);
           }
           100% {
-            transform: translateY(-10px) rotate(3deg);
+            transform: translateY(-15px) rotate(3deg);
           }
         }
         
@@ -160,7 +163,7 @@ const Index = () => {
             transform: translateY(0) rotate(0deg);
           }
           100% {
-            transform: translateY(-15px) rotate(-2deg);
+            transform: translateY(-20px) rotate(-2deg);
           }
         }
         
@@ -169,68 +172,94 @@ const Index = () => {
             transform: translateY(0) rotate(0deg);
           }
           100% {
-            transform: translateY(-20px) rotate(5deg);
+            transform: translateY(-25px) rotate(5deg);
           }
         }
         
         @keyframes pulse-gentle {
-          0% { opacity: 0.3; transform: scale(1); }
-          50% { opacity: 0.4; transform: scale(1.05); }
-          100% { opacity: 0.3; transform: scale(1); }
+          0% { opacity: 0.2; transform: scale(1); }
+          50% { opacity: 0.3; transform: scale(1.05); }
+          100% { opacity: 0.2; transform: scale(1); }
         }
         
         .animate-float-slow {
-          animation: float-slow 15s ease-in-out infinite alternate;
+          animation: float-slow 18s ease-in-out infinite alternate;
         }
         
         .animate-float-medium {
-          animation: float-medium 12s ease-in-out infinite alternate;
+          animation: float-medium 15s ease-in-out infinite alternate;
         }
         
         .animate-float-fast {
-          animation: float-fast 10s ease-in-out infinite alternate;
+          animation: float-fast 12s ease-in-out infinite alternate;
         }
         
         .animate-pulse-gentle {
-          animation: pulse-gentle 8s ease-in-out infinite;
+          animation: pulse-gentle 10s ease-in-out infinite;
         }
         
         .animate-fade-in {
-          animation: fade-in 0.5s ease-out;
+          animation: fade-in 0.6s ease-out;
         }
         
         @keyframes fade-in {
-          from { opacity: 0; transform: translateY(10px); }
+          from { opacity: 0; transform: translateY(20px); }
           to { opacity: 1; transform: translateY(0); }
         }
       `}
       </style>
       
-      <div className="w-full max-w-4xl animate-fade-in z-10">
-        <h1 className="text-4xl md:text-5xl font-bold mb-6 text-center bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent drop-shadow-sm">
-          Currency Converter
-        </h1>
+      <div className="w-full max-w-5xl animate-fade-in z-10">
+        {/* Enhanced header */}
+        <div className="text-center mb-8">
+          <div className="flex items-center justify-center mb-4">
+            <Sparkles className="h-8 w-8 text-purple-500 mr-3 animate-pulse" />
+            <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent drop-shadow-sm">
+              Currency Converter
+            </h1>
+            <TrendingUp className="h-8 w-8 text-blue-500 ml-3 animate-pulse" />
+          </div>
+          <p className="text-lg text-gray-600 font-medium">Real-time exchange rates for 170+ currencies worldwide</p>
+        </div>
         
-        <Card className="overflow-hidden backdrop-blur-sm border-gray-200 shadow-2xl transition-all duration-300 rounded-xl bg-white/95 hover:shadow-blue-200/50 transform hover:-translate-y-1">
-          <CardContent className="p-6 md:p-8 relative overflow-hidden">
+        <Card className="overflow-hidden backdrop-blur-sm border-gray-200/50 shadow-2xl transition-all duration-500 rounded-2xl bg-white/98 hover:shadow-blue-200/50 transform hover:-translate-y-2 hover:scale-[1.01]">
+          <CardContent className="p-8 md:p-10 relative overflow-hidden">
             {/* Enhanced decorative elements */}
-            <div className="absolute -top-24 -right-24 w-48 h-48 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-full blur-2xl"></div>
-            <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-gradient-to-tr from-green-500/10 to-blue-500/10 rounded-full blur-2xl"></div>
-            <div className="absolute top-1/2 right-1/4 w-32 h-32 bg-gradient-to-tl from-yellow-500/5 to-red-500/5 rounded-full blur-2xl"></div>
+            <div className="absolute -top-32 -right-32 w-64 h-64 bg-gradient-to-br from-blue-500/8 to-purple-500/8 rounded-full blur-3xl"></div>
+            <div className="absolute -bottom-32 -left-32 w-64 h-64 bg-gradient-to-tr from-green-500/8 to-blue-500/8 rounded-full blur-3xl"></div>
+            <div className="absolute top-1/2 right-1/4 w-40 h-40 bg-gradient-to-tl from-yellow-500/5 to-red-500/5 rounded-full blur-3xl"></div>
+            
+            {/* Add decorative corner elements */}
+            <div className="absolute top-4 left-4 w-12 h-12 border-l-2 border-t-2 border-blue-200 rounded-tl-lg"></div>
+            <div className="absolute top-4 right-4 w-12 h-12 border-r-2 border-t-2 border-purple-200 rounded-tr-lg"></div>
+            <div className="absolute bottom-4 left-4 w-12 h-12 border-l-2 border-b-2 border-green-200 rounded-bl-lg"></div>
+            <div className="absolute bottom-4 right-4 w-12 h-12 border-r-2 border-b-2 border-indigo-200 rounded-br-lg"></div>
             
             <CurrencyConverter mode="fiat" />
           </CardContent>
         </Card>
         
-        <div className="mt-6 text-center text-sm animate-fade-in" style={{
-        animationDelay: '0.3s'
-      }}>
-          <p className="text-indigo-700 font-medium">To ensure accuracy click refresh once before using</p>
-          <p className="text-blue-600 mt-1">
-            Supports 170+ currencies worldwide
+        {/* Enhanced footer information */}
+        <div className="mt-8 text-center space-y-4 animate-fade-in" style={{
+          animationDelay: '0.4s'
+        }}>
+          <div className="flex items-center justify-center space-x-6 text-sm">
+            <div className="flex items-center bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full shadow-md">
+              <Globe className="h-4 w-4 text-indigo-600 mr-2" />
+              <span className="text-indigo-700 font-semibold">170+ Currencies</span>
+            </div>
+            <div className="flex items-center bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full shadow-md">
+              <TrendingUp className="h-4 w-4 text-green-600 mr-2" />
+              <span className="text-green-700 font-semibold">Real-time Rates</span>
+            </div>
+          </div>
+          
+          <p className="text-indigo-700 font-medium bg-white/60 backdrop-blur-sm px-6 py-2 rounded-full inline-block shadow-sm">
+            To ensure accuracy, click refresh once before using
           </p>
-          <div className="text-gray-500 text-xs mt-2">
-            Keyboard shortcuts: <kbd className="ml-1 px-1.5 py-0.5 bg-gray-100 rounded text-gray-600 border border-gray-300">/</kbd> for Search
+          
+          <div className="text-gray-500 text-sm bg-white/50 backdrop-blur-sm px-4 py-2 rounded-full inline-block shadow-sm">
+            Keyboard shortcut: <kbd className="ml-1 px-2 py-1 bg-gray-100 rounded-md text-gray-700 border border-gray-300 font-mono text-xs">/</kbd> for Search
           </div>
         </div>
       </div>

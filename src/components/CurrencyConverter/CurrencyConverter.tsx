@@ -286,11 +286,11 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
     return () => clearInterval(refreshInterval);
   }, []);
 
-  // Reset base amount to 1 when changing currencies
+  // Reset base amount to 1 when changing currencies - ALWAYS reset to 1
   useEffect(() => {
     setBaseAmount(1);
     setLastChangedField("base");
-  }, [baseCurrency]);
+  }, [baseCurrency, targetCurrency]); // Reset when either currency changes
 
   // Fetch currency symbols from the cached source
   const fetchSymbols = useCallback(async (retry = false) => {
@@ -529,10 +529,11 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
     }
   };
   
-  // Handle currency changes
+  // Handle currency changes - always reset to 1
   const handleBaseCurrencyChange = (value: string) => {
     if (baseCurrency !== value) {
       setBaseCurrency(value);
+      setBaseAmount(1); // Always reset to 1
       setLastChangedField("base");
       // Add to recently used currencies
       updateRecentlyUsed(value);
@@ -543,7 +544,8 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
   const handleTargetCurrencyChange = (value: string) => {
     if (targetCurrency !== value) {
       setTargetCurrency(value);
-      setLastChangedField("target");
+      setBaseAmount(1); // Always reset to 1
+      setLastChangedField("base");
       // Add to recently used currencies
       updateRecentlyUsed(value);
       // Rate fetch will be triggered by useEffect
@@ -559,7 +561,7 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
       })
     : '';
   
-  // Handle currency swap
+  // Handle currency swap - always reset to 1
   const handleSwapCurrencies = () => {
     // Swap currencies
     const tempBaseCurrency = baseCurrency;
@@ -568,9 +570,9 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
     setBaseCurrency(tempTargetCurrency);
     setTargetCurrency(tempBaseCurrency);
     
-    // Maintain the proper direction (base to target)
-    setBaseAmount(1); // Reset to 1 for clarity
-    setLastChangedField("base"); // Reset to base as last changed
+    // Always reset to 1 for clarity
+    setBaseAmount(1);
+    setLastChangedField("base");
   };
   
   // Manual rate refresh
@@ -631,12 +633,12 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
       {/* Currency Converter Form */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Base Currency Column */}
-        <div className="transition-all duration-300 hover:transform hover:translate-y-[-5px]">
+        <div className="transition-all duration-300 hover:transform hover:translate-y-[-2px] hover:shadow-lg rounded-lg p-1">
           <div className="mb-3">
-            <label htmlFor="baseAmount" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="baseAmount" className="block text-sm font-semibold text-gray-700 mb-2">
               From
             </label>
-            <div className="mb-2">
+            <div className="mb-3 relative z-10">
               <CurrencyDropdown
                 id="baseCurrency"
                 value={baseCurrency}
@@ -657,22 +659,22 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
         </div>
         
         {/* Swap Button (visible only on mobile) */}
-        <div className="md:hidden flex justify-center my-2">
+        <div className="md:hidden flex justify-center my-4">
           <button
             onClick={handleSwapCurrencies}
             disabled={isLoadingRate}
-            className="p-3 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 animate-pulse-gentle"
+            className="p-4 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-110 animate-pulse-gentle disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Swap currencies"
           >
-            <ArrowDownUp className="h-5 w-5 transform transition-transform duration-300 hover:rotate-180" />
+            <ArrowDownUp className="h-6 w-6 transform transition-transform duration-300 hover:rotate-180" />
           </button>
         </div>
         
         {/* Target Currency Column */}
-        <div className="transition-all duration-300 hover:transform hover:translate-y-[-5px]">
+        <div className="transition-all duration-300 hover:transform hover:translate-y-[-2px] hover:shadow-lg rounded-lg p-1">
           <div className="mb-3 relative">
-            <div className="flex items-center justify-between mb-1">
-              <label htmlFor="targetAmount" className="block text-sm font-medium text-gray-700">
+            <div className="flex items-center justify-between mb-2">
+              <label htmlFor="targetAmount" className="block text-sm font-semibold text-gray-700">
                 To
               </label>
               
@@ -680,15 +682,15 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
               <button
                 onClick={handleSwapCurrencies}
                 disabled={isLoadingRate}
-                className="hidden md:flex items-center space-x-2 text-blue-600 hover:text-blue-800 text-sm bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded-full transition-all duration-300 transform hover:scale-105"
+                className="hidden md:flex items-center space-x-2 text-blue-600 hover:text-blue-800 text-sm bg-blue-50 hover:bg-blue-100 px-4 py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 aria-label="Swap currencies"
               >
                 <ArrowDownUp className="h-4 w-4 transform transition-transform duration-300 hover:rotate-180" />
-                <span>Swap</span>
+                <span className="font-medium">Swap</span>
               </button>
             </div>
             
-            <div className="mb-2">
+            <div className="mb-3 relative z-10">
               <CurrencyDropdown
                 id="targetCurrency"
                 value={targetCurrency}
@@ -709,33 +711,33 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
         </div>
       </div>
       
-      {/* Exchange Rate and Last Updated */}
-      <div className="mt-6 border-t border-gray-200 pt-4 text-sm text-gray-600 bg-gray-50 p-4 rounded-lg backdrop-blur-sm animate-fade-in">
+      {/* Exchange Rate and Last Updated - Higher z-index to prevent dropdown overlap */}
+      <div className="mt-8 border-t border-gray-200 pt-6 text-sm text-gray-600 bg-gradient-to-r from-gray-50 to-blue-50 p-6 rounded-xl backdrop-blur-sm animate-fade-in shadow-lg relative z-1">
         {isLoadingRate ? (
           <div className="flex items-center justify-center">
-            <div className="animate-spin mr-2">
-              <RefreshCw className="h-4 w-4" />
+            <div className="animate-spin mr-3">
+              <RefreshCw className="h-5 w-5 text-blue-500" />
             </div>
-            <span>Fetching latest rates{rateRetryAttempt > 0 ? ` (attempt ${rateRetryAttempt} of 3)` : ''}...</span>
+            <span className="font-medium">Fetching latest rates{rateRetryAttempt > 0 ? ` (attempt ${rateRetryAttempt} of 3)` : ''}...</span>
           </div>
         ) : (
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
-            <div className="flex items-center bg-white px-4 py-2 rounded-md shadow-sm animate-pulse-gentle">
-              <span className="font-medium">
-                1 {baseCurrency} = <span className="font-bold text-blue-700">{(rates?.[targetCurrency] || 0).toFixed(4)}</span> {targetCurrency}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="flex items-center bg-white px-6 py-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100">
+              <span className="font-semibold text-gray-800">
+                1 {baseCurrency} = <span className="font-bold text-blue-700 text-lg">{(rates?.[targetCurrency] || 0).toFixed(4)}</span> {targetCurrency}
               </span>
             </div>
             {lastUpdated && (
-              <div className="flex items-center mt-2 sm:mt-0">
-                <span className="text-gray-500 mr-2">
+              <div className="flex items-center bg-white px-4 py-2 rounded-lg shadow-md">
+                <span className="text-gray-600 mr-3 font-medium">
                   {isOfflineMode ? 'Cached' : 'Updated'} {formattedLastUpdated}
                 </span>
                 <button
                   onClick={handleRefreshRate}
-                  className="text-blue-500 hover:text-blue-600 flex items-center bg-white px-3 py-1 rounded-md shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-105"
+                  className="text-blue-500 hover:text-blue-600 flex items-center bg-blue-50 hover:bg-blue-100 px-4 py-2 rounded-lg shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-105 font-medium"
                   aria-label="Refresh rates"
                 >
-                  <RefreshCw className="h-3 w-3 mr-1" />
+                  <RefreshCw className="h-4 w-4 mr-2" />
                   <span>Refresh</span>
                 </button>
               </div>
