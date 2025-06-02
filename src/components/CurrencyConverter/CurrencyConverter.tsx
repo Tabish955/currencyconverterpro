@@ -219,8 +219,8 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
   // State for selected currencies and amounts
   const [baseAmount, setBaseAmount] = useState(1); // Always default to 1
   const [targetAmount, setTargetAmount] = useState(0);
-  const [baseCurrency, setBaseCurrency] = useState("USD"); // Default to USD
-  const [targetCurrency, setTargetCurrency] = useState("EUR"); // Default to EUR
+  const [baseCurrency, setBaseCurrency] = useState("KWD"); // Changed to KWD
+  const [targetCurrency, setTargetCurrency] = useState("PKR"); // Changed to PKR
   
   // Track which field was last changed to prevent ping-pong effect
   const [lastChangedField, setLastChangedField] = useState<"base" | "target">("base");
@@ -561,7 +561,7 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
       })
     : '';
   
-  // Handle currency swap - always reset to 1
+  // Handle currency swap - always reset to 1 with animation
   const handleSwapCurrencies = () => {
     // Swap currencies
     const tempBaseCurrency = baseCurrency;
@@ -598,7 +598,7 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
   const currentRate = rates && rates[targetCurrency] ? rates[targetCurrency] : null;
 
   return (
-    <div className="w-full">
+    <div className="w-full relative" style={{ zIndex: 1 }}>
       {/* Offline mode banner */}
       {isOfflineMode && lastUpdated && (
         <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg animate-fade-in">
@@ -633,12 +633,12 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
       {/* Currency Converter Form */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Base Currency Column */}
-        <div className="transition-all duration-300 hover:transform hover:translate-y-[-2px] hover:shadow-lg rounded-lg p-1">
+        <div className="transition-all duration-300 hover:transform hover:translate-y-[-2px] hover:shadow-lg rounded-lg p-1" style={{ zIndex: 10 }}>
           <div className="mb-3">
             <label htmlFor="baseAmount" className="block text-sm font-semibold text-gray-700 mb-2">
               From
             </label>
-            <div className="mb-3 relative z-10">
+            <div className="mb-3 relative" style={{ zIndex: 1000 }}>
               <CurrencyDropdown
                 id="baseCurrency"
                 value={baseCurrency}
@@ -659,19 +659,19 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
         </div>
         
         {/* Swap Button (visible only on mobile) */}
-        <div className="md:hidden flex justify-center my-4">
+        <div className="md:hidden flex justify-center my-4" style={{ zIndex: 5 }}>
           <button
             onClick={handleSwapCurrencies}
             disabled={isLoadingRate}
-            className="p-4 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-110 animate-pulse-gentle disabled:opacity-50 disabled:cursor-not-allowed"
+            className="p-4 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-xl hover:shadow-2xl transition-all duration-500 transform hover:scale-110 hover:rotate-180 animate-pulse-gentle disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Swap currencies"
           >
-            <ArrowDownUp className="h-6 w-6 transform transition-transform duration-300 hover:rotate-180" />
+            <ArrowDownUp className="h-6 w-6 transition-transform duration-500" />
           </button>
         </div>
         
         {/* Target Currency Column */}
-        <div className="transition-all duration-300 hover:transform hover:translate-y-[-2px] hover:shadow-lg rounded-lg p-1">
+        <div className="transition-all duration-300 hover:transform hover:translate-y-[-2px] hover:shadow-lg rounded-lg p-1" style={{ zIndex: 10 }}>
           <div className="mb-3 relative">
             <div className="flex items-center justify-between mb-2">
               <label htmlFor="targetAmount" className="block text-sm font-semibold text-gray-700">
@@ -682,15 +682,16 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
               <button
                 onClick={handleSwapCurrencies}
                 disabled={isLoadingRate}
-                className="hidden md:flex items-center space-x-2 text-blue-600 hover:text-blue-800 text-sm bg-blue-50 hover:bg-blue-100 px-4 py-2 rounded-full transition-all duration-300 transform hover:scale-105 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                className="hidden md:flex items-center space-x-2 text-blue-600 hover:text-blue-800 text-sm bg-blue-50 hover:bg-blue-100 px-4 py-2 rounded-full transition-all duration-500 transform hover:scale-105 hover:rotate-180 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 aria-label="Swap currencies"
+                style={{ zIndex: 5 }}
               >
-                <ArrowDownUp className="h-4 w-4 transform transition-transform duration-300 hover:rotate-180" />
+                <ArrowDownUp className="h-4 w-4 transition-transform duration-500" />
                 <span className="font-medium">Swap</span>
               </button>
             </div>
             
-            <div className="mb-3 relative z-10">
+            <div className="mb-3 relative" style={{ zIndex: 1000 }}>
               <CurrencyDropdown
                 id="targetCurrency"
                 value={targetCurrency}
@@ -711,8 +712,9 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
         </div>
       </div>
       
-      {/* Exchange Rate and Last Updated - Higher z-index to prevent dropdown overlap */}
-      <div className="mt-8 border-t border-gray-200 pt-6 text-sm text-gray-600 bg-gradient-to-r from-gray-50 to-blue-50 p-6 rounded-xl backdrop-blur-sm animate-fade-in shadow-lg relative z-1">
+      {/* Exchange Rate and Last Updated */}
+      <div className="mt-8 border-t border-gray-200 pt-6 text-sm text-gray-600 bg-gradient-to-r from-gray-50 to-blue-50 p-6 rounded-xl backdrop-blur-sm animate-fade-in shadow-lg relative">
+        {/* Loading state */}
         {isLoadingRate ? (
           <div className="flex items-center justify-center">
             <div className="animate-spin mr-3">

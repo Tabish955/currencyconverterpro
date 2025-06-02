@@ -382,7 +382,7 @@ const CurrencyDropdown = ({
   };
 
   // Render a currency list item
-  const renderCurrencyItem = (currency: CurrencySymbol, index: number) => (
+  const renderCurrencyItem = (currency: EnrichedCurrencySymbol, index: number) => (
     <li
       key={currency.code}
       className={`px-3 py-2 cursor-pointer transition-all duration-150 ${
@@ -417,7 +417,7 @@ const CurrencyDropdown = ({
   );
 
   return (
-    <div className="relative inline-block w-full" ref={dropdownRef}>
+    <div className="relative inline-block w-full" ref={dropdownRef} style={{ zIndex: 9999 }}>
       <button
         id={id}
         className={`w-full flex items-center justify-between py-3 px-3 border border-gray-300 rounded-md bg-white text-left shadow-sm hover:shadow-md transition-all duration-300 ${
@@ -457,15 +457,16 @@ const CurrencyDropdown = ({
 
       {isOpen && (
         <div 
-          className={`absolute z-[999999] w-72 md:w-96 bg-white border border-gray-200 rounded-md shadow-2xl`}
+          className="fixed bg-white border border-gray-200 rounded-md shadow-2xl animate-fade-in"
           style={{ 
-            animation: 'fade-in 0.2s ease-out',
-            transformOrigin: dropdownPosition === 'top' ? 'bottom center' : 'top center',
+            zIndex: 99999,
+            width: window.innerWidth < 768 ? '95vw' : '384px',
             maxHeight: '80vh',
             [dropdownPosition === 'top' ? 'bottom' : 'top']: '100%',
             marginTop: dropdownPosition === 'top' ? '' : '4px',
             marginBottom: dropdownPosition === 'top' ? '4px' : '',
-            left: '0',
+            left: window.innerWidth < 768 ? '50%' : '0',
+            transform: window.innerWidth < 768 ? 'translateX(-50%)' : 'none',
           }}
         >
           <div className="sticky top-0 bg-white p-2 border-b border-gray-200 z-10">
