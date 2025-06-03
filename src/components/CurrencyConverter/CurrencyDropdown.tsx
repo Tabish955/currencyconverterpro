@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { ChevronDown, ChevronUp, Search, Flag } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -9,6 +10,11 @@ export interface CurrencySymbol {
   description: string;
   countryCode?: string;
   aliases?: string[];
+}
+
+interface EnrichedCurrencySymbol extends CurrencySymbol {
+  countryCode: string;
+  aliases: string[];
 }
 
 interface CurrencyDropdownProps {
@@ -247,7 +253,7 @@ const CurrencyDropdown = ({
   const [dropdownPosition, setDropdownPosition] = useState<'bottom' | 'top'>('bottom');
 
   // Prepare currency data with country codes and aliases - ensuring all fields are defined
-  const enrichedCurrencies = currencies.map(currency => ({
+  const enrichedCurrencies: EnrichedCurrencySymbol[] = currencies.map(currency => ({
     ...currency,
     countryCode: currency.countryCode || currencyToCountryMap[currency.code] || "un",
     aliases: currency.aliases || currencyAliases[currency.code] || []
@@ -417,7 +423,7 @@ const CurrencyDropdown = ({
   );
 
   return (
-    <div className="relative inline-block w-full" ref={dropdownRef} style={{ zIndex: 9999 }}>
+    <div className="relative inline-block w-full" ref={dropdownRef}>
       <button
         id={id}
         className={`w-full flex items-center justify-between py-3 px-3 border border-gray-300 rounded-md bg-white text-left shadow-sm hover:shadow-md transition-all duration-300 ${
@@ -428,6 +434,7 @@ const CurrencyDropdown = ({
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         disabled={disabled}
+        style={{ zIndex: 1 }}
       >
         <span className="truncate font-medium flex items-center">
           {selectedCurrency ? (
@@ -459,12 +466,10 @@ const CurrencyDropdown = ({
         <div 
           className="fixed bg-white border border-gray-200 rounded-md shadow-2xl animate-fade-in"
           style={{ 
-            zIndex: 99999,
+            zIndex: 999999,
             width: window.innerWidth < 768 ? '95vw' : '384px',
-            maxHeight: '80vh',
-            [dropdownPosition === 'top' ? 'bottom' : 'top']: '100%',
-            marginTop: dropdownPosition === 'top' ? '' : '4px',
-            marginBottom: dropdownPosition === 'top' ? '4px' : '',
+            maxHeight: '70vh',
+            [dropdownPosition === 'top' ? 'bottom' : 'top']: 'calc(100% + 8px)',
             left: window.innerWidth < 768 ? '50%' : '0',
             transform: window.innerWidth < 768 ? 'translateX(-50%)' : 'none',
           }}
@@ -491,7 +496,7 @@ const CurrencyDropdown = ({
             </div>
           </div>
 
-          <ScrollArea className="h-[calc(80vh-50px)]">
+          <ScrollArea className="h-[calc(70vh-50px)]">
             <ul 
               id="currency-list"
               ref={listRef}

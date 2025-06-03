@@ -1,750 +1,428 @@
-import { useEffect, useState, useCallback, useRef } from "react";
-import { CurrencyCache } from "./CurrencyCache";
-import CurrencyDropdown, { CurrencySymbol } from "./CurrencyDropdown";
+import { useState, useEffect, useCallback } from "react";
+import { ArrowUpDown, Loader2, RefreshCw, AlertCircle } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import CurrencyInput from "./CurrencyInput";
+import CurrencyDropdown from "./CurrencyDropdown";
 import ErrorDisplay from "./ErrorDisplay";
 import LoadingState from "./LoadingState";
-import { ArrowDownUp, RefreshCw, WifiOff } from "lucide-react";
-import { toast } from "sonner";
-import { 
-  retryWithBackoff,
-  saveToCache,
-  getFromCache,
-  getLastUpdateTime,
-  formatRelativeTime,
-  CACHE_KEYS,
-  API_ENDPOINTS
-} from "./ApiUtils";
+import { retryWithBackoff, saveToCache, getFromCache, CACHE_KEYS, formatRelativeTime, getLastUpdateTime } from "./ApiUtils";
 
-// Type definitions
-interface SymbolsResponse {
-  [key: string]: string;
+interface CurrencySymbol {
+  code: string;
+  description: string;
+  countryCode?: string;
+  aliases?: string[];
 }
 
-interface RatesResponse {
+interface ExchangeRateData {
+  provider: string;
+  WARNING_UPGRADE_TO_V6: string;
+  terms: string;
   base: string;
-  date: string;
-  rates: Record<string, number>;
-  time_last_updated: number;
+  rates: { [key: string]: number };
 }
 
 interface CurrencyConverterProps {
-  mode?: "fiat"; // Only fiat mode is supported now
+  mode?: "fiat" | "crypto";
 }
 
-// Initialize cache
-const symbolsCache = new CurrencyCache<CurrencySymbol[]>(24 * 60 * 60 * 1000); // 24 hours 
-const ratesCache = new CurrencyCache<Record<string, number>>(5 * 60 * 1000); // 5 minutes
-
-// Map ISO currency codes to country codes for flags - ensure complete coverage
-const currencyToCountryMap: Record<string, string> = {
-  EUR: "eu", // European Union
-  USD: "us", // United States
-  JPY: "jp", // Japan
-  GBP: "gb", // United Kingdom
-  AUD: "au", // Australia
-  CAD: "ca", // Canada
-  CHF: "ch", // Switzerland
-  CNY: "cn", // China
-  HKD: "hk", // Hong Kong
-  NZD: "nz", // New Zealand
-  SEK: "se", // Sweden
-  KRW: "kr", // South Korea
-  SGD: "sg", // Singapore
-  NOK: "no", // Norway
-  MXN: "mx", // Mexico
-  INR: "in", // India
-  RUB: "ru", // Russia
-  ZAR: "za", // South Africa
-  TRY: "tr", // Turkey
-  BRL: "br", // Brazil
-  TWD: "tw", // Taiwan
-  DKK: "dk", // Denmark
-  PLN: "pl", // Poland
-  THB: "th", // Thailand
-  IDR: "id", // Indonesia
-  HUF: "hu", // Hungary
-  CZK: "cz", // Czech Republic
-  ILS: "il", // Israel
-  CLP: "cl", // Chile
-  PHP: "ph", // Philippines
-  AED: "ae", // United Arab Emirates
-  COP: "co", // Colombia
-  SAR: "sa", // Saudi Arabia
-  MYR: "my", // Malaysia
-  RON: "ro", // Romania
-  PKR: "pk", // Pakistan
-  BDT: "bd", // Bangladesh
-  VND: "vn", // Vietnam
-  UAH: "ua", // Ukraine
-  NGN: "ng", // Nigeria
-  EGP: "eg", // Egypt
-  KZT: "kz", // Kazakhstan
-  QAR: "qa", // Qatar
-  DZD: "dz", // Algeria
-  KWD: "kw", // Kuwait
-  LKR: "lk", // Sri Lanka
-  OMR: "om", // Oman
-  JOD: "jo", // Jordan
-  MAD: "ma", // Morocco
-  BHD: "bh", // Bahrain
-  XAF: "cf", // Central African Republic (CFA Franc)
-  XOF: "sn", // Senegal (West African CFA Franc)
-  XPF: "pf", // French Polynesia (CFP Franc)
-  TND: "tn", // Tunisia
-  GHS: "gh", // Ghana
-  UGX: "ug", // Uganda
-  TZS: "tz", // Tanzania
-  KES: "ke", // Kenya
-  XCD: "ag", // Antigua and Barbuda (East Caribbean Dollar)
-  BBD: "bb", // Barbados
-  BSD: "bs", // Bahamas
-  BZD: "bz", // Belize
-  BMD: "bm", // Bermuda
-  BOB: "bo", // Bolivia
-  PYG: "py", // Paraguay
-  PEN: "pe", // Peru
-  UYU: "uy", // Uruguay
-  DOP: "do", // Dominican Republic
-  GTQ: "gt", // Guatemala
-  HNL: "hn", // Honduras
-  NIO: "ni", // Nicaragua
-  CRC: "cr", // Costa Rica
-  PAB: "pa", // Panama
-  JMD: "jm", // Jamaica
-  TTD: "tt", // Trinidad and Tobago
-  AWG: "aw", // Aruba
-  ANG: "cw", // Curaçao
-  SRD: "sr", // Suriname
-  GYD: "gy", // Guyana
-  FJD: "fj", // Fiji
-  PGK: "pg", // Papua New Guinea
-  TOP: "to", // Tonga
-  SBD: "sb", // Solomon Islands
-  VUV: "vu", // Vanuatu
-  WST: "ws", // Samoa
-  KID: "ki", // Kiribati
-  BND: "bn", // Brunei
-  FKP: "fk", // Falkland Islands
-  GIP: "gi", // Gibraltar
-  SHP: "sh", // Saint Helena
-  SSP: "ss", // South Sudan
-  SDG: "sd", // Sudan
-  SYP: "sy", // Syria
-  LBP: "lb", // Lebanon
-  IRR: "ir", // Iran
-  IQD: "iq", // Iraq
-  LYD: "ly", // Libya
-  YER: "ye", // Yemen
-  MRU: "mr", // Mauritania
-  ETB: "et", // Ethiopia
-  SOS: "so", // Somalia
-  DJF: "dj", // Djibouti
-  ERN: "er", // Eritrea
-  SZL: "sz", // Eswatini
-  LSL: "ls", // Lesotho
-  NAD: "na", // Namibia
-  BWP: "bw", // Botswana
-  MWK: "mw", // Malawi
-  ZMW: "zm", // Zambia
-  MZN: "mz", // Mozambique
-  MDL: "md", // Moldova
-  ALL: "al", // Albania
-  MKD: "mk", // North Macedonia
-  BAM: "ba", // Bosnia and Herzegovina
-  RSD: "rs", // Serbia
-  BGN: "bg", // Bulgaria
-  HRK: "hr", // Croatia
-  ISK: "is", // Iceland
-  GEL: "ge", // Georgia
-  AZN: "az", // Azerbaijan
-  ARM: "am", // Armenia
-  BYN: "by", // Belarus
-  UZS: "uz", // Uzbekistan
-  TMT: "tm", // Turkmenistan
-  TJS: "tj", // Tajikistan
-  KGS: "kg", // Kyrgyzstan
-  MNT: "mn", // Mongolia
-  MVR: "mv", // Maldives
-  NPR: "np", // Nepal
-  BTN: "bt", // Bhutan
-  BIF: "bi", // Burundi
-  RWF: "rw", // Rwanda
-  SLL: "sl", // Sierra Leone
-  GMD: "gm", // Gambia
-  GNF: "gn", // Guinea
-  XAU: "un", // Gold - UN flag
-  XAG: "un", // Silver - UN flag
-  XDR: "un", // SDR - UN flag
-  // Additional mappings for comprehensive coverage
-  AFN: "af", // Afghanistan
-  AOA: "ao", // Angola
-  ARS: "ar", // Argentina
-  CVE: "cv", // Cape Verde
-  CDF: "cd", // Democratic Republic of the Congo
-  KHR: "kh", // Cambodia
-  KYD: "ky", // Cayman Islands
-  CLF: "cl", // Chilean UF
-  CUP: "cu", // Cuba
-  CUC: "cu", // Cuban Convertible Peso
-  MGA: "mg", // Madagascar
-  LAK: "la", // Laos
-  MMK: "mm", // Myanmar
-  STN: "st", // São Tomé and Príncipe
-  SCR: "sc", // Seychelles
-  VES: "ve", // Venezuela
-  ZWL: "zw" // Zimbabwe
-};
-
-// Keep recent currencies for quick access
-interface RecentlyUsedState {
-  items: string[];
-  lastUpdated: number;
-}
-
-const MAX_RECENT_ITEMS = 5;
-const RECENT_CACHE_KEY = "recently-used-currencies";
+const currencies: CurrencySymbol[] = [
+  { code: "USD", description: "United States Dollar", countryCode: "us" },
+  { code: "EUR", description: "Euro", countryCode: "eu" },
+  { code: "JPY", description: "Japanese Yen", countryCode: "jp" },
+  { code: "GBP", description: "British Pound", countryCode: "gb" },
+  { code: "AUD", description: "Australian Dollar", countryCode: "au" },
+  { code: "CAD", description: "Canadian Dollar", countryCode: "ca" },
+  { code: "CHF", description: "Swiss Franc", countryCode: "ch" },
+  { code: "CNY", description: "Chinese Yuan", countryCode: "cn" },
+  { code: "HKD", description: "Hong Kong Dollar", countryCode: "hk" },
+  { code: "NZD", description: "New Zealand Dollar", countryCode: "nz" },
+  { code: "SEK", description: "Swedish Krona", countryCode: "se" },
+  { code: "KRW", description: "South Korean Won", countryCode: "kr" },
+  { code: "SGD", description: "Singapore Dollar", countryCode: "sg" },
+  { code: "NOK", description: "Norwegian Krone", countryCode: "no" },
+  { code: "MXN", description: "Mexican Peso", countryCode: "mx" },
+  { code: "INR", description: "Indian Rupee", countryCode: "in" },
+  { code: "RUB", description: "Russian Ruble", countryCode: "ru" },
+  { code: "ZAR", description: "South African Rand", countryCode: "za" },
+  { code: "TRY", description: "Turkish Lira", countryCode: "tr" },
+  { code: "BRL", description: "Brazilian Real", countryCode: "br" },
+  { code: "TWD", description: "Taiwan New Dollar", countryCode: "tw" },
+  { code: "DKK", description: "Danish Krone", countryCode: "dk" },
+  { code: "PLN", description: "Polish Zloty", countryCode: "pl" },
+  { code: "THB", description: "Thai Baht", countryCode: "th" },
+  { code: "IDR", description: "Indonesian Rupiah", countryCode: "id" },
+  { code: "HUF", description: "Hungarian Forint", countryCode: "hu" },
+  { code: "CZK", description: "Czech Koruna", countryCode: "cz" },
+  { code: "ILS", description: "Israeli New Shekel", countryCode: "il" },
+  { code: "CLP", description: "Chilean Peso", countryCode: "cl" },
+  { code: "PHP", description: "Philippine Peso", countryCode: "ph" },
+  { code: "AED", description: "United Arab Emirates Dirham", countryCode: "ae" },
+  { code: "COP", description: "Colombian Peso", countryCode: "co" },
+  { code: "SAR", description: "Saudi Riyal", countryCode: "sa" },
+  { code: "MYR", description: "Malaysian Ringgit", countryCode: "my" },
+  { code: "RON", description: "Romanian Leu", countryCode: "ro" },
+  { code: "PKR", description: "Pakistani Rupee", countryCode: "pk" },
+  { code: "BDT", description: "Bangladeshi Taka", countryCode: "bd" },
+  { code: "VND", description: "Vietnamese Dong", countryCode: "vn" },
+  { code: "UAH", description: "Ukrainian Hryvnia", countryCode: "ua" },
+  { code: "NGN", description: "Nigerian Naira", countryCode: "ng" },
+  { code: "EGP", description: "Egyptian Pound", countryCode: "eg" },
+  { code: "KZT", description: "Kazakhstani Tenge", countryCode: "kz" },
+  { code: "QAR", description: "Qatari Riyal", countryCode: "qa" },
+  { code: "DZD", description: "Algerian Dinar", countryCode: "dz" },
+  { code: "KWD", description: "Kuwaiti Dinar", countryCode: "kw" },
+  { code: "OMR", description: "Omani Rial", countryCode: "om" },
+  { code: "JOD", description: "Jordanian Dinar", countryCode: "jo" },
+  { code: "MAD", description: "Moroccan Dirham", countryCode: "ma" },
+  { code: "BHD", description: "Bahraini Dinar", countryCode: "bh" },
+  { code: "XAF", description: "Central African CFA Franc", countryCode: "cm" },
+  { code: "XOF", description: "West African CFA Franc", countryCode: "sn" },
+  { code: "XPF", description: "CFP Franc", countryCode: "pf" },
+  { code: "TND", description: "Tunisian Dinar", countryCode: "tn" },
+  { code: "GHS", description: "Ghanaian Cedi", countryCode: "gh" },
+  { code: "UGX", description: "Ugandan Shilling", countryCode: "ug" },
+  { code: "TZS", description: "Tanzanian Shilling", countryCode: "tz" },
+  { code: "KES", description: "Kenyan Shilling", countryCode: "ke" },
+  { code: "XCD", description: "East Caribbean Dollar", countryCode: "ag" },
+  { code: "BBD", description: "Barbadian Dollar", countryCode: "bb" },
+  { code: "BSD", description: "Bahamian Dollar", countryCode: "bs" },
+  { code: "BZD", description: "Belize Dollar", countryCode: "bz" },
+  { code: "BMD", description: "Bermudian Dollar", countryCode: "bm" },
+  { code: "BOB", description: "Bolivian Boliviano", countryCode: "bo" },
+  { code: "PYG", description: "Paraguayan Guarani", countryCode: "py" },
+  { code: "PEN", description: "Peruvian Sol", countryCode: "pe" },
+  { code: "UYU", description: "Uruguayan Peso", countryCode: "uy" },
+  { code: "GTQ", description: "Guatemalan Quetzal", countryCode: "gt" },
+  { code: "HNL", description: "Honduran Lempira", countryCode: "hn" },
+  { code: "NIO", description: "Nicaraguan Córdoba", countryCode: "ni" },
+  { code: "CRC", description: "Costa Rican Colón", countryCode: "cr" },
+  { code: "PAB", description: "Panamanian Balboa", countryCode: "pa" },
+  { code: "JMD", description: "Jamaican Dollar", countryCode: "jm" },
+  { code: "TTD", description: "Trinidad & Tobago Dollar", countryCode: "tt" },
+  { code: "AWG", description: "Aruban Florin", countryCode: "aw" },
+  { code: "ANG", description: "Netherlands Antillean Guilder", countryCode: "cw" },
+  { code: "SRD", description: "Surinamese Dollar", countryCode: "sr" },
+  { code: "GYD", description: "Guyanese Dollar", countryCode: "gy" },
+  { code: "FJD", description: "Fijian Dollar", countryCode: "fj" },
+  { code: "PGK", description: "Papua New Guinean Kina", countryCode: "pg" },
+  { code: "TOP", description: "Tongan Paʻanga", countryCode: "to" },
+  { code: "SBD", description: "Solomon Islands Dollar", countryCode: "sb" },
+  { code: "VUV", description: "Vanuatu Vatu", countryCode: "vu" },
+  { code: "WST", description: "Samoan Tala", countryCode: "ws" },
+  { code: "KID", description: "Kiribati Dollar", countryCode: "ki" },
+  { code: "BND", description: "Bruneian Dollar", countryCode: "bn" },
+  { code: "FKP", description: "Falkland Islands Pound", countryCode: "fk" },
+  { code: "GIP", description: "Gibraltar Pound", countryCode: "gi" },
+  { code: "SHP", description: "Saint Helena Pound", countryCode: "sh" },
+  { code: "SSP", description: "South Sudanese Pound", countryCode: "ss" },
+  { code: "SDG", description: "Sudanese Pound", countryCode: "sd" },
+  { code: "SYP", description: "Syrian Pound", countryCode: "sy" },
+  { code: "LBP", description: "Lebanese Pound", countryCode: "lb" },
+  { code: "IRR", description: "Iranian Rial", countryCode: "ir" },
+  { code: "IQD", description: "Iraqi Dinar", countryCode: "iq" },
+  { code: "LYD", description: "Libyan Dinar", countryCode: "ly" },
+  { code: "YER", description: "Yemeni Rial", countryCode: "ye" },
+  { code: "MRU", description: "Mauritanian Ouguiya", countryCode: "mr" },
+  { code: "ETB", description: "Ethiopian Birr", countryCode: "et" },
+  { code: "SOS", description: "Somali Shilling", countryCode: "so" },
+  { code: "DJF", description: "Djiboutian Franc", countryCode: "dj" },
+  { code: "ERN", description: "Eritrean Nakfa", countryCode: "er" },
+  { code: "SZL", description: "Eswatini Lilangeni", countryCode: "sz" },
+  { code: "LSL", description: "Lesotho Loti", countryCode: "ls" },
+  { code: "NAD", description: "Namibian Dollar", countryCode: "na" },
+  { code: "BWP", description: "Botswanan Pula", countryCode: "bw" },
+  { code: "MWK", description: "Malawian Kwacha", countryCode: "mw" },
+  { code: "ZMW", description: "Zambian Kwacha", countryCode: "zm" },
+  { code: "MZN", description: "Mozambican Metical", countryCode: "mz" },
+  { code: "MDL", description: "Moldovan Leu", countryCode: "md" },
+  { code: "ALL", description: "Albanian Lek", countryCode: "al" },
+  { code: "MKD", description: "Macedonian Denar", countryCode: "mk" },
+  { code: "BAM", description: "Bosnia-Herzegovina Convertible Mark", countryCode: "ba" },
+  { code: "RSD", description: "Serbian Dinar", countryCode: "rs" },
+  { code: "BGN", description: "Bulgarian Lev", countryCode: "bg" },
+  { code: "HRK", description: "Croatian Kuna", countryCode: "hr" },
+  { code: "ISK", description: "Icelandic Króna", countryCode: "is" },
+  { code: "GEL", description: "Georgian Lari", countryCode: "ge" },
+  { code: "AZN", description: "Azerbaijani Manat", countryCode: "az" },
+  { code: "AMD", description: "Armenian Dram", countryCode: "am" },
+  { code: "BYN", description: "Belarusian Ruble", countryCode: "by" },
+  { code: "UZS", description: "Uzbekistani Som", countryCode: "uz" },
+  { code: "TMT", description: "Turkmenistani Manat", countryCode: "tm" },
+  { code: "TJS", description: "Tajikistani Somoni", countryCode: "tj" },
+  { code: "KGS", description: "Kyrgyzstani Som", countryCode: "kg" },
+  { code: "MNT", description: "Mongolian Tögrög", countryCode: "mn" },
+  { code: "MVR", description: "Maldivian Rufiyaa", countryCode: "mv" },
+  { code: "NPR", description: "Nepalese Rupee", countryCode: "np" },
+  { code: "BTN", description: "Bhutanese Ngultrum", countryCode: "bt" },
+  { code: "BIF", description: "Burundian Franc", countryCode: "bi" },
+  { code: "RWF", description: "Rwandan Franc", countryCode: "rw" },
+  { code: "SLL", description: "Sierra Leonean Leone", countryCode: "sl" },
+  { code: "GMD", description: "Gambian Dalasi", countryCode: "gm" },
+  { code: "GNF", description: "Guinean Franc", countryCode: "gn" },
+  { code: "AFN", description: "Afghan Afghani", countryCode: "af" },
+  { code: "AOA", description: "Angolan Kwanza", countryCode: "ao" },
+  { code: "ARS", description: "Argentine Peso", countryCode: "ar" },
+  { code: "CVE", description: "Cape Verdean Escudo", countryCode: "cv" },
+  { code: "CDF", description: "Congolese Franc", countryCode: "cd" },
+  { code: "CUP", description: "Cuban Peso", countryCode: "cu" },
+  { code: "DOP", description: "Dominican Peso", countryCode: "do" },
+  { code: "SVC", description: "Salvadoran Colón", countryCode: "sv" },
+  { code: "HTG", description: "Haitian Gourde", countryCode: "ht" },
+  { code: "IMP", description: "Manx Pound", countryCode: "im" },
+  { code: "JEP", description: "Jersey Pound", countryCode: "je" },
+  { code: "KHR", description: "Cambodian Riel", countryCode: "kh" },
+  { code: "LAK", description: "Lao Kip", countryCode: "la" },
+  { code: "LRD", description: "Liberian Dollar", countryCode: "lr" },
+  { code: "MOP", description: "Macanese Pataca", countryCode: "mo" },
+  { code: "MGA", description: "Malagasy Ariary", countryCode: "mg" },
+  { code: "MUR", description: "Mauritian Rupee", countryCode: "mu" },
+  { code: "MMK", description: "Burmese Kyat", countryCode: "mm" },
+  { code: "SCR", description: "Seychellois Rupee", countryCode: "sc" },
+  { code: "STN", description: "São Tomé & Príncipe Dobra", countryCode: "st" },
+  { code: "LKR", description: "Sri Lankan Rupee", countryCode: "lk" },
+  { code: "VES", description: "Venezuelan Bolívar Soberano", countryCode: "ve" },
+  { code: "ZWL", description: "Zimbabwean Dollar", countryCode: "zw" },
+];
 
 const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
-  // State for currency symbols
-  const [symbols, setSymbols] = useState<CurrencySymbol[]>([]);
-  const [isLoadingSymbols, setIsLoadingSymbols] = useState(true);
-  const [symbolsError, setSymbolsError] = useState<string | null>(null);
-  const [symbolsRetryAttempt, setSymbolsRetryAttempt] = useState(0);
-  
-  // State for offline mode
-  const [isOfflineMode, setIsOfflineMode] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  
-  // State for selected currencies and amounts
-  const [baseAmount, setBaseAmount] = useState(1); // Always default to 1
-  const [targetAmount, setTargetAmount] = useState(0);
-  const [baseCurrency, setBaseCurrency] = useState("KWD"); // Changed to KWD
-  const [targetCurrency, setTargetCurrency] = useState("PKR"); // Changed to PKR
-  
-  // Track which field was last changed to prevent ping-pong effect
-  const [lastChangedField, setLastChangedField] = useState<"base" | "target">("base");
-  
-  // State for recently used currencies
+  const [amount, setAmount] = useState<string>("1");
+  const [fromCurrency, setFromCurrency] = useState("KWD");
+  const [toCurrency, setToCurrency] = useState("PKR");
   const [recentlyUsed, setRecentlyUsed] = useState<string[]>([]);
-  
-  // State for exchange rates
-  const [rates, setRates] = useState<Record<string, number> | null>(null);
-  const [isLoadingRate, setIsLoadingRate] = useState(false);
-  const [rateError, setRateError] = useState<string | null>(null);
-  const [rateRetryAttempt, setRateRetryAttempt] = useState(0);
-  
-  // Force refresh timer - ensure rates are updated regularly
-  const [forceRefreshCounter, setForceRefreshCounter] = useState(0);
-  
-  // Load recently used currencies from localStorage on initial load
+  const queryClient = useQueryClient();
+
+  // Load recently used currencies from localStorage on component mount
   useEffect(() => {
-    try {
-      const savedRecent = localStorage.getItem(RECENT_CACHE_KEY);
-      if (savedRecent) {
-        const parsed: RecentlyUsedState = JSON.parse(savedRecent);
-        // Check if data is too old (older than 30 days)
-        const isExpired = Date.now() - parsed.lastUpdated > 30 * 24 * 60 * 60 * 1000;
-        if (!isExpired && Array.isArray(parsed.items)) {
-          setRecentlyUsed(parsed.items.slice(0, MAX_RECENT_ITEMS));
-        }
-      }
-    } catch (e) {
-      console.error("Error loading recently used currencies:", e);
+    const storedRecentlyUsed = localStorage.getItem('recentlyUsedCurrencies');
+    if (storedRecentlyUsed) {
+      setRecentlyUsed(JSON.parse(storedRecentlyUsed));
     }
   }, []);
-  
-  // Save recently used currencies to localStorage when they change
+
+  // Update localStorage whenever recentlyUsed changes
   useEffect(() => {
-    if (recentlyUsed.length > 0) {
-      try {
-        localStorage.setItem(RECENT_CACHE_KEY, JSON.stringify({
-          items: recentlyUsed.slice(0, MAX_RECENT_ITEMS),
-          lastUpdated: Date.now()
-        }));
-      } catch (e) {
-        console.error("Error saving recently used currencies:", e);
-      }
-    }
+    localStorage.setItem('recentlyUsedCurrencies', JSON.stringify(recentlyUsed));
   }, [recentlyUsed]);
-  
-  // Helper to update recently used currencies
-  const updateRecentlyUsed = useCallback((currencyCode: string) => {
-    setRecentlyUsed(prev => {
-      // Remove if already exists, then add to front
-      const filtered = prev.filter(code => code !== currencyCode);
-      return [currencyCode, ...filtered].slice(0, MAX_RECENT_ITEMS);
+
+  // Function to update recently used currencies
+  const updateRecentlyUsed = (currency: string) => {
+    setRecentlyUsed((prev) => {
+      const updatedList = [
+        currency,
+        ...prev.filter((c) => c !== currency),
+      ].slice(0, 3);
+      return updatedList;
     });
-  }, []);
-  
-  // Set up auto refresh every 5 minutes for fiat rates
-  useEffect(() => {
-    const refreshInterval = setInterval(() => {
-      setForceRefreshCounter(prev => prev + 1);
-    }, 5 * 60 * 1000); 
+  };
+
+  // Enhanced fetch rates function with better error handling for unsupported currencies
+  const fetchRates = async (base: string): Promise<ExchangeRateData> => {
+    // List of commonly unsupported currencies by most APIs
+    const unsupportedCurrencies = ['XAG', 'XAU', 'XPD', 'XPT', 'BTC', 'ETH', 'LTC'];
     
-    return () => clearInterval(refreshInterval);
-  }, []);
+    if (unsupportedCurrencies.includes(base)) {
+      throw new Error(`Currency ${base} is not supported by the exchange rate API. Please select a different currency.`);
+    }
 
-  // Reset base amount to 1 when changing currencies - ALWAYS reset to 1
-  useEffect(() => {
-    setBaseAmount(1);
-    setLastChangedField("base");
-  }, [baseCurrency, targetCurrency]); // Reset when either currency changes
-
-  // Fetch currency symbols from the cached source
-  const fetchSymbols = useCallback(async (retry = false) => {
-    try {
-      setIsLoadingSymbols(true);
-      if (retry) setSymbolsRetryAttempt(prev => prev + 1);
-      setSymbolsError(null);
-      
-      // Check cache first
-      const cachedSymbols = symbolsCache.get("symbols") || getFromCache<CurrencySymbol[]>(CACHE_KEYS.SYMBOLS);
-      if (cachedSymbols && !retry) {
-        setSymbols(cachedSymbols);
-        setIsLoadingSymbols(false);
-        return;
-      }
-      
-      // Fetch with retry logic
-      const data = await retryWithBackoff<SymbolsResponse>(async () => {
-        const response = await fetch("https://openexchangerates.org/api/currencies.json");
-        if (!response.ok) {
-          throw new Error(`Failed to fetch symbols: ${response.status}`);
+    const response = await fetch(`https://api.exchangerate-api.com/v4/latest/${base}`);
+    
+    if (!response.ok) {
+      if (response.status === 404) {
+        const errorData = await response.json();
+        if (errorData.error_type === 'unsupported_code') {
+          throw new Error(`Currency ${base} is not supported. Please select a different currency.`);
         }
-        return response.json();
-      });
-      
-      // Transform symbols into array of currency symbols
-      const symbolsArray: CurrencySymbol[] = Object.entries(data).map(([code, name]) => {
-        // Find country code for flag
-        const countryCode = currencyToCountryMap[code] || code.substring(0, 2).toLowerCase();
-        
-        return {
-          code,
-          description: name as string,
-          countryCode
-        };
-      });
-      
-      // Sort alphabetically by code
-      symbolsArray.sort((a, b) => a.code.localeCompare(b.code));
-      
-      // Update state and cache
-      setSymbols(symbolsArray);
-      symbolsCache.set("symbols", symbolsArray);
-      saveToCache(CACHE_KEYS.SYMBOLS, symbolsArray);
-      setSymbolsError(null);
-      setIsOfflineMode(false);
-    } catch (error) {
-      console.error("Error fetching currency symbols:", error);
-      
-      // Try to get from localStorage as last resort
-      const cachedSymbols = getFromCache<CurrencySymbol[]>(CACHE_KEYS.SYMBOLS);
-      if (cachedSymbols && cachedSymbols.length > 0) {
-        setSymbols(cachedSymbols);
-        setIsOfflineMode(true);
-        
-        const lastUpdateTime = getLastUpdateTime();
-        if (lastUpdateTime) setLastUpdated(lastUpdateTime);
-        
-        toast.warning("Using cached currency data. Some information may be outdated.");
-      } else {
-        setSymbolsError("Failed to load currency data. Please check your connection and try again.");
-        toast.error("Unable to load currency data");
       }
-    } finally {
-      setIsLoadingSymbols(false);
-      setSymbolsRetryAttempt(0);
+      throw new Error(`Failed to fetch rates: ${response.status}`);
     }
-  }, []);
+    
+    const data = await response.json();
+    if (data.result === 'error') {
+      throw new Error(`API Error: ${data.error_type || 'Unknown error'}`);
+    }
+    
+    return data;
+  };
 
-  // Fetch exchange rates using ExchangeRate-API
-  const fetchExchangeRates = useCallback(async (base: string, retry = false) => {
-    // Skip comparing same currency
-    if (base === targetCurrency) {
-      const singleRate: Record<string, number> = {};
-      singleRate[targetCurrency] = 1;
-      setRates(singleRate);
-      
-      // Update amounts based on which field was last changed
-      if (lastChangedField === "base") {
-        setTargetAmount(baseAmount);
-      } else {
-        setBaseAmount(targetAmount);
-      }
-      
-      setLastUpdated(new Date());
-      return;
+  const {
+    data: ratesData,
+    isLoading,
+    error,
+  } = useQuery<ExchangeRateData, Error>(
+    ["exchangeRates", fromCurrency],
+    () => fetchRates(fromCurrency),
+    {
+      staleTime: 60 * 1000, // 1 minute
+      cacheTime: 5 * 60 * 1000, // 5 minutes
+      retry: 3,
+      onError: (err) => {
+        toast.error(`Failed to fetch exchange rates: ${err.message}`);
+      },
     }
-    
-    try {
-      setIsLoadingRate(true);
-      if (retry) setRateRetryAttempt(prev => prev + 1);
-      setRateError(null);
-      
-      // Generate cache key based on the base currency
-      const cacheKey = `rates-${base}`;
-      
-      // Check in-memory cache first
-      const cachedRates = ratesCache.get(cacheKey);
-      if (cachedRates !== undefined && !retry) {
-        setRates(cachedRates);
-        updateAmounts(cachedRates);
-        setLastUpdated(new Date());
-        setIsLoadingRate(false);
-        return;
-      }
-      
-      // Check localStorage cache
-      const localCacheKey = `${CACHE_KEYS.RATES_PREFIX}${base}`;
-      const cachedRateData = !retry ? getFromCache<{rates: Record<string, number>, timestamp: string}>(localCacheKey) : null;
-      
-      if (cachedRateData && !retry) {
-        setRates(cachedRateData.rates);
-        updateAmounts(cachedRateData.rates);
-        setLastUpdated(new Date(cachedRateData.timestamp));
-        setIsLoadingRate(false);
-        return;
-      }
-      
-      // Fetch with retry logic from the API
-      const data = await retryWithBackoff<RatesResponse>(async () => {
-        const url = `${API_ENDPOINTS.RATES_BASE}/${base}`;
-        const response = await fetch(url);
-        
-        if (!response.ok) {
-          throw new Error(`Failed to fetch rates: ${response.status}`);
-        }
-        
-        return response.json();
-      }, retry ? 1 : 2); // Only retry once if this is already a retry attempt
-      
-      if (data.rates) {
-        // Update state and cache
-        setRates(data.rates);
-        ratesCache.set(cacheKey, data.rates);
-        
-        // Store in localStorage with timestamp
-        const timestamp = new Date();
-        saveToCache(localCacheKey, {
-          rates: data.rates,
-          timestamp: timestamp.toISOString()
-        });
-        
-        // Update the correct amount based on which field was last changed
-        updateAmounts(data.rates);
-        
-        // Set the current time as last updated time
-        setLastUpdated(timestamp);
-        setRateError(null);
-        setIsOfflineMode(false);
-      } else {
-        throw new Error(`Rates not found in API response`);
-      }
-    } catch (error) {
-      console.error("Error fetching exchange rates:", error);
-      
-      // Try to get from localStorage as last resort
-      const localCacheKey = `${CACHE_KEYS.RATES_PREFIX}${base}`;
-      const cachedRateData = getFromCache<{rates: Record<string, number>, timestamp: string}>(localCacheKey);
-      
-      if (cachedRateData) {
-        // Use cached data but show a notification
-        setRates(cachedRateData.rates);
-        updateAmounts(cachedRateData.rates);
-        setLastUpdated(new Date(cachedRateData.timestamp));
-        setIsOfflineMode(true);
-        
-        toast.warning(
-          `Using cached exchange rates from ${formatRelativeTime(new Date(cachedRateData.timestamp))}`,
-          { icon: <WifiOff className="h-4 w-4" /> }
-        );
-      } else {
-        setRateError("Failed to load exchange rates. Please try again later.");
-        toast.error("Unable to get current rates");
-      }
-    } finally {
-      setIsLoadingRate(false);
-      setRateRetryAttempt(0);
-    }
-  }, [baseAmount, baseCurrency, lastChangedField, targetAmount, targetCurrency]);
-  
-  // Helper function to update amounts based on the rates and which field was last changed
-  const updateAmounts = (currentRates: Record<string, number>) => {
-    if (!currentRates[targetCurrency]) {
-      console.error(`Rate not found for ${targetCurrency}`);
-      return;
-    }
-    
-    const currentRate = currentRates[targetCurrency];
-    
-    if (lastChangedField === "base") {
-      setTargetAmount(parseFloat((baseAmount * currentRate).toFixed(4)));
-    } else {
-      setBaseAmount(parseFloat((targetAmount / currentRate).toFixed(4)));
-    }
+  );
+
+  const convertedAmount =
+    ratesData && !isLoading && !error
+      ? parseFloat(amount) * ratesData.rates[toCurrency]
+      : 0;
+
+  const rate = ratesData ? ratesData.rates[toCurrency] : 0;
+  const lastUpdateTime = getLastUpdateTime();
+
+  const handleSwap = useCallback(() => {
+    setFromCurrency(toCurrency);
+    setToCurrency(fromCurrency);
+    setAmount("1"); // Reset to 1 when swapping
+  }, [fromCurrency, toCurrency]);
+
+  const handleFromCurrencyChange = (currency: string) => {
+    setFromCurrency(currency);
+    setAmount("1"); // Reset to 1 when changing currency
+    updateRecentlyUsed(currency);
   };
-  
-  // Initial load of symbols
-  useEffect(() => {
-    fetchSymbols();
-  }, [fetchSymbols]);
-  
-  // Effect to trigger rate fetch when currencies change or the forceRefreshCounter changes
-  useEffect(() => {
-    if (baseCurrency) {
-      fetchExchangeRates(baseCurrency);
-    }
-  }, [baseCurrency, targetCurrency, fetchExchangeRates, forceRefreshCounter]);
-  
-  // Handle base amount change
-  const handleBaseAmountChange = (value: number) => {
-    setBaseAmount(value);
-    setLastChangedField("base");
-    
-    // If rates are available, calculate target amount without waiting for API
-    if (rates !== null && rates[targetCurrency]) {
-      // Use precise math, then round for display only
-      setTargetAmount(parseFloat((value * rates[targetCurrency]).toFixed(4)));
-    } else {
-      // Trigger rate fetch if needed
-      fetchExchangeRates(baseCurrency);
-    }
+
+  const handleToCurrencyChange = (currency: string) => {
+    setToCurrency(currency);
+    setAmount("1"); // Reset to 1 when changing currency
+    updateRecentlyUsed(currency);
   };
-  
-  // Handle target amount change
-  const handleTargetAmountChange = (value: number) => {
-    setTargetAmount(value);
-    setLastChangedField("target");
-    
-    // If rates are available, calculate base amount without waiting for API
-    if (rates !== null && rates[targetCurrency] !== 0) {
-      // Use precise math for inverse calculation
-      setBaseAmount(parseFloat((value / rates[targetCurrency]).toFixed(4)));
-    } else {
-      // Trigger rate fetch if needed
-      fetchExchangeRates(baseCurrency);
-    }
-  };
-  
-  // Handle currency changes - always reset to 1
-  const handleBaseCurrencyChange = (value: string) => {
-    if (baseCurrency !== value) {
-      setBaseCurrency(value);
-      setBaseAmount(1); // Always reset to 1
-      setLastChangedField("base");
-      // Add to recently used currencies
-      updateRecentlyUsed(value);
-      // Rate fetch will be triggered by useEffect
-    }
-  };
-  
-  const handleTargetCurrencyChange = (value: string) => {
-    if (targetCurrency !== value) {
-      setTargetCurrency(value);
-      setBaseAmount(1); // Always reset to 1
-      setLastChangedField("base");
-      // Add to recently used currencies
-      updateRecentlyUsed(value);
-      // Rate fetch will be triggered by useEffect
-    }
-  };
-  
-  // Format the last updated date
-  const formattedLastUpdated = lastUpdated 
-    ? lastUpdated.toLocaleTimeString(undefined, { 
-        hour: '2-digit', 
-        minute: '2-digit',
-        hour12: true 
-      })
-    : '';
-  
-  // Handle currency swap - always reset to 1 with animation
-  const handleSwapCurrencies = () => {
-    // Swap currencies
-    const tempBaseCurrency = baseCurrency;
-    const tempTargetCurrency = targetCurrency;
-    
-    setBaseCurrency(tempTargetCurrency);
-    setTargetCurrency(tempBaseCurrency);
-    
-    // Always reset to 1 for clarity
-    setBaseAmount(1);
-    setLastChangedField("base");
-  };
-  
-  // Manual rate refresh
-  const handleRefreshRate = () => {
-    // Force clear the cache
-    const cacheKey = `rates-${baseCurrency}`;
-    ratesCache.remove(cacheKey);
-    fetchExchangeRates(baseCurrency, true);
-    toast.success("Refreshing rates");
-  };
-  
-  // If we're still loading the initial symbols and there's no error, show loading state
-  if (isLoadingSymbols && !symbolsError) {
-    return <LoadingState message="Loading currencies..." attempt={symbolsRetryAttempt || undefined} />;
-  }
-  
-  // If we have a fatal error and no cached data, show the full error screen
-  if (symbolsError && symbols.length === 0) {
-    return <ErrorDisplay message={symbolsError} onRetry={() => fetchSymbols(true)} />;
-  }
-  
-  // Calculate current rate for display
-  const currentRate = rates && rates[targetCurrency] ? rates[targetCurrency] : null;
 
   return (
-    <div className="w-full relative" style={{ zIndex: 1 }}>
-      {/* Offline mode banner */}
-      {isOfflineMode && lastUpdated && (
-        <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg animate-fade-in">
-          <div className="flex items-center">
-            <WifiOff className="h-4 w-4 text-amber-500 mr-2" />
-            <span className="text-sm text-amber-700">
-              Offline mode: showing last known rates from {formatRelativeTime(lastUpdated)}
-            </span>
-            <button
-              onClick={() => {
-                fetchSymbols(true);
-                fetchExchangeRates(baseCurrency, true);
-              }}
-              className="ml-auto text-xs bg-amber-100 hover:bg-amber-200 text-amber-800 px-2 py-1 rounded-md transition-colors flex items-center"
-            >
-              <RefreshCw className="h-3 w-3 mr-1" />
-              Go online
-            </button>
-          </div>
+    <div className="w-full max-w-2xl mx-auto space-y-6 relative" style={{ zIndex: 1 }}>
+      {/* Enhanced header with professional styling */}
+      <div className="text-center space-y-2">
+        <div className="flex items-center justify-center space-x-2">
+          <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+          <span className="text-sm font-medium text-green-700 bg-green-50 px-3 py-1 rounded-full">
+            Live Exchange Rates
+          </span>
         </div>
-      )}
-      
-      {/* Rate error display (non-blocking) */}
-      {rateError && (
-        <ErrorDisplay 
-          message={rateError || "Error loading rates"} 
-          onRetry={() => fetchExchangeRates(baseCurrency, true)} 
-          inline 
-        />
-      )}
-      
-      {/* Currency Converter Form */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Base Currency Column */}
-        <div className="transition-all duration-300 hover:transform hover:translate-y-[-2px] hover:shadow-lg rounded-lg p-1" style={{ zIndex: 10 }}>
-          <div className="mb-3">
-            <label htmlFor="baseAmount" className="block text-sm font-semibold text-gray-700 mb-2">
-              From
-            </label>
-            <div className="mb-3 relative" style={{ zIndex: 1000 }}>
+      </div>
+
+      {/* Currency Conversion Form */}
+      <div className="space-y-6 bg-white/95 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-gray-100/50">
+        {/* From Currency */}
+        <div className="space-y-3">
+          <label className="block text-sm font-semibold text-gray-700 flex items-center">
+            <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+            From Currency
+          </label>
+          <div className="grid grid-cols-5 gap-3">
+            <div className="col-span-2" style={{ zIndex: 10 }}>
               <CurrencyDropdown
-                id="baseCurrency"
-                value={baseCurrency}
-                onChange={handleBaseCurrencyChange}
-                currencies={symbols}
-                disabled={isLoadingRate}
+                id="from-currency"
+                value={fromCurrency}
+                onChange={handleFromCurrencyChange}
+                currencies={currencies}
                 recentlyUsed={recentlyUsed}
               />
             </div>
-            <CurrencyInput
-              id="baseAmount"
-              value={baseAmount}
-              onChange={handleBaseAmountChange}
-              currencyCode={baseCurrency}
-              disabled={isLoadingRate}
-            />
+            <div className="col-span-3">
+              <CurrencyInput
+                id="from-amount"
+                value={amount}
+                onChange={setAmount}
+                placeholder="Enter amount"
+                className="focus-ring"
+              />
+            </div>
           </div>
         </div>
-        
-        {/* Swap Button (visible only on mobile) */}
-        <div className="md:hidden flex justify-center my-4" style={{ zIndex: 5 }}>
+
+        {/* Enhanced Swap Button */}
+        <div className="flex justify-center relative" style={{ zIndex: 5 }}>
           <button
-            onClick={handleSwapCurrencies}
-            disabled={isLoadingRate}
-            className="p-4 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-xl hover:shadow-2xl transition-all duration-500 transform hover:scale-110 hover:rotate-180 animate-pulse-gentle disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={handleSwap}
+            disabled={isLoading}
+            className="group relative bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-110 hover:rotate-180 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Swap currencies"
           >
-            <ArrowDownUp className="h-6 w-6 transition-transform duration-500" />
+            <ArrowUpDown className="h-5 w-5 transition-transform duration-300" />
+            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-purple-400 to-pink-400 opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
+            <div className="absolute inset-0 rounded-full animate-ping bg-blue-400 opacity-20"></div>
           </button>
         </div>
-        
-        {/* Target Currency Column */}
-        <div className="transition-all duration-300 hover:transform hover:translate-y-[-2px] hover:shadow-lg rounded-lg p-1" style={{ zIndex: 10 }}>
-          <div className="mb-3 relative">
-            <div className="flex items-center justify-between mb-2">
-              <label htmlFor="targetAmount" className="block text-sm font-semibold text-gray-700">
-                To
-              </label>
-              
-              {/* Swap Button (visible only on desktop) */}
+
+        {/* To Currency */}
+        <div className="space-y-3">
+          <label className="block text-sm font-semibold text-gray-700 flex items-center">
+            <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
+            To Currency
+          </label>
+          <div className="grid grid-cols-5 gap-3">
+            <div className="col-span-2" style={{ zIndex: 9 }}>
+              <CurrencyDropdown
+                id="to-currency"
+                value={toCurrency}
+                onChange={handleToCurrencyChange}
+                currencies={currencies}
+                recentlyUsed={recentlyUsed}
+              />
+            </div>
+            <div className="col-span-3">
+              <div className="relative">
+                <input
+                  type="text"
+                  value={isLoading ? "Loading..." : `${convertedAmount.toFixed(4)}`}
+                  readOnly
+                  className="w-full py-3 px-3 border border-gray-300 rounded-md bg-gray-50 text-gray-700 font-medium text-right focus:outline-none"
+                />
+                {isLoading && (
+                  <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin text-blue-500" />
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Enhanced Conversion Rate Display */}
+        {!isLoading && ratesData && (
+          <div className="conversion-rate bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-100 rounded-lg p-4 space-y-2" style={{ zIndex: 1 }}>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600 font-medium">Exchange Rate:</span>
+              <div className="flex items-center space-x-2">
+                <span className="text-lg font-bold text-gray-800">
+                  1 {fromCurrency} = {rate.toFixed(6)} {toCurrency}
+                </span>
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between text-xs text-gray-500">
+              <span>Last updated: {lastUpdateTime ? formatRelativeTime(lastUpdateTime) : 'Just now'}</span>
               <button
-                onClick={handleSwapCurrencies}
-                disabled={isLoadingRate}
-                className="hidden md:flex items-center space-x-2 text-blue-600 hover:text-blue-800 text-sm bg-blue-50 hover:bg-blue-100 px-4 py-2 rounded-full transition-all duration-500 transform hover:scale-105 hover:rotate-180 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                aria-label="Swap currencies"
-                style={{ zIndex: 5 }}
+                onClick={() => queryClient.invalidateQueries({ queryKey: ['exchangeRates', fromCurrency] })}
+                className="flex items-center space-x-1 hover:text-blue-600 transition-colors"
               >
-                <ArrowDownUp className="h-4 w-4 transition-transform duration-500" />
-                <span className="font-medium">Swap</span>
+                <RefreshCw className="h-3 w-3" />
+                <span>Refresh</span>
               </button>
             </div>
             
-            <div className="mb-3 relative" style={{ zIndex: 1000 }}>
-              <CurrencyDropdown
-                id="targetCurrency"
-                value={targetCurrency}
-                onChange={handleTargetCurrencyChange}
-                currencies={symbols}
-                disabled={isLoadingRate}
-                recentlyUsed={recentlyUsed}
-              />
-            </div>
-            <CurrencyInput
-              id="targetAmount"
-              value={targetAmount}
-              onChange={handleTargetAmountChange}
-              currencyCode={targetCurrency}
-              disabled={isLoadingRate}
-            />
-          </div>
-        </div>
-      </div>
-      
-      {/* Exchange Rate and Last Updated */}
-      <div className="mt-8 border-t border-gray-200 pt-6 text-sm text-gray-600 bg-gradient-to-r from-gray-50 to-blue-50 p-6 rounded-xl backdrop-blur-sm animate-fade-in shadow-lg relative">
-        {/* Loading state */}
-        {isLoadingRate ? (
-          <div className="flex items-center justify-center">
-            <div className="animate-spin mr-3">
-              <RefreshCw className="h-5 w-5 text-blue-500" />
-            </div>
-            <span className="font-medium">Fetching latest rates{rateRetryAttempt > 0 ? ` (attempt ${rateRetryAttempt} of 3)` : ''}...</span>
-          </div>
-        ) : (
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div className="flex items-center bg-white px-6 py-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100">
-              <span className="font-semibold text-gray-800">
-                1 {baseCurrency} = <span className="font-bold text-blue-700 text-lg">{(rates?.[targetCurrency] || 0).toFixed(4)}</span> {targetCurrency}
-              </span>
-            </div>
-            {lastUpdated && (
-              <div className="flex items-center bg-white px-4 py-2 rounded-lg shadow-md">
-                <span className="text-gray-600 mr-3 font-medium">
-                  {isOfflineMode ? 'Cached' : 'Updated'} {formattedLastUpdated}
-                </span>
-                <button
-                  onClick={handleRefreshRate}
-                  className="text-blue-500 hover:text-blue-600 flex items-center bg-blue-50 hover:bg-blue-100 px-4 py-2 rounded-lg shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-105 font-medium"
-                  aria-label="Refresh rates"
-                >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  <span>Refresh</span>
-                </button>
+            {/* Professional conversion breakdown */}
+            <div className="mt-3 p-3 bg-white/60 rounded-md border border-blue-100">
+              <div className="text-xs text-gray-600 space-y-1">
+                <div className="flex justify-between">
+                  <span>{amount} {fromCurrency}</span>
+                  <span>×</span>
+                  <span>{rate.toFixed(6)}</span>
+                  <span>=</span>
+                  <span className="font-bold text-blue-700">{convertedAmount.toFixed(4)} {toCurrency}</span>
+                </div>
               </div>
-            )}
+            </div>
           </div>
+        )}
+
+        {/* Error Display */}
+        {error && (
+          <ErrorDisplay 
+            message={error.message} 
+            onRetry={() => queryClient.invalidateQueries({ queryKey: ['exchangeRates', fromCurrency] })}
+            inline={true}
+          />
         )}
       </div>
     </div>
