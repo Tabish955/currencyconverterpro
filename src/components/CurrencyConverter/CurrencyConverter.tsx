@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { ArrowUpDown, Loader2, RefreshCw, AlertCircle } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -250,18 +251,20 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
     data: ratesData,
     isLoading,
     error,
-  } = useQuery<ExchangeRateData, Error>(
-    ["exchangeRates", fromCurrency],
-    () => fetchRates(fromCurrency),
-    {
-      staleTime: 60 * 1000, // 1 minute
-      cacheTime: 5 * 60 * 1000, // 5 minutes
-      retry: 3,
-      onError: (err) => {
-        toast.error(`Failed to fetch exchange rates: ${err.message}`);
-      },
+  } = useQuery({
+    queryKey: ["exchangeRates", fromCurrency],
+    queryFn: () => fetchRates(fromCurrency),
+    staleTime: 60 * 1000, // 1 minute
+    gcTime: 5 * 60 * 1000, // 5 minutes (renamed from cacheTime in v5)
+    retry: 3,
+  });
+
+  // Show error toast when there's an error
+  useEffect(() => {
+    if (error) {
+      toast.error(`Failed to fetch exchange rates: ${error.message}`);
     }
-  );
+  }, [error]);
 
   const convertedAmount =
     ratesData && !isLoading && !error

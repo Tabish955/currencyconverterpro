@@ -1,11 +1,8 @@
-
 import { useState, useRef, useEffect } from "react";
-import { ChevronDown, ChevronUp, Search, Flag } from "lucide-react";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import Fuse from 'fuse.js';
-import 'flag-icons/css/flag-icons.min.css';
+import { ChevronDown, Search, Flag, X } from "lucide-react";
+import Fuse from "fuse.js";
 
-export interface CurrencySymbol {
+interface CurrencySymbol {
   code: string;
   description: string;
   countryCode?: string;
@@ -14,7 +11,6 @@ export interface CurrencySymbol {
 
 interface EnrichedCurrencySymbol extends CurrencySymbol {
   countryCode: string;
-  aliases: string[];
 }
 
 interface CurrencyDropdownProps {
@@ -22,317 +18,64 @@ interface CurrencyDropdownProps {
   value: string;
   onChange: (value: string) => void;
   currencies: CurrencySymbol[];
-  disabled?: boolean;
   recentlyUsed?: string[];
+  placeholder?: string;
+  className?: string;
 }
-
-// Comprehensive map of ISO currency codes to country codes for flags
-const currencyToCountryMap: Record<string, string> = {
-  EUR: "eu", // European Union
-  USD: "us", // United States
-  JPY: "jp", // Japan
-  GBP: "gb", // United Kingdom
-  AUD: "au", // Australia
-  CAD: "ca", // Canada
-  CHF: "ch", // Switzerland
-  CNY: "cn", // China (Chinese Yuan)
-  HKD: "hk", // Hong Kong
-  NZD: "nz", // New Zealand
-  SEK: "se", // Sweden
-  KRW: "kr", // South Korea
-  SGD: "sg", // Singapore
-  NOK: "no", // Norway
-  MXN: "mx", // Mexico
-  INR: "in", // India
-  RUB: "ru", // Russia
-  ZAR: "za", // South Africa
-  TRY: "tr", // Turkey
-  BRL: "br", // Brazil
-  TWD: "tw", // Taiwan
-  DKK: "dk", // Denmark
-  PLN: "pl", // Poland
-  THB: "th", // Thailand
-  IDR: "id", // Indonesia
-  HUF: "hu", // Hungary
-  CZK: "cz", // Czech Republic
-  ILS: "il", // Israel
-  CLP: "cl", // Chile
-  PHP: "ph", // Philippines
-  AED: "ae", // United Arab Emirates
-  COP: "co", // Colombia
-  SAR: "sa", // Saudi Arabia
-  MYR: "my", // Malaysia
-  RON: "ro", // Romania
-  PKR: "pk", // Pakistan
-  BDT: "bd", // Bangladesh
-  VND: "vn", // Vietnam
-  UAH: "ua", // Ukraine
-  NGN: "ng", // Nigeria
-  EGP: "eg", // Egypt
-  KZT: "kz", // Kazakhstan
-  QAR: "qa", // Qatar
-  DZD: "dz", // Algeria
-  KWD: "kw", // Kuwait
-  OMR: "om", // Oman
-  JOD: "jo", // Jordan
-  MAD: "ma", // Morocco
-  BHD: "bh", // Bahrain
-  XAF: "cm", // Central African CFA Franc (Cameroon)
-  XOF: "sn", // West African CFA Franc (Senegal)
-  XPF: "pf", // CFP Franc (French Polynesia)
-  TND: "tn", // Tunisia
-  GHS: "gh", // Ghana
-  UGX: "ug", // Uganda
-  TZS: "tz", // Tanzania
-  KES: "ke", // Kenya
-  XCD: "ag", // East Caribbean Dollar (Antigua and Barbuda)
-  BBD: "bb", // Barbados
-  BSD: "bs", // Bahamas
-  BZD: "bz", // Belize
-  BMD: "bm", // Bermuda
-  BOB: "bo", // Bolivia
-  PYG: "py", // Paraguay
-  PEN: "pe", // Peru
-  UYU: "uy", // Uruguay
-  GTQ: "gt", // Guatemala
-  HNL: "hn", // Honduras
-  NIO: "ni", // Nicaragua
-  CRC: "cr", // Costa Rica
-  PAB: "pa", // Panama
-  JMD: "jm", // Jamaica
-  TTD: "tt", // Trinidad and Tobago
-  AWG: "aw", // Aruba
-  ANG: "cw", // Netherlands Antillean Guilder (Curaçao)
-  SRD: "sr", // Suriname
-  GYD: "gy", // Guyana
-  FJD: "fj", // Fiji
-  PGK: "pg", // Papua New Guinea
-  TOP: "to", // Tonga
-  SBD: "sb", // Solomon Islands
-  VUV: "vu", // Vanuatu
-  WST: "ws", // Samoa
-  KID: "ki", // Kiribati
-  BND: "bn", // Brunei
-  FKP: "fk", // Falkland Islands
-  GIP: "gi", // Gibraltar
-  SHP: "sh", // Saint Helena
-  SSP: "ss", // South Sudan
-  SDG: "sd", // Sudan
-  SYP: "sy", // Syria
-  LBP: "lb", // Lebanon
-  IRR: "ir", // Iran
-  IQD: "iq", // Iraq
-  LYD: "ly", // Libya
-  YER: "ye", // Yemen
-  MRU: "mr", // Mauritania
-  ETB: "et", // Ethiopia
-  SOS: "so", // Somalia
-  DJF: "dj", // Djibouti
-  ERN: "er", // Eritrea
-  SZL: "sz", // Eswatini
-  LSL: "ls", // Lesotho
-  NAD: "na", // Namibia
-  BWP: "bw", // Botswana
-  MWK: "mw", // Malawi
-  ZMW: "zm", // Zambia
-  MZN: "mz", // Mozambique
-  MDL: "md", // Moldova
-  ALL: "al", // Albania
-  MKD: "mk", // North Macedonia
-  BAM: "ba", // Bosnia and Herzegovina
-  RSD: "rs", // Serbia
-  BGN: "bg", // Bulgaria
-  HRK: "hr", // Croatia
-  ISK: "is", // Iceland
-  GEL: "ge", // Georgia
-  AZN: "az", // Azerbaijan
-  AMD: "am", // Armenia
-  BYN: "by", // Belarus
-  UZS: "uz", // Uzbekistan
-  TMT: "tm", // Turkmenistan
-  TJS: "tj", // Tajikistan
-  KGS: "kg", // Kyrgyzstan
-  MNT: "mn", // Mongolia
-  MVR: "mv", // Maldives
-  NPR: "np", // Nepal
-  BTN: "bt", // Bhutan
-  BIF: "bi", // Burundi
-  RWF: "rw", // Rwanda
-  SLL: "sl", // Sierra Leone
-  GMD: "gm", // Gambia
-  GNF: "gn", // Guinea
-  AFN: "af", // Afghanistan
-  AOA: "ao", // Angola
-  ARS: "ar", // Argentina
-  CVE: "cv", // Cape Verde
-  CDF: "cd", // Congo (Democratic Republic)
-  CUP: "cu", // Cuba
-  DOP: "do", // Dominican Republic
-  SVC: "sv", // El Salvador
-  HTG: "ht", // Haiti
-  IMP: "im", // Isle of Man
-  JEP: "je", // Jersey
-  KHR: "kh", // Cambodia
-  LAK: "la", // Laos
-  LRD: "lr", // Liberia
-  MOP: "mo", // Macau
-  MGA: "mg", // Madagascar
-  MUR: "mu", // Mauritius
-  MMK: "mm", // Myanmar
-  SCR: "sc", // Seychelles
-  STN: "st", // São Tomé and Príncipe
-  LKR: "lk", // Sri Lanka
-  VES: "ve", // Venezuela
-  ZWL: "zw", // Zimbabwe
-  // Additional currencies
-  XAU: "un", // Gold - UN flag as fallback
-  XAG: "un", // Silver - UN flag as fallback
-  XDR: "un", // SDR - UN flag as fallback
-  // European legacy currencies
-  ATS: "at", // Austrian Schilling (Austria)
-  BEF: "be", // Belgian Franc (Belgium)
-  DEM: "de", // Deutsche Mark (Germany)
-  ESP: "es", // Spanish Peseta (Spain)
-  FIM: "fi", // Finnish Markka (Finland)
-  FRF: "fr", // French Franc (France)
-  IEP: "ie", // Irish Pound (Ireland)
-  ITL: "it", // Italian Lira (Italy)
-  LUF: "lu", // Luxembourg Franc (Luxembourg)
-  NLG: "nl", // Dutch Guilder (Netherlands)
-  PTE: "pt", // Portuguese Escudo (Portugal)
-};
-
-// Currency aliases for improved search
-const currencyAliases: Record<string, string[]> = {
-  USD: ["dollar", "us dollar", "american dollar", "america", "united states", "usa", "us", "united states dollar"],
-  EUR: ["euro", "european", "eurozone", "european union", "eu"],
-  GBP: ["pound", "british pound", "sterling", "uk", "united kingdom", "britain", "great britain", "england"],
-  JPY: ["yen", "japanese yen", "japan"],
-  CNY: ["chinese yuan", "china", "renminbi", "yuan", "chinese"],
-  INR: ["indian rupee", "india", "rupee"],
-  PKR: ["pakistani rupee", "pakistan"],
-  KWD: ["kuwaiti dinar", "kuwait", "dinar"],
-  AED: ["dirham", "emirati dirham", "uae", "united arab emirates", "dubai", "abu dhabi"],
-  SAR: ["saudi riyal", "saudi arabia", "riyal"],
-  CAD: ["canadian dollar", "canada"],
-  AUD: ["australian dollar", "australia"],
-  NZD: ["new zealand dollar", "new zealand", "kiwi"],
-  CHF: ["swiss franc", "switzerland"],
-  HKD: ["hong kong dollar", "hong kong"],
-  SGD: ["singapore dollar", "singapore"],
-  MYR: ["malaysian ringgit", "malaysia"],
-  THB: ["thai baht", "thailand"],
-  IDR: ["indonesian rupiah", "indonesia"],
-  PHP: ["philippine peso", "philippines"],
-  MXN: ["mexican peso", "mexico"],
-  BRL: ["brazilian real", "brazil"],
-  ZAR: ["south african rand", "south africa"],
-  RUB: ["russian ruble", "russia"],
-  TRY: ["turkish lira", "turkey"],
-  KRW: ["korean won", "south korea", "korea"],
-  TWD: ["taiwan dollar", "taiwan"],
-  AFN: ["afghan afghani", "afghanistan"],
-  LKR: ["sri lankan rupee", "sri lanka"],
-  AMD: ["armenian dram", "armenia"],
-};
 
 const CurrencyDropdown = ({
   id,
   value,
   onChange,
   currencies,
-  disabled = false,
   recentlyUsed = [],
+  placeholder = "Select currency",
+  className = "",
 }: CurrencyDropdownProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [highlightedIndex, setHighlightedIndex] = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
-  const [dropdownPosition, setDropdownPosition] = useState<'bottom' | 'top'>('bottom');
 
-  // Prepare currency data with country codes and aliases - ensuring all fields are defined
-  const enrichedCurrencies: EnrichedCurrencySymbol[] = currencies.map(currency => ({
-    ...currency,
-    countryCode: currency.countryCode || currencyToCountryMap[currency.code] || "un",
-    aliases: currency.aliases || currencyAliases[currency.code] || []
-  }));
+  // Enhanced search with fuzzy matching
+  const fuse = new Fuse(currencies, {
+    keys: [
+      { name: "code", weight: 0.4 },
+      { name: "description", weight: 0.6 },
+    ],
+    threshold: 0.3,
+    includeScore: true,
+    minMatchCharLength: 1,
+  });
 
-  // Setup Fuse.js for fuzzy search
-  const fuseRef = useRef<Fuse<CurrencySymbol>>();
-  
-  useEffect(() => {
-    fuseRef.current = new Fuse(enrichedCurrencies, {
-      keys: ['code', 'description', 'aliases'],
-      threshold: 0.3,
-      includeScore: true
-    });
-  }, [currencies]);
+  const filteredCurrencies = searchQuery
+    ? fuse.search(searchQuery).map((result) => result.item)
+    : currencies;
 
-  // Handle dropdown positioning to prevent overflow
-  useEffect(() => {
-    const updateDropdownPosition = () => {
-      if (dropdownRef.current) {
-        const rect = dropdownRef.current.getBoundingClientRect();
-        const availableBottom = window.innerHeight - rect.bottom;
-        setDropdownPosition(availableBottom < 300 ? 'top' : 'bottom');
-      }
-    };
+  // Group currencies: recently used first, then alphabetically
+  const recentCurrencies = filteredCurrencies.filter((currency) =>
+    recentlyUsed.includes(currency.code)
+  );
+  const otherCurrencies = filteredCurrencies.filter(
+    (currency) => !recentlyUsed.includes(currency.code)
+  );
 
-    if (isOpen) {
-      updateDropdownPosition();
-      window.addEventListener('scroll', updateDropdownPosition);
-      window.addEventListener('resize', updateDropdownPosition);
-    }
+  const groupedCurrencies = [
+    ...(recentCurrencies.length > 0 ? recentCurrencies : []),
+    ...otherCurrencies,
+  ];
 
-    return () => {
-      window.removeEventListener('scroll', updateDropdownPosition);
-      window.removeEventListener('resize', updateDropdownPosition);
-    };
-  }, [isOpen]);
+  const selectedCurrency = currencies.find((c) => c.code === value);
 
-  // Handle outside clicks to close dropdown
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    };
+  const handleSelect = (currency: CurrencySymbol) => {
+    onChange(currency.code);
+    setIsOpen(false);
+    setSearchQuery("");
+    setHighlightedIndex(-1);
+  };
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
-
-  // Focus search input when dropdown opens
-  useEffect(() => {
-    if (isOpen && searchInputRef.current) {
-      searchInputRef.current.focus();
-      setHighlightedIndex(0);
-    }
-  }, [isOpen]);
-
-  // Get the selected currency details
-  const selectedCurrency = enrichedCurrencies.find((c) => c.code === value);
-
-  // Filter currencies based on search term using Fuse.js
-  const filteredCurrencies = searchTerm.trim() === "" 
-    ? enrichedCurrencies 
-    : fuseRef.current 
-      ? fuseRef.current.search(searchTerm).map(result => result.item)
-      : enrichedCurrencies;
-
-  // Get recently used currencies - fix the type predicate
-  const recentCurrencies = recentlyUsed
-    .map(code => enrichedCurrencies.find(c => c.code === code))
-    .filter((c): c is typeof enrichedCurrencies[0] => c !== undefined);
-
-  // Handle keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (!isOpen) {
       if (e.key === "Enter" || e.key === " " || e.key === "ArrowDown") {
@@ -345,198 +88,266 @@ const CurrencyDropdown = ({
     switch (e.key) {
       case "Escape":
         setIsOpen(false);
+        setSearchQuery("");
+        setHighlightedIndex(-1);
         break;
       case "ArrowDown":
         e.preventDefault();
-        setHighlightedIndex((prevIndex) =>
-          Math.min(prevIndex + 1, filteredCurrencies.length - 1)
+        setHighlightedIndex((prev) =>
+          prev < groupedCurrencies.length - 1 ? prev + 1 : 0
         );
-        scrollToHighlighted();
         break;
       case "ArrowUp":
         e.preventDefault();
-        setHighlightedIndex((prevIndex) => Math.max(prevIndex - 1, 0));
-        scrollToHighlighted();
+        setHighlightedIndex((prev) =>
+          prev > 0 ? prev - 1 : groupedCurrencies.length - 1
+        );
         break;
       case "Enter":
         e.preventDefault();
-        if (filteredCurrencies[highlightedIndex]) {
-          onChange(filteredCurrencies[highlightedIndex].code);
-          setIsOpen(false);
-          setSearchTerm("");
+        if (highlightedIndex >= 0 && highlightedIndex < groupedCurrencies.length) {
+          handleSelect(groupedCurrencies[highlightedIndex]);
         }
         break;
       case "Tab":
         setIsOpen(false);
-        break;
-      case "/":
-        if (!isOpen) {
-          e.preventDefault();
-          setIsOpen(true);
-        }
+        setSearchQuery("");
+        setHighlightedIndex(-1);
         break;
     }
   };
 
-  // Scroll to highlighted item
-  const scrollToHighlighted = () => {
-    if (listRef.current && listRef.current.children[highlightedIndex]) {
-      listRef.current.children[highlightedIndex].scrollIntoView({
-        block: "nearest",
-      });
+  // Scroll highlighted item into view
+  useEffect(() => {
+    if (highlightedIndex >= 0 && listRef.current) {
+      const highlightedElement = listRef.current.children[
+        highlightedIndex + (recentCurrencies.length > 0 ? 1 : 0)
+      ] as HTMLElement;
+      if (highlightedElement) {
+        highlightedElement.scrollIntoView({
+          block: "nearest",
+          behavior: "smooth",
+        });
+      }
     }
-  };
+  }, [highlightedIndex, recentCurrencies.length]);
 
-  // Render a currency list item
-  const renderCurrencyItem = (currency: EnrichedCurrencySymbol, index: number) => (
-    <li
-      key={currency.code}
-      className={`px-3 py-2 cursor-pointer transition-all duration-150 ${
-        currency.code === value ? "bg-blue-100" : "hover:bg-blue-50"
-      } ${index === highlightedIndex ? "bg-blue-50" : ""}`}
-      onClick={() => {
-        onChange(currency.code);
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
-        setSearchTerm("");
-      }}
-      role="option"
-      aria-selected={currency.code === value}
-    >
-      <div className="flex items-center">
-        {currency.countryCode ? (
-          <span 
-            className={`fi fi-${currency.countryCode} mr-2 flex-shrink-0`}
-            style={{ width: '1.2em', height: '1em' }}
-            aria-hidden="true"
-          ></span>
-        ) : (
-          <Flag className="h-4 w-4 mr-2 text-gray-500" />
-        )}
-        <div className="flex flex-col">
-          <span className="font-bold">{currency.code}</span>
-          <span className="text-gray-500 text-sm truncate">
-            {currency.description}
-          </span>
+        setSearchQuery("");
+        setHighlightedIndex(-1);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Focus search input when dropdown opens
+  useEffect(() => {
+    if (isOpen && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [isOpen]);
+
+  // Enhanced flag component with better error handling
+  const FlagIcon = ({ currency }: { currency: EnrichedCurrencySymbol }) => {
+    const [hasError, setHasError] = useState(false);
+
+    if (!currency.countryCode || hasError) {
+      return (
+        <div className="w-6 h-4 bg-gradient-to-br from-gray-200 to-gray-300 rounded-sm flex items-center justify-center">
+          <Flag className="w-3 h-3 text-gray-500" />
         </div>
-      </div>
-    </li>
-  );
+      );
+    }
+
+    return (
+      <img
+        src={`https://flagcdn.com/w20/${currency.countryCode.toLowerCase()}.png`}
+        alt={`${currency.code} flag`}
+        className="w-6 h-4 object-cover rounded-sm border border-gray-200 shadow-sm"
+        onError={() => setHasError(true)}
+        loading="lazy"
+      />
+    );
+  };
 
   return (
-    <div className="relative inline-block w-full" ref={dropdownRef}>
+    <div className={`relative ${className}`} ref={dropdownRef}>
+      {/* Dropdown Button */}
       <button
         id={id}
-        className={`w-full flex items-center justify-between py-3 px-3 border border-gray-300 rounded-md bg-white text-left shadow-sm hover:shadow-md transition-all duration-300 ${
-          disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:border-blue-500 focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50"
-        }`}
-        onClick={() => !disabled && setIsOpen(!isOpen)}
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
         onKeyDown={handleKeyDown}
+        className="w-full flex items-center justify-between px-3 py-3 border border-gray-300 rounded-md bg-white hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 group"
         aria-haspopup="listbox"
         aria-expanded={isOpen}
-        disabled={disabled}
-        style={{ zIndex: 1 }}
+        aria-labelledby={`${id}-label`}
       >
-        <span className="truncate font-medium flex items-center">
-          {selectedCurrency ? (
-            <span className="flex items-center">
-              {selectedCurrency.countryCode ? (
-                <span 
-                  className={`fi fi-${selectedCurrency.countryCode} mr-2`} 
-                  style={{ width: '1.2em', height: '1em' }}
-                  aria-hidden="true"
-                ></span>
-              ) : (
-                <Flag className="h-4 w-4 mr-2 text-gray-500" />
-              )}
-              <span className="font-bold">{selectedCurrency.code}</span>
-              <span className="text-gray-500 ml-2">({selectedCurrency.description})</span>
-            </span>
-          ) : (
-            "Select currency"
+        <div className="flex items-center space-x-3 min-w-0 flex-1">
+          {selectedCurrency && selectedCurrency.countryCode && (
+            <FlagIcon currency={selectedCurrency as EnrichedCurrencySymbol} />
           )}
-        </span>
-        {isOpen ? (
-          <ChevronUp className="h-4 w-4 text-gray-500 flex-shrink-0" />
-        ) : (
-          <ChevronDown className="h-4 w-4 text-gray-500 flex-shrink-0" />
-        )}
+          <div className="flex flex-col items-start min-w-0 flex-1">
+            <span className="font-semibold text-gray-900 text-sm">
+              {selectedCurrency?.code || placeholder}
+            </span>
+            {selectedCurrency && (
+              <span className="text-xs text-gray-500 truncate w-full text-left">
+                {selectedCurrency.description}
+              </span>
+            )}
+          </div>
+        </div>
+        <ChevronDown
+          className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${
+            isOpen ? "rotate-180" : ""
+          } group-hover:text-blue-500`}
+        />
       </button>
 
+      {/* Enhanced Dropdown Menu */}
       {isOpen && (
-        <div 
-          className="fixed bg-white border border-gray-200 rounded-md shadow-2xl animate-fade-in"
-          style={{ 
-            zIndex: 999999,
-            width: window.innerWidth < 768 ? '95vw' : '384px',
-            maxHeight: '70vh',
-            [dropdownPosition === 'top' ? 'bottom' : 'top']: 'calc(100% + 8px)',
-            left: window.innerWidth < 768 ? '50%' : '0',
-            transform: window.innerWidth < 768 ? 'translateX(-50%)' : 'none',
-          }}
-        >
-          <div className="sticky top-0 bg-white p-2 border-b border-gray-200 z-10">
+        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-50 max-h-80 overflow-hidden">
+          {/* Enhanced Search Box */}
+          <div className="p-3 border-b border-gray-100 bg-gray-50">
             <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
                 ref={searchInputRef}
                 type="text"
-                className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-                placeholder="Search currencies, countries, or codes..."
-                value={searchTerm}
+                placeholder="Search currencies..."
+                value={searchQuery}
                 onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  setHighlightedIndex(0);
+                  setSearchQuery(e.target.value);
+                  setHighlightedIndex(-1);
                 }}
                 onKeyDown={handleKeyDown}
-                aria-controls="currency-list"
+                className="w-full pl-10 pr-8 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
               />
-              <kbd className="absolute right-3 top-2.5 hidden md:flex items-center justify-center rounded border border-gray-200 bg-gray-100 px-1.5 text-xs text-gray-500">
-                /
-              </kbd>
+              {searchQuery && (
+                <button
+                  onClick={() => {
+                    setSearchQuery("");
+                    setHighlightedIndex(-1);
+                    searchInputRef.current?.focus();
+                  }}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
             </div>
           </div>
 
-          <ScrollArea className="h-[calc(70vh-50px)]">
-            <ul 
-              id="currency-list"
-              ref={listRef}
-              className="py-1" 
-              role="listbox"
-              tabIndex={-1}
-            >
-              {/* Recently Used Section */}
-              {recentCurrencies.length > 0 && searchTerm === '' && (
-                <>
-                  <li className="px-3 py-2 text-xs font-semibold text-gray-500 bg-gray-50">
-                    Recently Used
-                  </li>
-                  {recentCurrencies.map((currency, index) => 
-                    renderCurrencyItem(currency, index)
-                  )}
-                  <li className="border-b border-gray-200 my-1"></li>
-                </>
-              )}
-
-              {/* Fiat Currency Section */}
-              {filteredCurrencies.length > 0 && (
-                <>
-                  <li className="px-3 py-2 text-xs font-semibold text-gray-500 bg-gray-50">
-                    Fiat Currencies
-                  </li>
-                  {filteredCurrencies.map((currency, index) => 
-                    renderCurrencyItem(currency, recentCurrencies.length + index)
-                  )}
-                </>
-              )}
-
-              {/* No results */}
-              {filteredCurrencies.length === 0 && (
-                <li className="px-3 py-4 text-gray-500 text-center">
-                  No currencies found
+          {/* Currency List */}
+          <ul
+            ref={listRef}
+            className="max-h-64 overflow-y-auto py-1"
+            role="listbox"
+            aria-labelledby={`${id}-label`}
+          >
+            {/* Recently Used Section */}
+            {recentCurrencies.length > 0 && !searchQuery && (
+              <>
+                <li className="px-3 py-2 text-xs font-semibold text-gray-500 bg-gray-50 border-b border-gray-100">
+                  Recently Used
                 </li>
-              )}
-            </ul>
-          </ScrollArea>
+                {recentCurrencies.map((currency, index) => (
+                  <li
+                    key={`recent-${currency.code}`}
+                    onClick={() => handleSelect(currency)}
+                    className={`px-3 py-3 cursor-pointer flex items-center space-x-3 hover:bg-blue-50 transition-colors ${
+                      value === currency.code
+                        ? "bg-blue-100 border-r-4 border-blue-500"
+                        : ""
+                    } ${
+                      highlightedIndex === index ? "bg-blue-50" : ""
+                    }`}
+                    role="option"
+                    aria-selected={value === currency.code}
+                  >
+                    {currency.countryCode && (
+                      <FlagIcon currency={currency as EnrichedCurrencySymbol} />
+                    )}
+                    <div className="flex flex-col min-w-0 flex-1">
+                      <div className="flex items-center space-x-2">
+                        <span className="font-semibold text-gray-900 text-sm">
+                          {currency.code}
+                        </span>
+                        <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
+                          Recent
+                        </span>
+                      </div>
+                      <span className="text-xs text-gray-500 truncate">
+                        {currency.description}
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </>
+            )}
+
+            {/* All Currencies Section */}
+            {otherCurrencies.length > 0 && (
+              <>
+                {recentCurrencies.length > 0 && !searchQuery && (
+                  <li className="px-3 py-2 text-xs font-semibold text-gray-500 bg-gray-50 border-b border-gray-100">
+                    All Currencies
+                  </li>
+                )}
+                {otherCurrencies.map((currency, index) => {
+                  const actualIndex = recentCurrencies.length + index;
+                  return (
+                    <li
+                      key={currency.code}
+                      onClick={() => handleSelect(currency)}
+                      className={`px-3 py-3 cursor-pointer flex items-center space-x-3 hover:bg-blue-50 transition-colors ${
+                        value === currency.code
+                          ? "bg-blue-100 border-r-4 border-blue-500"
+                          : ""
+                      } ${
+                        highlightedIndex === actualIndex ? "bg-blue-50" : ""
+                      }`}
+                      role="option"
+                      aria-selected={value === currency.code}
+                    >
+                      {currency.countryCode && (
+                        <FlagIcon currency={currency as EnrichedCurrencySymbol} />
+                      )}
+                      <div className="flex flex-col min-w-0 flex-1">
+                        <span className="font-semibold text-gray-900 text-sm">
+                          {currency.code}
+                        </span>
+                        <span className="text-xs text-gray-500 truncate">
+                          {currency.description}
+                        </span>
+                      </div>
+                    </li>
+                  );
+                })}
+              </>
+            )}
+
+            {/* No Results */}
+            {filteredCurrencies.length === 0 && (
+              <li className="px-3 py-6 text-center text-gray-500 text-sm">
+                <div className="flex flex-col items-center space-y-2">
+                  <Search className="h-8 w-8 text-gray-300" />
+                  <span>No currencies found</span>
+                  <span className="text-xs">Try adjusting your search</span>
+                </div>
+              </li>
+            )}
+          </ul>
         </div>
       )}
     </div>
