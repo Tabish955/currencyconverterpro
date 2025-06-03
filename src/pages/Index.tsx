@@ -1,9 +1,8 @@
-
 import { useState, useEffect } from "react";
 import CurrencyConverter from "../components/CurrencyConverter/CurrencyConverter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Toaster } from "@/components/ui/sonner";
-import { ArrowDownUp, Sparkles, TrendingUp, Globe, Zap, Star } from "lucide-react";
+import { ArrowDownUp, Sparkles, TrendingUp, Globe, Zap, Star, RefreshCw } from "lucide-react";
 
 const Index = () => {
   // Parse URL parameters for deep linking
