@@ -55,11 +55,15 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),
+        "react": path.resolve(__dirname, "./node_modules/react"),
+        "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
       },
     },
     assetsInclude: ['**/*.png', '**/*.jpg', '**/*.jpeg', '**/*.gif', '**/*.svg'],
     optimizeDeps: {
-      include: ['react', 'react-dom', '@radix-ui/react-tooltip'],
+      include: ['react', 'react-dom'],
+      exclude: ['@radix-ui/react-tooltip'],
+      force: true,
     },
     define: {
       global: 'globalThis',
