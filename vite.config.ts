@@ -26,7 +26,7 @@ export default defineConfig(({ mode }) => {
         next();
       });
     },
-  });
+  } as any);
 
   // Only add componentTagger in development mode
   if (mode === 'development') {
@@ -56,5 +56,8 @@ export default defineConfig(({ mode }) => {
       },
     },
     assetsInclude: ['**/*.png', '**/*.jpg', '**/*.jpeg', '**/*.gif', '**/*.svg'],
+    optimizeDeps: {
+      include: ['react', 'react-dom'],
+    },
   };
 });
