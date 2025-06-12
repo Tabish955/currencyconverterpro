@@ -26,7 +26,7 @@ export default defineConfig(({ mode }) => {
         next();
       });
     },
-  } as any);
+  });
 
   // Only add componentTagger in development mode
   if (mode === 'development') {
@@ -53,11 +53,17 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),
+        "react": path.resolve(__dirname, "./node_modules/react"),
+        "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
       },
     },
     assetsInclude: ['**/*.png', '**/*.jpg', '**/*.jpeg', '**/*.gif', '**/*.svg'],
     optimizeDeps: {
       include: ['react', 'react-dom'],
+      force: true,
+    },
+    define: {
+      global: 'globalThis',
     },
   };
 });
