@@ -6,26 +6,9 @@ import { componentTagger } from "lovable-tagger";
 import type { ViteDevServer } from "vite";
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
-  server: {
-    host: "::",
-    port: 8080,
-    headers: {
-      'Service-Worker-Allowed': '/',
-    },
-  },
-  build: {
-    rollupOptions: {
-      input: {
-        main: path.resolve(__dirname, 'index.html'),
-        sw: path.resolve(__dirname, 'public/sw.js'),
-      },
-    },
-  },
-  plugins: [
+export default defineConfig(({ mode }) => {
+  const plugins = [
     react(),
-    mode === 'development' &&
-    componentTagger(),
     {
       name: 'configure-response-headers',
       configureServer: (server: ViteDevServer) => {
@@ -43,11 +26,35 @@ export default defineConfig(({ mode }) => ({
         });
       },
     },
-  ].filter(Boolean),
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
+  ];
+
+  // Only add componentTagger in development mode
+  if (mode === 'development') {
+    plugins.push(componentTagger());
+  }
+
+  return {
+    server: {
+      host: "::",
+      port: 8080,
+      headers: {
+        'Service-Worker-Allowed': '/',
+      },
     },
-  },
-  assetsInclude: ['**/*.png', '**/*.jpg', '**/*.jpeg', '**/*.gif', '**/*.svg'],
-}));
+    build: {
+      rollupOptions: {
+        input: {
+          main: path.resolve(__dirname, 'index.html'),
+          sw: path.resolve(__dirname, 'public/sw.js'),
+        },
+      },
+    },
+    plugins,
+    resolve: {
+      alias: {
+        "@": path.resolve(__dirname, "./src"),
+      },
+    },
+    assetsInclude: ['**/*.png', '**/*.jpg', '**/*.jpeg', '**/*.gif', '**/*.svg'],
+  };
+});
