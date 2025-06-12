@@ -7,26 +7,26 @@ import type { ViteDevServer } from "vite";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
-  const plugins = [
-    react(),
-    {
-      name: 'configure-response-headers',
-      configureServer: (server: ViteDevServer) => {
-        server.middlewares.use('/manifest.json', (req: any, res: any, next: any) => {
-          res.setHeader('Content-Type', 'application/manifest+json');
-          next();
-        });
-        server.middlewares.use('/sw.js', (req: any, res: any, next: any) => {
-          res.setHeader('Content-Type', 'application/javascript');
-          next();
-        });
-        server.middlewares.use('/icons/*.png', (req: any, res: any, next: any) => {
-          res.setHeader('Content-Type', 'image/png');
-          next();
-        });
-      },
+  const plugins = [react()];
+
+  // Configure response headers plugin
+  plugins.push({
+    name: 'configure-response-headers',
+    configureServer: (server: ViteDevServer) => {
+      server.middlewares.use('/manifest.json', (req: any, res: any, next: any) => {
+        res.setHeader('Content-Type', 'application/manifest+json');
+        next();
+      });
+      server.middlewares.use('/sw.js', (req: any, res: any, next: any) => {
+        res.setHeader('Content-Type', 'application/javascript');
+        next();
+      });
+      server.middlewares.use('/icons/*.png', (req: any, res: any, next: any) => {
+        res.setHeader('Content-Type', 'image/png');
+        next();
+      });
     },
-  ];
+  });
 
   // Only add componentTagger in development mode
   if (mode === 'development') {
