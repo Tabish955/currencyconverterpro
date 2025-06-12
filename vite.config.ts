@@ -58,11 +58,11 @@ export default defineConfig(({ mode }) => {
         "react": path.resolve(__dirname, "./node_modules/react"),
         "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
       },
+      dedupe: ['react', 'react-dom'],
     },
     assetsInclude: ['**/*.png', '**/*.jpg', '**/*.jpeg', '**/*.gif', '**/*.svg'],
     optimizeDeps: {
       include: ['react', 'react-dom'],
-      exclude: ['@radix-ui/react-tooltip'],
       force: true,
     },
     define: {
