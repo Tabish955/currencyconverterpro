@@ -12,6 +12,7 @@
   "theme_color": "#4f46e5",
   "lang": "en",
   "dir": "ltr",
+  "categories": ["finance", "utilities"],
   "icons": [
     {
       "src": "/icons/icon-192x192.png",

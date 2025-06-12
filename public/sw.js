@@ -11,6 +11,7 @@ const STATIC_ASSETS = [
 
 // Install event - cache static assets
 self.addEventListener('install', (event) => {
+  console.log('Service Worker installing...');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
@@ -29,6 +30,7 @@ self.addEventListener('install', (event) => {
 
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
+  console.log('Service Worker activating...');
   event.waitUntil(
     caches.keys()
       .then((cacheNames) => {
@@ -50,6 +52,11 @@ self.addEventListener('activate', (event) => {
 
 // Fetch event - serve from cache, fallback to network
 self.addEventListener('fetch', (event) => {
+  // Skip cross-origin requests
+  if (!event.request.url.startsWith(self.location.origin)) {
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
@@ -64,7 +71,7 @@ self.addEventListener('fetch', (event) => {
             }
             
             // Cache successful responses
-            if (fetchResponse && fetchResponse.status === 200) {
+            if (fetchResponse && fetchResponse.status === 200 && fetchResponse.type === 'basic') {
               const responseToCache = fetchResponse.clone();
               caches.open(CACHE_NAME)
                 .then((cache) => {
@@ -74,12 +81,19 @@ self.addEventListener('fetch', (event) => {
             
             return fetchResponse;
           })
-          .catch(() => {
+          .catch((error) => {
+            console.error('Fetch failed:', error);
             // Return offline page for navigation requests
             if (event.request.mode === 'navigate') {
               return caches.match('/');
             }
-            return new Response('Offline', { status: 503 });
+            return new Response('Offline', { 
+              status: 503,
+              statusText: 'Service Unavailable',
+              headers: {
+                'Content-Type': 'text/plain'
+              }
+            });
           });
       })
   );

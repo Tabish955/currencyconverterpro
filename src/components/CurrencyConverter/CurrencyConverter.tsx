@@ -12,6 +12,7 @@ interface Currency {
   code: string;
   name: string;
   symbol: string;
+  countryCode: string;
 }
 
 interface CurrencyConverterProps {
@@ -42,36 +43,36 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
   const [isSwapping, setIsSwapping] = useState(false);
 
   const currencies = [
-    { code: "USD", name: "US Dollar", symbol: "$", countryCode: "us" },
-    { code: "EUR", name: "Euro", symbol: "€", countryCode: "eu" },
-    { code: "GBP", name: "British Pound", symbol: "£", countryCode: "gb" },
-    { code: "JPY", name: "Japanese Yen", symbol: "¥", countryCode: "jp" },
-    { code: "CAD", name: "Canadian Dollar", symbol: "$", countryCode: "ca" },
-    { code: "AUD", name: "Australian Dollar", symbol: "$", countryCode: "au" },
-    { code: "CHF", name: "Swiss Franc", symbol: "Fr", countryCode: "ch" },
-    { code: "CNY", name: "Chinese Yuan", symbol: "¥", countryCode: "cn" },
-    { code: "SEK", name: "Swedish Krona", symbol: "kr", countryCode: "se" },
-    { code: "NZD", name: "New Zealand Dollar", symbol: "$", countryCode: "nz" },
-    { code: "MXN", name: "Mexican Peso", symbol: "$", countryCode: "mx" },
-    { code: "SGD", name: "Singapore Dollar", symbol: "$", countryCode: "sg" },
-    { code: "HKD", name: "Hong Kong Dollar", symbol: "$", countryCode: "hk" },
-    { code: "NOK", name: "Norwegian Krone", symbol: "kr", countryCode: "no" },
-    { code: "KRW", name: "South Korean Won", symbol: "₩", countryCode: "kr" },
-    { code: "TRY", name: "Turkish Lira", symbol: "₺", countryCode: "tr" },
-    { code: "RUB", name: "Russian Ruble", symbol: "₽", countryCode: "ru" },
-    { code: "INR", name: "Indian Rupee", symbol: "₹", countryCode: "in" },
-    { code: "BRL", name: "Brazilian Real", symbol: "R$", countryCode: "br" },
-    { code: "ZAR", name: "South African Rand", symbol: "R", countryCode: "za" },
-    { code: "AED", name: "United Arab Emirates Dirham", symbol: "د.إ", countryCode: "ae" },
-    { code: "SAR", name: "Saudi Riyal", symbol: "ر.س", countryCode: "sa" },
-    { code: "PLN", name: "Polish Zloty", symbol: "zł", countryCode: "pl" },
-    { code: "THB", name: "Thai Baht", symbol: "฿", countryCode: "th" },
-    { code: "IDR", name: "Indonesian Rupiah", symbol: "Rp", countryCode: "id" },
-    { code: "MYR", name: "Malaysian Ringgit", symbol: "RM", countryCode: "my" },
-    { code: "PHP", name: "Philippine Peso", symbol: "₱", countryCode: "ph" },
-    { code: "TWD", name: "New Taiwan Dollar", symbol: "NT$", countryCode: "tw"},
-    { code: "KWD", name: "Kuwaiti Dinar", symbol: "KD", countryCode: "kw"},
-    { code: "PKR", name: "Pakistani Rupee", symbol: "PKR", countryCode: "pk"},
+    { code: "USD", description: "US Dollar", symbol: "$", countryCode: "us" },
+    { code: "EUR", description: "Euro", symbol: "€", countryCode: "eu" },
+    { code: "GBP", description: "British Pound", symbol: "£", countryCode: "gb" },
+    { code: "JPY", description: "Japanese Yen", symbol: "¥", countryCode: "jp" },
+    { code: "CAD", description: "Canadian Dollar", symbol: "$", countryCode: "ca" },
+    { code: "AUD", description: "Australian Dollar", symbol: "$", countryCode: "au" },
+    { code: "CHF", description: "Swiss Franc", symbol: "Fr", countryCode: "ch" },
+    { code: "CNY", description: "Chinese Yuan", symbol: "¥", countryCode: "cn" },
+    { code: "SEK", description: "Swedish Krona", symbol: "kr", countryCode: "se" },
+    { code: "NZD", description: "New Zealand Dollar", symbol: "$", countryCode: "nz" },
+    { code: "MXN", description: "Mexican Peso", symbol: "$", countryCode: "mx" },
+    { code: "SGD", description: "Singapore Dollar", symbol: "$", countryCode: "sg" },
+    { code: "HKD", description: "Hong Kong Dollar", symbol: "$", countryCode: "hk" },
+    { code: "NOK", description: "Norwegian Krone", symbol: "kr", countryCode: "no" },
+    { code: "KRW", description: "South Korean Won", symbol: "₩", countryCode: "kr" },
+    { code: "TRY", description: "Turkish Lira", symbol: "₺", countryCode: "tr" },
+    { code: "RUB", description: "Russian Ruble", symbol: "₽", countryCode: "ru" },
+    { code: "INR", description: "Indian Rupee", symbol: "₹", countryCode: "in" },
+    { code: "BRL", description: "Brazilian Real", symbol: "R$", countryCode: "br" },
+    { code: "ZAR", description: "South African Rand", symbol: "R", countryCode: "za" },
+    { code: "AED", description: "United Arab Emirates Dirham", symbol: "د.إ", countryCode: "ae" },
+    { code: "SAR", description: "Saudi Riyal", symbol: "ر.س", countryCode: "sa" },
+    { code: "PLN", description: "Polish Zloty", symbol: "zł", countryCode: "pl" },
+    { code: "THB", description: "Thai Baht", symbol: "฿", countryCode: "th" },
+    { code: "IDR", description: "Indonesian Rupiah", symbol: "Rp", countryCode: "id" },
+    { code: "MYR", description: "Malaysian Ringgit", symbol: "RM", countryCode: "my" },
+    { code: "PHP", description: "Philippine Peso", symbol: "₱", countryCode: "ph" },
+    { code: "TWD", description: "New Taiwan Dollar", symbol: "NT$", countryCode: "tw"},
+    { code: "KWD", description: "Kuwaiti Dinar", symbol: "KD", countryCode: "kw"},
+    { code: "PKR", description: "Pakistani Rupee", symbol: "PKR", countryCode: "pk"},
   ];
 
   const { data: convertedAmount, isLoading, isError, refetch } = useQuery({
@@ -143,7 +144,7 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
           <div className="space-y-2">
             <Input
               type="number"
-              value={typeof convertedAmount === 'number' ? convertedAmount : 0}
+              value={typeof convertedAmount === 'number' ? convertedAmount.toFixed(2) : '0.00'}
               readOnly
               className="w-full"
               disabled={isLoading}
