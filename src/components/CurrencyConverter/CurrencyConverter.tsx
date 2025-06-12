@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowDownUp } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 import { isCryptoCurrency } from './CryptoApiUtils';
 
 interface Currency {
@@ -113,20 +114,19 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
     ...c,
   }));
 
-  const { data: convertedAmount, isLoading, isError, refetch } = useQuery(
-    ['exchangeRate', fromCurrency, toCurrency, amount],
-    () => fetchExchangeRate(fromCurrency, toCurrency, amount),
-    {
-      enabled: !isSwapping,
+  const { data: convertedAmount, isLoading, isError, refetch } = useQuery({
+    queryKey: ['exchangeRate', fromCurrency, toCurrency, amount],
+    queryFn: () => fetchExchangeRate(fromCurrency, toCurrency, amount),
+    enabled: !isSwapping,
+    meta: {
       onError: (error: any) => {
-        toast({
-          title: "Conversion Error",
+        toast.error("Conversion Error", {
           description: error.message || "Failed to convert currency.",
           duration: 5000,
         });
       },
-    }
-  );
+    },
+  });
 
   useEffect(() => {
     refetch();
@@ -162,7 +162,7 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
         <div className="space-y-3">
           <label className="block text-sm font-semibold text-gray-700">To</label>
           <CurrencyInput 
-            value={convertedAmount || 0}
+            value={typeof convertedAmount === 'number' ? convertedAmount : 0}
             onChange={() => {}} // Read-only for result
             currency={toCurrency}
             onCurrencyChange={setToCurrency}
