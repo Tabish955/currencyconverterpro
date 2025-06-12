@@ -3,14 +3,14 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
-import type { ViteDevServer } from "vite";
+import type { ViteDevServer, PluginOption } from "vite";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
-  const plugins = [react()];
+  const plugins: PluginOption[] = [react()];
 
   // Configure response headers plugin
-  plugins.push({
+  const responseHeadersPlugin: PluginOption = {
     name: 'configure-response-headers',
     configureServer: (server: ViteDevServer) => {
       server.middlewares.use('/manifest.json', (req: any, res: any, next: any) => {
@@ -26,11 +26,13 @@ export default defineConfig(({ mode }) => {
         next();
       });
     },
-  });
+  };
+
+  plugins.push(responseHeadersPlugin);
 
   // Only add componentTagger in development mode
   if (mode === 'development') {
-    plugins.push(componentTagger());
+    plugins.push(componentTagger() as PluginOption);
   }
 
   return {
