@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { ChevronDown, Search, Flag, X } from "lucide-react";
 import Fuse from "fuse.js";
@@ -139,7 +138,6 @@ const CURRENCY_ALIASES: Record<string, string[]> = {
   LTL: ["Lithuanian Litas", "Lithuania", "Litas"],
   LVL: ["Latvian Lats", "Latvia", "Lats"],
   EEK: ["Estonian Kroon", "Estonia", "Kroon"],
-  RUB: ["Russian Ruble", "Russia", "Ruble"],
 };
 
 // Custom debounce hook
