@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import CurrencyConverter from "../components/CurrencyConverter/CurrencyConverter";
 import { Card, CardContent } from "@/components/ui/card";
-import { Toaster } from "@/components/ui/sonner";
 import { ArrowDownUp, Sparkles, TrendingUp, Globe, Zap, Star, RefreshCw } from "lucide-react";
 
 const Index = () => {
@@ -329,7 +328,6 @@ const Index = () => {
           </div>
         </div>
       </div>
-      <Toaster position="top-center" />
     </div>
   );
 };
