@@ -21,8 +21,8 @@ const queryClient = new QueryClient({
 
 const App = () => {
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
@@ -32,8 +32,8 @@ const App = () => {
         </BrowserRouter>
         <Toaster />
         <Sonner position="top-right" closeButton={true} expand={true} richColors />
-      </QueryClientProvider>
-    </ThemeProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 };
 
