@@ -6,7 +6,8 @@ import { ArrowDownUp } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { isCryptoCurrency } from './CryptoApiUtils';
-import CurrencyDropdown from './CurrencyDropdown';
+import VirtualizedDropdown from './VirtualizedDropdown';
+import { currencyCache } from '@/utils/currencyCache';
 
 interface Currency {
   code: string;
@@ -20,6 +21,14 @@ interface CurrencyConverterProps {
 }
 
 const fetchExchangeRate = async (fromCurrency: string, toCurrency: string, amount: number) => {
+  const cacheKey = `${fromCurrency}-${toCurrency}`;
+  
+  // Try cache first
+  const cachedRate = await currencyCache.get(cacheKey);
+  if (cachedRate) {
+    return cachedRate * amount;
+  }
+
   const apiKey = 'YOUR_API_KEY'; // Replace with your actual API key
   const apiUrl = `https://api.exchangerate-api.com/v4/latest/${fromCurrency}`;
 
@@ -30,7 +39,10 @@ const fetchExchangeRate = async (fromCurrency: string, toCurrency: string, amoun
   const data = await response.json();
 
   if (data.rates && data.rates[toCurrency]) {
-    return data.rates[toCurrency] * amount;
+    const rate = data.rates[toCurrency];
+    // Cache the rate for future use
+    await currencyCache.set(cacheKey, rate);
+    return rate * amount;
   } else {
     throw new Error('Currency conversion failed');
   }
@@ -117,7 +129,7 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
               className="w-full"
               disabled={isLoading}
             />
-            <CurrencyDropdown
+            <VirtualizedDropdown
               id="from-currency"
               value={fromCurrency}
               onChange={setFromCurrency}
@@ -149,7 +161,7 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
               className="w-full"
               disabled={isLoading}
             />
-            <CurrencyDropdown
+            <VirtualizedDropdown
               id="to-currency"
               value={toCurrency}
               onChange={setToCurrency}
