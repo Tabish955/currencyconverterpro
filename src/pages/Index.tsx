@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import CurrencyConverter from "../components/CurrencyConverter/CurrencyConverter";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowDownUp, Sparkles, TrendingUp, Globe, Zap, Star, RefreshCw } from "lucide-react";
+import { PerformanceToggle } from "@/components/PerformanceToggle";
 
 const Index = () => {
   // Parse URL parameters for deep linking
@@ -217,7 +218,7 @@ const Index = () => {
             </div>
           </div>
           <p className="text-xl text-gray-700 font-semibold mb-4">Real-time exchange rates for 170+ currencies worldwide</p>
-          <div className="flex items-center justify-center space-x-4">
+          <div className="flex items-center justify-center flex-wrap gap-3">
             <div className="flex items-center bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 px-4 py-2 rounded-full shadow-md">
               <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse mr-2"></div>
               <span className="text-green-700 font-bold text-sm">Live Updates</span>
@@ -226,6 +227,7 @@ const Index = () => {
               <Sparkles className="h-4 w-4 text-blue-600 mr-2 animate-pulse" />
               <span className="text-blue-700 font-bold text-sm">Professional Grade</span>
             </div>
+            <PerformanceToggle />
           </div>
         </div>
         

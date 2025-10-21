@@ -1,7 +1,7 @@
 // Enhanced currency caching with IndexedDB fallback and performance optimizations
 const CACHE_VERSION = '1.0';
-const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes
-const FALLBACK_EXPIRY = 60 * 60 * 1000; // 1 hour for fallback cache
+const CACHE_EXPIRY = 3 * 60 * 1000; // 3 minutes for fresh rates
+const FALLBACK_EXPIRY = 30 * 60 * 1000; // 30 minutes for fallback cache
 
 interface CacheEntry {
   data: any;
