@@ -7,14 +7,20 @@ interface PerformanceToggleProps {
 }
 
 export const PerformanceToggle: React.FC<PerformanceToggleProps> = ({ onToggle }) => {
-  const [isLiteMode, setIsLiteMode] = React.useState(false);
+  const [isLiteMode, setIsLiteMode] = React.useState(() => {
+    // Check localStorage for saved preference
+    const saved = localStorage.getItem('lite-mode-preference');
+    return saved ? JSON.parse(saved) : false;
+  });
   const performanceMetrics = usePerformanceDetection();
 
   React.useEffect(() => {
-    // Auto-enable lite mode on low-end devices
-    if (performanceMetrics.isLowEndDevice) {
+    // Auto-enable lite mode on low-end devices (only if no preference is saved)
+    const saved = localStorage.getItem('lite-mode-preference');
+    if (!saved && performanceMetrics.isLowEndDevice) {
       setIsLiteMode(true);
       onToggle?.(true);
+      localStorage.setItem('lite-mode-preference', JSON.stringify(true));
     }
   }, [performanceMetrics.isLowEndDevice, onToggle]);
 

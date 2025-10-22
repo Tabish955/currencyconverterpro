@@ -355,7 +355,7 @@ const VirtualizedDropdown = memo<VirtualizedDropdownProps>(({
 
       {/* Virtualized Dropdown Menu */}
       {isOpen && (
-        <div className={`absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-50 ${
+        <div className={`absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-50 overflow-hidden ${
           enableLightMode ? 'shadow-lg' : 'shadow-2xl'
         }`}>
           {/* Search Box */}

@@ -1,0 +1,7 @@
+project_id = "lxdjkzggzbtnazwkbvkh"
+
+[functions.symbols]
+verify_jwt = false
+
+[functions.rates]
+verify_jwt = false

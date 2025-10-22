@@ -9,6 +9,7 @@ import { isCryptoCurrency } from './CryptoApiUtils';
 import VirtualizedDropdown from './VirtualizedDropdown';
 import { currencyCache } from '@/utils/currencyCache';
 import { currencies } from '@/data/currencies';
+import { useCurrencySymbols } from '@/hooks/useCurrencySymbols';
 
 interface Currency {
   code: string;
@@ -22,16 +23,8 @@ interface CurrencyConverterProps {
 }
 
 const fetchExchangeRate = async (fromCurrency: string, toCurrency: string, amount: number) => {
-  const cacheKey = `${fromCurrency}-${toCurrency}`;
-  
-  // Try cache first
-  const cachedRate = await currencyCache.get(cacheKey);
-  if (cachedRate) {
-    return cachedRate * amount;
-  }
-
-  const apiKey = 'YOUR_API_KEY'; // Replace with your actual API key
-  const apiUrl = `https://api.exchangerate-api.com/v4/latest/${fromCurrency}`;
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const apiUrl = `${supabaseUrl}/functions/v1/rates?base=${fromCurrency}&symbols=${toCurrency}`;
 
   const response = await fetch(apiUrl);
   if (!response.ok) {
@@ -41,9 +34,13 @@ const fetchExchangeRate = async (fromCurrency: string, toCurrency: string, amoun
 
   if (data.rates && data.rates[toCurrency]) {
     const rate = data.rates[toCurrency];
-    // Cache the rate for future use
-    await currencyCache.set(cacheKey, rate);
-    return rate * amount;
+    return {
+      convertedAmount: rate * amount,
+      provider: data.provider,
+      cached: data.cached,
+      fallback: data.fallback,
+      fetchedAt: data.fetchedAt,
+    };
   } else {
     throw new Error('Currency conversion failed');
   }
@@ -55,16 +52,27 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
   const [toCurrency, setToCurrency] = useState<string>("PKR");
   const [isSwapping, setIsSwapping] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [rateInfo, setRateInfo] = useState<{ provider?: string; cached?: boolean; fallback?: boolean }>({});
+  
+  // Fetch currency symbols from API (with fallback to static data)
+  const { data: apiCurrencies, isLoading: isLoadingSymbols } = useCurrencySymbols();
+  const availableCurrencies = apiCurrencies || currencies;
 
-  const { data: convertedAmount, isLoading, isError, refetch } = useQuery({
+  const { data: conversionData, isLoading, isError, refetch } = useQuery({
     queryKey: ['exchangeRate', fromCurrency, toCurrency, amount],
     queryFn: async () => {
       const result = await fetchExchangeRate(fromCurrency, toCurrency, amount);
       setLastUpdated(new Date());
-      return result;
+      setRateInfo({
+        provider: result.provider,
+        cached: result.cached,
+        fallback: result.fallback,
+      });
+      return result.convertedAmount;
     },
     enabled: !isSwapping,
-    refetchInterval: 5 * 60 * 1000, // Auto-refresh every 5 minutes
+    refetchInterval: 60 * 1000, // Auto-refresh every 60 seconds
+    staleTime: 30 * 1000, // Consider data stale after 30 seconds
     meta: {
       onError: (error: any) => {
         toast.error("Conversion Error", {
@@ -110,13 +118,21 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
       {/* Status bar */}
       <div className="flex items-center justify-between text-sm text-gray-600 bg-blue-50 px-4 py-2 rounded-lg">
         <span className="flex items-center gap-2">
-          <div className={`w-2 h-2 rounded-full ${isLoading ? 'bg-yellow-500 animate-pulse' : 'bg-green-500'}`} />
-          {currencies.length} currencies • Updated {formatLastUpdated()}
+          <div className={`w-2 h-2 rounded-full ${
+            isLoading ? 'bg-yellow-500 animate-pulse' : 
+            rateInfo.fallback ? 'bg-orange-500' :
+            rateInfo.cached ? 'bg-blue-500' : 'bg-green-500'
+          }`} />
+          {availableCurrencies.length} currencies • 
+          {isLoading ? ' Updating...' : 
+           rateInfo.fallback ? ' Fallback data' :
+           rateInfo.cached ? ' Cached' : ' Live'} • 
+          Updated {formatLastUpdated()}
         </span>
         <button
           onClick={handleRefresh}
           disabled={isLoading}
-          className="flex items-center gap-1 text-blue-600 hover:text-blue-700 disabled:opacity-50"
+          className="flex items-center gap-1 text-blue-600 hover:text-blue-700 disabled:opacity-50 transition-colors"
         >
           <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
           Refresh
@@ -138,7 +154,7 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
               id="from-currency"
               value={fromCurrency}
               onChange={setFromCurrency}
-              currencies={currencies}
+              currencies={availableCurrencies}
               placeholder="Select currency"
             />
           </div>
@@ -161,7 +177,7 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
           <div className="space-y-2">
             <Input
               type="number"
-              value={typeof convertedAmount === 'number' ? convertedAmount.toFixed(2) : '0.00'}
+              value={typeof conversionData === 'number' ? conversionData.toFixed(2) : '0.00'}
               readOnly
               className="w-full"
               disabled={isLoading}
@@ -170,7 +186,7 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
               id="to-currency"
               value={toCurrency}
               onChange={setToCurrency}
-              currencies={currencies}
+              currencies={availableCurrencies}
               placeholder="Select currency"
             />
           </div>
