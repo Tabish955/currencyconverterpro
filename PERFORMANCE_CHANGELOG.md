@@ -1,6 +1,51 @@
-# Currency Converter Performance Optimization Changelog
+# Currency Converter - Restoration & Bug Fixes
 
-## Major Performance Improvements Implemented
+## Critical Issues Fixed (Latest Update)
+
+### ✅ Currency List Completely Restored
+- **Problem**: API integration replaced all original currencies with incomplete/fake data
+- **Root Cause**: Edge function API returned limited currency set without proper metadata
+- **Solution**: Reverted to battle-tested static currency list (`src/data/currencies.ts`)
+- **Result**: All 170+ original currencies with proper codes, names, symbols, and country codes fully restored
+
+### ✅ Flags Completely Restored  
+- **Problem**: Flags disappeared after API integration broke currency metadata
+- **Root Cause**: API response lacked `countryCode` field needed for flag rendering
+- **Solution**: Static currencies include validated `countryCode` for every entry
+- **Result**: Flags now display correctly before each currency name (KW, PK, US, etc.)
+
+### ✅ Dropdown Scrolling Fixed
+- **Problem**: Mouse wheel, touchpad, and keyboard scrolling completely broken
+- **Root Cause**: `overflow-hidden` CSS prevented scroll events from propagating
+- **Solution**: Removed overflow restriction from dropdown container
+- **Result**: Dropdown scrolls smoothly with mouse wheel, touchpad, arrow keys, Page Up/Down
+
+### ✅ Exchange Rates Now Up-to-Date
+- **Implementation**: Multi-tier fallback edge function (`/functions/v1/rates`)
+  - Primary: jsDelivr CDN (fawazahmed0 currency API)
+  - Secondary: Pages fallback
+  - Tertiary: ExchangeRate.host
+- **Caching**: 60-second in-memory cache with automatic refresh
+- **Status Display**: Shows live/cached/fallback indicator with timestamp
+- **Auto-refresh**: Polls every 60 seconds for active currency pairs
+
+## What Remains Unchanged
+- ✅ Conversion calculation logic (no changes to math/rounding)
+- ✅ UI design and component structure
+- ✅ Lite mode and performance detection
+- ✅ Fuzzy search with Web Worker offloading
+- ✅ Virtual scrolling for performance
+
+## Quick Verification Steps
+1. ✅ Open dropdown → See 170+ currencies (USD, EUR, KWD, PKR, etc.)
+2. ✅ Scroll dropdown → Mouse wheel / touchpad / keyboard all work
+3. ✅ View flags → Flag icons visible before each currency name
+4. ✅ Convert KWD→PKR → Fresh rates fetch immediately
+5. ✅ Wait 60s → Rates auto-refresh with updated timestamp
+
+---
+
+## Previous Performance Optimizations (Still Active)
 
 ### 1. **Virtualized Dropdown Rendering** 
 - **What Changed**: Replaced full list rendering with react-window virtualization

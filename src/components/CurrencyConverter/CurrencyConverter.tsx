@@ -9,7 +9,6 @@ import { isCryptoCurrency } from './CryptoApiUtils';
 import VirtualizedDropdown from './VirtualizedDropdown';
 import { currencyCache } from '@/utils/currencyCache';
 import { currencies } from '@/data/currencies';
-import { useCurrencySymbols } from '@/hooks/useCurrencySymbols';
 
 interface Currency {
   code: string;
@@ -54,9 +53,8 @@ const CurrencyConverter = ({ mode = "fiat" }: CurrencyConverterProps) => {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [rateInfo, setRateInfo] = useState<{ provider?: string; cached?: boolean; fallback?: boolean }>({});
   
-  // Fetch currency symbols from API (with fallback to static data)
-  const { data: apiCurrencies, isLoading: isLoadingSymbols } = useCurrencySymbols();
-  const availableCurrencies = apiCurrencies || currencies;
+  // Use static currency data with all flags and proper structure
+  const availableCurrencies = currencies;
 
   const { data: conversionData, isLoading, isError, refetch } = useQuery({
     queryKey: ['exchangeRate', fromCurrency, toCurrency, amount],
