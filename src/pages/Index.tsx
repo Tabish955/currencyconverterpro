@@ -1,7 +1,6 @@
 
 import CurrencyConverter from "../components/CurrencyConverter/CurrencyConverter";
 import { Card, CardContent } from "@/components/ui/card";
-import { Toaster } from "@/components/ui/sonner";
 
 const Index = () => {
   return (
@@ -49,7 +48,6 @@ const Index = () => {
           <p className="text-blue-600 mt-1">Supports 170+ currencies worldwide</p>
         </div>
       </div>
-      <Toaster position="top-center" />
     </div>
   );
 };
