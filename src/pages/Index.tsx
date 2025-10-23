@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import CurrencyConverter from "../components/CurrencyConverter/CurrencyConverter";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowDownUp, Sparkles, TrendingUp, Globe, Zap, Star, RefreshCw } from "lucide-react";
-// import { PerformanceToggle } from "@/components/PerformanceToggle";
+import { PerformanceToggle } from "@/components/PerformanceToggle";
 
 const Index = () => {
   // Parse URL parameters for deep linking
@@ -227,7 +227,7 @@ const Index = () => {
               <Sparkles className="h-4 w-4 text-blue-600 mr-2 animate-pulse" />
               <span className="text-blue-700 font-bold text-sm">Professional Grade</span>
             </div>
-            {/* <PerformanceToggle /> */}
+            <PerformanceToggle />
           </div>
         </div>
         
