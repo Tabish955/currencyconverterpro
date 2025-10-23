@@ -19,7 +19,7 @@ const LoadingState = ({ message, attempt }: LoadingStateProps) => {
           </div>
           <p className="text-gray-600 text-xl font-medium">{message}</p>
           <p className="text-gray-400 text-sm mt-2">
-            {attempt ? `Attempt ${attempt} of 3...` : 'Fetching exchange rates...'}
+            {attempt ? `Attempt ${attempt} of 3...` : 'This will only take a moment'}
           </p>
         </div>
       </div>
