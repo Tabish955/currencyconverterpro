@@ -1,17 +1,15 @@
-import { useState, useRef, useEffect, useMemo, useCallback } from "react";
-import { ChevronDown, Search, Flag, X } from "lucide-react";
-import Fuse from "fuse.js";
 
-interface CurrencySymbol {
+import { useState, useRef, useEffect } from "react";
+import { ChevronDown, ChevronUp, Search } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import Fuse from 'fuse.js';
+import 'flag-icons/css/flag-icons.min.css';
+
+export interface CurrencySymbol {
   code: string;
   description: string;
   countryCode?: string;
   aliases?: string[];
-}
-
-interface EnrichedCurrencySymbol extends CurrencySymbol {
-  countryCode: string;
-  searchableText: string;
 }
 
 interface CurrencyDropdownProps {
@@ -19,242 +17,289 @@ interface CurrencyDropdownProps {
   value: string;
   onChange: (value: string) => void;
   currencies: CurrencySymbol[];
-  recentlyUsed?: string[];
-  placeholder?: string;
-  className?: string;
+  disabled?: boolean;
 }
 
-// Enhanced currency aliases map
-const CURRENCY_ALIASES: Record<string, string[]> = {
-  USD: ["United States Dollar", "US Dollar", "American Dollar", "Dollar", "United States", "America", "USA"],
-  EUR: ["Euro", "European Union", "Europe", "EU"],
-  GBP: ["British Pound", "Pound Sterling", "UK Pound", "United Kingdom", "Britain", "England"],
-  JPY: ["Japanese Yen", "Yen", "Japan"],
-  CHF: ["Swiss Franc", "Switzerland", "Franc"],
-  CAD: ["Canadian Dollar", "Canada", "Canadian"],
-  AUD: ["Australian Dollar", "Australia", "Aussie Dollar"],
-  CNY: ["Chinese Yuan", "Yuan", "China", "Chinese"],
-  INR: ["Indian Rupee", "Rupee", "India"],
-  KRW: ["South Korean Won", "Won", "Korea", "South Korea"],
-  SGD: ["Singapore Dollar", "Singapore"],
-  HKD: ["Hong Kong Dollar", "Hong Kong"],
-  NOK: ["Norwegian Krone", "Norway", "Krone"],
-  SEK: ["Swedish Krona", "Sweden", "Krona"],
-  DKK: ["Danish Krone", "Denmark"],
-  PLN: ["Polish Zloty", "Poland", "Zloty"],
-  CZK: ["Czech Koruna", "Czech Republic", "Koruna"],
-  HUF: ["Hungarian Forint", "Hungary", "Forint"],
-  RUB: ["Russian Ruble", "Russia", "Ruble"],
-  TRY: ["Turkish Lira", "Turkey", "Lira"],
-  BRL: ["Brazilian Real", "Brazil", "Real"],
-  MXN: ["Mexican Peso", "Mexico", "Peso"],
-  ZAR: ["South African Rand", "South Africa", "Rand"],
-  NZD: ["New Zealand Dollar", "New Zealand"],
-  THB: ["Thai Baht", "Thailand", "Baht"],
-  MYR: ["Malaysian Ringgit", "Malaysia", "Ringgit"],
-  IDR: ["Indonesian Rupiah", "Indonesia", "Rupiah"],
-  PHP: ["Philippine Peso", "Philippines"],
-  VND: ["Vietnamese Dong", "Vietnam", "Dong"],
-  AED: ["UAE Dirham", "United Arab Emirates", "Dirham"],
-  SAR: ["Saudi Riyal", "Saudi Arabia", "Riyal"],
-  QAR: ["Qatari Riyal", "Qatar"],
-  KWD: ["Kuwaiti Dinar", "Kuwait", "Dinar"],
-  BHD: ["Bahraini Dinar", "Bahrain"],
-  OMR: ["Omani Rial", "Oman", "Rial"],
-  JOD: ["Jordanian Dinar", "Jordan"],
-  EGP: ["Egyptian Pound", "Egypt"],
-  ILS: ["Israeli Shekel", "Israel", "Shekel"],
-  LBP: ["Lebanese Pound", "Lebanon"],
-  PKR: ["Pakistani Rupee", "Pakistan"],
-  LKR: ["Sri Lankan Rupee", "Sri Lanka"],
-  BGN: ["Bulgarian Lev", "Bulgaria", "Lev"],
-  RON: ["Romanian Leu", "Romania", "Leu"],
-  HRK: ["Croatian Kuna", "Croatia", "Kuna"],
-  RSD: ["Serbian Dinar", "Serbia"],
-  ISK: ["Icelandic Krona", "Iceland"],
-  CLP: ["Chilean Peso", "Chile"],
-  COP: ["Colombian Peso", "Colombia"],
-  PEN: ["Peruvian Sol", "Peru", "Sol"],
-  UYU: ["Uruguayan Peso", "Uruguay"],
-  ARS: ["Argentine Peso", "Argentina"],
-  BOB: ["Bolivian Boliviano", "Bolivia", "Boliviano"],
-  PYG: ["Paraguayan Guarani", "Paraguay", "Guarani"],
-  VES: ["Venezuelan Bolívar", "Venezuela", "Bolívar"],
-  GHS: ["Ghanaian Cedi", "Ghana", "Cedi"],
-  NGN: ["Nigerian Naira", "Nigeria", "Naira"],
-  KES: ["Kenyan Shilling", "Kenya", "Shilling"],
-  UGX: ["Ugandan Shilling", "Uganda"],
-  TZS: ["Tanzanian Shilling", "Tanzania"],
-  ETB: ["Ethiopian Birr", "Ethiopia", "Birr"],
-  MAD: ["Moroccan Dirham", "Morocco"],
-  TND: ["Tunisian Dinar", "Tunisia"],
-  DZD: ["Algerian Dinar", "Algeria"],
-  XOF: ["West African CFA Franc", "West Africa", "CFA"],
-  XAF: ["Central African CFA Franc", "Central Africa"],
-  MWK: ["Malawian Kwacha", "Malawi", "Kwacha"],
-  ZMW: ["Zambian Kwacha", "Zambia"],
-  BWP: ["Botswanan Pula", "Botswana", "Pula"],
-  NAD: ["Namibian Dollar", "Namibia"],
-  SZL: ["Swazi Lilangeni", "Swaziland", "Lilangeni"],
-  LSL: ["Lesotho Loti", "Lesotho", "Loti"],
-  MUR: ["Mauritian Rupee", "Mauritius"],
-  SCR: ["Seychellois Rupee", "Seychelles"],
-  MVR: ["Maldivian Rufiyaa", "Maldives", "Rufiyaa"],
-  NPR: ["Nepalese Rupee", "Nepal"],
-  BTN: ["Bhutanese Ngultrum", "Bhutan", "Ngultrum"],
-  BDT: ["Bangladeshi Taka", "Bangladesh", "Taka"],
-  AFN: ["Afghan Afghani", "Afghanistan", "Afghani"],
-  IRR: ["Iranian Rial", "Iran"],
-  IQD: ["Iraqi Dinar", "Iraq"],
-  SYP: ["Syrian Pound", "Syria"],
-  YER: ["Yemeni Rial", "Yemen"],
-  AMD: ["Armenian Dram", "Armenia", "Dram"],
-  AZN: ["Azerbaijani Manat", "Azerbaijan", "Manat"],
-  GEL: ["Georgian Lari", "Georgia", "Lari"],
-  KZT: ["Kazakhstani Tenge", "Kazakhstan", "Tenge"],
-  KGS: ["Kyrgystani Som", "Kyrgyzstan", "Som"],
-  TJS: ["Tajikistani Somoni", "Tajikistan", "Somoni"],
-  TMT: ["Turkmenistani Manat", "Turkmenistan"],
-  UZS: ["Uzbekistani Som", "Uzbekistan"],
-  MNT: ["Mongolian Tugrik", "Mongolia", "Tugrik"],
-  LAK: ["Laotian Kip", "Laos", "Kip"],
-  KHR: ["Cambodian Riel", "Cambodia", "Riel"],
-  MMK: ["Myanmar Kyat", "Myanmar", "Kyat"],
-  BND: ["Brunei Dollar", "Brunei"],
-  FJD: ["Fijian Dollar", "Fiji"],
-  PGK: ["Papua New Guinean Kina", "Papua New Guinea", "Kina"],
-  SBD: ["Solomon Islands Dollar", "Solomon Islands"],
-  TOP: ["Tongan Paʻanga", "Tonga", "Paʻanga"],
-  VUV: ["Vanuatu Vatu", "Vanuatu", "Vatu"],
-  WST: ["Samoan Tala", "Samoa", "Tala"],
-  XPF: ["CFP Franc", "French Polynesia", "Pacific Franc"],
-  NCL: ["New Caledonian Franc", "New Caledonia"],
-  ALL: ["Albanian Lek", "Albania", "Lek"],
-  MKD: ["Macedonian Denar", "Macedonia", "Denar"],
-  BAM: ["Bosnia-Herzegovina Convertible Mark", "Bosnia", "Herzegovina"],
-  MDL: ["Moldovan Leu", "Moldova"],
-  UAH: ["Ukrainian Hryvnia", "Ukraine", "Hryvnia"],
-  BYN: ["Belarusian Ruble", "Belarus"],
-  LTL: ["Lithuanian Litas", "Lithuania", "Litas"],
-  LVL: ["Latvian Lats", "Latvia", "Lats"],
-  EEK: ["Estonian Kroon", "Estonia", "Kroon"],
+// Enhanced Currency to Country Code mapping (ISO 4217 to ISO 3166-1)
+// Comprehensive mapping to ensure all currencies have proper flags
+const currencyToCountryCode: Record<string, string> = {
+  USD: "us", // United States Dollar
+  EUR: "eu", // Euro
+  GBP: "gb", // British Pound Sterling
+  JPY: "jp", // Japanese Yen
+  AUD: "au", // Australian Dollar
+  CAD: "ca", // Canadian Dollar
+  CHF: "ch", // Swiss Franc
+  CNY: "cn", // Chinese Yuan
+  INR: "in", // Indian Rupee
+  PKR: "pk", // Pakistani Rupee
+  KWD: "kw", // Kuwaiti Dinar
+  AED: "ae", // United Arab Emirates Dirham
+  SAR: "sa", // Saudi Riyal
+  QAR: "qa", // Qatari Riyal
+  BHD: "bh", // Bahraini Dinar
+  OMR: "om", // Omani Rial
+  EGP: "eg", // Egyptian Pound
+  TRY: "tr", // Turkish Lira
+  RUB: "ru", // Russian Ruble
+  NGN: "ng", // Nigerian Naira
+  ZAR: "za", // South African Rand
+  BRL: "br", // Brazilian Real
+  MXN: "mx", // Mexican Peso
+  SGD: "sg", // Singapore Dollar
+  NZD: "nz", // New Zealand Dollar
+  HKD: "hk", // Hong Kong Dollar
+  KRW: "kr", // South Korean Won
+  IDR: "id", // Indonesian Rupiah
+  MYR: "my", // Malaysian Ringgit
+  THB: "th", // Thai Baht
+  VND: "vn", // Vietnamese Dong
+  PHP: "ph", // Philippine Peso
+  AFN: "af", // Afghan Afghani
+  DZD: "dz", // Algerian Dinar
+  ARS: "ar", // Argentine Peso
+  AMD: "am", // Armenian Dram
+  AWG: "aw", // Aruban Florin
+  AZN: "az", // Azerbaijani Manat
+  BSD: "bs", // Bahamian Dollar
+  BBD: "bb", // Barbadian Dollar
+  BYN: "by", // Belarusian Ruble
+  BZD: "bz", // Belize Dollar
+  BMD: "bm", // Bermudan Dollar
+  BOB: "bo", // Bolivian Boliviano
+  BAM: "ba", // Bosnia-Herzegovina Convertible Mark
+  BWP: "bw", // Botswanan Pula
+  BGN: "bg", // Bulgarian Lev
+  BIF: "bi", // Burundian Franc
+  KHR: "kh", // Cambodian Riel
+  CVE: "cv", // Cape Verdean Escudo
+  XAF: "cm", // Central African CFA Franc - using Cameroon
+  CLP: "cl", // Chilean Peso
+  COP: "co", // Colombian Peso
+  KMF: "km", // Comorian Franc
+  CDF: "cd", // Congolese Franc
+  CRC: "cr", // Costa Rican Colón
+  HRK: "hr", // Croatian Kuna
+  CZK: "cz", // Czech Republic Koruna
+  DKK: "dk", // Danish Krone
+  DJF: "dj", // Djiboutian Franc
+  DOP: "do", // Dominican Peso
+  XCD: "ag", // East Caribbean Dollar - using Antigua and Barbuda
+  ETB: "et", // Ethiopian Birr
+  FJD: "fj", // Fijian Dollar
+  GMD: "gm", // Gambian Dalasi
+  GEL: "ge", // Georgian Lari
+  GHS: "gh", // Ghanaian Cedi
+  GTQ: "gt", // Guatemalan Quetzal
+  GNF: "gn", // Guinean Franc
+  GYD: "gy", // Guyanaese Dollar
+  HTG: "ht", // Haitian Gourde
+  HNL: "hn", // Honduran Lempira
+  HUF: "hu", // Hungarian Forint
+  ISK: "is", // Icelandic Króna
+  IRR: "ir", // Iranian Rial
+  IQD: "iq", // Iraqi Dinar
+  ILS: "il", // Israeli New Shekel
+  JMD: "jm", // Jamaican Dollar
+  JOD: "jo", // Jordanian Dinar
+  KZT: "kz", // Kazakhstani Tenge
+  KES: "ke", // Kenyan Shilling
+  LAK: "la", // Laotian Kip
+  LBP: "lb", // Lebanese Pound
+  LSL: "ls", // Lesotho Loti
+  LRD: "lr", // Liberian Dollar
+  LYD: "ly", // Libyan Dinar
+  MKD: "mk", // Macedonian Denar
+  MGA: "mg", // Malagasy Ariary
+  MWK: "mw", // Malawian Kwacha
+  MVR: "mv", // Maldivian Rufiyaa
+  MRU: "mr", // Mauritanian Ouguiya
+  MUR: "mu", // Mauritian Rupee
+  MDL: "md", // Moldovan Leu
+  MNT: "mn", // Mongolian Tugrik
+  MAD: "ma", // Moroccan Dirham
+  MMK: "mm", // Myanmar Kyat
+  NAD: "na", // Namibian Dollar
+  NPR: "np", // Nepalese Rupee
+  NIO: "ni", // Nicaraguan Córdoba
+  XOF: "sn", // West African CFA Franc - using Senegal
+  NOK: "no", // Norwegian Krone
+  PAB: "pa", // Panamanian Balboa
+  PGK: "pg", // Papua New Guinean Kina
+  PYG: "py", // Paraguayan Guarani
+  PEN: "pe", // Peruvian Nuevo Sol
+  PLN: "pl", // Polish Zloty
+  RON: "ro", // Romanian Leu
+  RWF: "rw", // Rwandan Franc
+  SVC: "sv", // Salvadoran Colón
+  WST: "ws", // Samoan Tala
+  STN: "st", // São Tomé and Príncipe Dobra
+  RSD: "rs", // Serbian Dinar
+  SLL: "sl", // Sierra Leonean Leone
+  SEK: "se", // Swedish Krona
+  SOS: "so", // Somali Shilling
+  SSP: "ss", // South Sudanese Pound
+  LKR: "lk", // Sri Lankan Rupee
+  SDG: "sd", // Sudanese Pound
+  SRD: "sr", // Surinamese Dollar
+  SZL: "sz", // Swazi Lilangeni
+  SYP: "sy", // Syrian Pound
+  TWD: "tw", // New Taiwan Dollar
+  TZS: "tz", // Tanzanian Shilling
+  TOP: "to", // Tongan Paʻanga
+  TTD: "tt", // Trinidad and Tobago Dollar
+  TND: "tn", // Tunisian Dinar
+  UGX: "ug", // Ugandan Shilling
+  UAH: "ua", // Ukrainian Hryvnia
+  UYU: "uy", // Uruguayan Peso
+  UZS: "uz", // Uzbekistan Som
+  VES: "ve", // Venezuelan Bolívar Soberano
+  YER: "ye", // Yemeni Rial
+  ZMW: "zm", // Zambian Kwacha
+  XPF: "pf", // CFP Franc - using French Polynesia
+  CUP: "cu", // Cuban Peso
+  FKP: "fk", // Falkland Islands Pound
+  GIP: "gi", // Gibraltar Pound
+  GGP: "gg", // Guernsey Pound
+  IMP: "im", // Isle of Man Pound
+  JEP: "je", // Jersey Pound
+  KPW: "kp", // North Korean Won
+  LVL: "lv", // Latvian Lats (historical)
+  LTL: "lt", // Lithuanian Litas (historical)
+  SHP: "sh", // Saint Helena Pound
+  SCR: "sc", // Seychellois Rupee
+  SBD: "sb", // Solomon Islands Dollar
+  TVD: "tv", // Tuvaluan Dollar
+  ZWD: "zw", // Zimbabwean Dollar (historical)
+  TMT: "tm", // Turkmenistan Manat
+  TJS: "tj", // Tajikistani Somoni
+  ANG: "cw", // Netherlands Antillean Guilder - using Curaçao
+  AOA: "ao", // Angolan Kwanza
+  BND: "bn", // Brunei Dollar
+  CUC: "cu", // Cuban Convertible Peso
+  ERN: "er", // Eritrean Nakfa
+  FOK: "fo", // Faroese Króna
+  KID: "ki", // Kiribati Dollar
+  MOP: "mo", // Macanese Pataca
+  SLE: "sl", // Sierra Leonean Leone (new)
+  // Handling special cases
+  XAU: "un", // Gold Ounce - using UN flag
+  XAG: "un", // Silver Ounce - using UN flag
+  XPT: "un", // Platinum Ounce - using UN flag
+  XDR: "un", // Special Drawing Rights - using UN flag
+  XTS: "un", // Testing Currency Code - using UN flag
+  XXX: "un"  // Unknown Currency - using UN flag
 };
 
-// Custom debounce hook
-function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value);
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
-
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [value, delay]);
-
-  return debouncedValue;
-}
+// Currency aliases for improved search
+const currencyAliases: Record<string, string[]> = {
+  USD: ["dollar", "us dollar", "american dollar", "america", "united states", "usa", "us", "united states dollar"],
+  EUR: ["euro", "europe", "european", "eurozone", "european union", "eu"],
+  GBP: ["pound", "british pound", "sterling", "uk", "united kingdom", "britain", "great britain", "england"],
+  JPY: ["yen", "japanese yen", "japan"],
+  INR: ["indian rupee", "india", "rupee"],
+  PKR: ["pakistani rupee", "pakistan"],
+  KWD: ["kuwaiti dinar", "kuwait", "dinar"],
+  AED: ["dirham", "emirati dirham", "uae", "united arab emirates", "dubai", "abu dhabi"],
+  SAR: ["saudi riyal", "saudi arabia", "riyal"],
+  CAD: ["canadian dollar", "canada"],
+  AUD: ["australian dollar", "australia"],
+  NZD: ["new zealand dollar", "new zealand", "kiwi"],
+  CHF: ["swiss franc", "switzerland"],
+  CNY: ["chinese yuan", "china", "renminbi"],
+  HKD: ["hong kong dollar", "hong kong"],
+  SGD: ["singapore dollar", "singapore"],
+  MYR: ["malaysian ringgit", "malaysia"],
+  THB: ["thai baht", "thailand"],
+  IDR: ["indonesian rupiah", "indonesia"],
+  PHP: ["philippine peso", "philippines"],
+  MXN: ["mexican peso", "mexico"],
+  BRL: ["brazilian real", "brazil"],
+  ZAR: ["south african rand", "south africa"],
+  RUB: ["russian ruble", "russia"],
+  TRY: ["turkish lira", "turkey"],
+  KRW: ["korean won", "south korea", "korea"],
+  TWD: ["taiwan dollar", "taiwan"],
+  ANG: ["netherlands antillean guilder", "netherlands antilles", "curacao", "sint maarten"],
+  AOA: ["angolan kwanza", "angola"],
+  BND: ["brunei dollar", "brunei"],
+  CUC: ["cuban convertible peso", "cuba"],
+  ERN: ["eritrean nakfa", "eritrea"],
+  FOK: ["faroese króna", "faroe islands"],
+  KID: ["kiribati dollar", "kiribati"],
+  MOP: ["macanese pataca", "macau"],
+  SLE: ["sierra leonean leone", "sierra leone"]
+};
 
 const CurrencyDropdown = ({
   id,
   value,
   onChange,
   currencies,
-  recentlyUsed = [],
-  placeholder = "Select currency",
-  className = "",
+  disabled = false,
 }: CurrencyDropdownProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [highlightedIndex, setHighlightedIndex] = useState(-1);
-  const [visibleStart, setVisibleStart] = useState(0);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [highlightedIndex, setHighlightedIndex] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
-  
-  // Debounce search query for performance
-  const debouncedSearchQuery = useDebounce(searchQuery, 200);
 
-  // Memoize enriched currencies with search text
-  const enrichedCurrencies = useMemo(() => {
-    return currencies.map((currency): EnrichedCurrencySymbol => {
-      const aliases = CURRENCY_ALIASES[currency.code] || [];
-      const searchableText = [
-        currency.code,
-        currency.description,
-        ...aliases,
-        ...(currency.aliases || [])
-      ].join(" ").toLowerCase();
-      
-      return {
-        ...currency,
-        countryCode: currency.countryCode || "",
-        searchableText
-      };
+  // Prepare currency data with country codes and aliases
+  const enrichedCurrencies = currencies.map(currency => ({
+    ...currency,
+    countryCode: currencyToCountryCode[currency.code] || "un", // Fallback to UN flag
+    aliases: currencyAliases[currency.code] || []
+  }));
+
+  // Setup Fuse.js for fuzzy search
+  const fuseRef = useRef<Fuse<CurrencySymbol>>();
+  
+  useEffect(() => {
+    fuseRef.current = new Fuse(enrichedCurrencies, {
+      keys: ['code', 'description', 'aliases'],
+      threshold: 0.3,
+      includeScore: true
     });
   }, [currencies]);
 
-  // Enhanced search with fuzzy matching and aliases
-  const fuse = useMemo(() => {
-    return new Fuse(enrichedCurrencies, {
-      keys: [
-        { name: "code", weight: 0.3 },
-        { name: "description", weight: 0.4 },
-        { name: "searchableText", weight: 0.3 }
-      ],
-      threshold: 0.4,
-      includeScore: true,
-      minMatchCharLength: 1,
-      ignoreLocation: true,
-      findAllMatches: true
-    });
-  }, [enrichedCurrencies]);
+  // Handle outside clicks to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false);
+      }
+    };
 
-  // Memoized filtered currencies
-  const filteredCurrencies = useMemo(() => {
-    if (!debouncedSearchQuery.trim()) {
-      return enrichedCurrencies;
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // Focus search input when dropdown opens
+  useEffect(() => {
+    if (isOpen && searchInputRef.current) {
+      searchInputRef.current.focus();
+      setHighlightedIndex(0);
     }
+  }, [isOpen]);
 
-    const fuseResults = fuse.search(debouncedSearchQuery);
-    return fuseResults.map(result => result.item);
-  }, [debouncedSearchQuery, enrichedCurrencies, fuse]);
+  // Get the selected currency details
+  const selectedCurrency = enrichedCurrencies.find((c) => c.code === value);
 
-  // Group currencies: recently used first, then others
-  const groupedCurrencies = useMemo(() => {
-    const recentCurrencies = filteredCurrencies.filter((currency) =>
-      recentlyUsed.includes(currency.code)
-    );
-    const otherCurrencies = filteredCurrencies.filter(
-      (currency) => !recentlyUsed.includes(currency.code)
-    );
+  // Filter currencies based on search term using Fuse.js
+  const filteredCurrencies = searchTerm.trim() === "" 
+    ? enrichedCurrencies 
+    : fuseRef.current 
+      ? fuseRef.current.search(searchTerm).map(result => result.item)
+      : enrichedCurrencies;
 
-    return [
-      ...(recentCurrencies.length > 0 ? recentCurrencies : []),
-      ...otherCurrencies,
-    ];
-  }, [filteredCurrencies, recentlyUsed]);
-
-  // Virtual scrolling configuration
-  const ITEM_HEIGHT = 64; // Height of each currency item
-  const VISIBLE_ITEMS = 6; // Number of items to show at once
-  const maxVisibleItems = Math.min(VISIBLE_ITEMS, groupedCurrencies.length);
-  const visibleEnd = Math.min(visibleStart + maxVisibleItems, groupedCurrencies.length);
-  const visibleCurrencies = groupedCurrencies.slice(visibleStart, visibleEnd);
-
-  const selectedCurrency = currencies.find((c) => c.code === value);
-
-  const handleSelect = useCallback((currency: CurrencySymbol) => {
-    onChange(currency.code);
-    setIsOpen(false);
-    setSearchQuery("");
-    setHighlightedIndex(-1);
-    setVisibleStart(0);
-  }, [onChange]);
-
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+  // Handle keyboard navigation
+  const handleKeyDown = (e: React.KeyboardEvent) => {
     if (!isOpen) {
       if (e.key === "Enter" || e.key === " " || e.key === "ArrowDown") {
         e.preventDefault();
@@ -266,256 +311,155 @@ const CurrencyDropdown = ({
     switch (e.key) {
       case "Escape":
         setIsOpen(false);
-        setSearchQuery("");
-        setHighlightedIndex(-1);
-        setVisibleStart(0);
         break;
       case "ArrowDown":
         e.preventDefault();
-        setHighlightedIndex((prev) => {
-          const newIndex = prev < groupedCurrencies.length - 1 ? prev + 1 : 0;
-          // Update visible window if needed
-          if (newIndex >= visibleEnd) {
-            setVisibleStart(Math.min(newIndex - maxVisibleItems + 1, groupedCurrencies.length - maxVisibleItems));
-          } else if (newIndex < visibleStart) {
-            setVisibleStart(newIndex);
-          }
-          return newIndex;
-        });
+        setHighlightedIndex((prevIndex) =>
+          Math.min(prevIndex + 1, filteredCurrencies.length - 1)
+        );
+        scrollToHighlighted();
         break;
       case "ArrowUp":
         e.preventDefault();
-        setHighlightedIndex((prev) => {
-          const newIndex = prev > 0 ? prev - 1 : groupedCurrencies.length - 1;
-          // Update visible window if needed
-          if (newIndex < visibleStart) {
-            setVisibleStart(Math.max(0, newIndex));
-          } else if (newIndex >= visibleEnd) {
-            setVisibleStart(Math.max(0, newIndex - maxVisibleItems + 1));
-          }
-          return newIndex;
-        });
+        setHighlightedIndex((prevIndex) => Math.max(prevIndex - 1, 0));
+        scrollToHighlighted();
         break;
       case "Enter":
         e.preventDefault();
-        if (highlightedIndex >= 0 && highlightedIndex < groupedCurrencies.length) {
-          handleSelect(groupedCurrencies[highlightedIndex]);
+        if (filteredCurrencies[highlightedIndex]) {
+          onChange(filteredCurrencies[highlightedIndex].code);
+          setIsOpen(false);
+          setSearchTerm("");
         }
         break;
       case "Tab":
         setIsOpen(false);
-        setSearchQuery("");
-        setHighlightedIndex(-1);
-        setVisibleStart(0);
         break;
     }
-  }, [isOpen, groupedCurrencies.length, visibleEnd, visibleStart, maxVisibleItems, highlightedIndex, handleSelect, groupedCurrencies]);
+  };
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-        setSearchQuery("");
-        setHighlightedIndex(-1);
-        setVisibleStart(0);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  // Focus search input when dropdown opens
-  useEffect(() => {
-    if (isOpen && searchInputRef.current) {
-      searchInputRef.current.focus();
+  // Scroll to highlighted item
+  const scrollToHighlighted = () => {
+    if (listRef.current && listRef.current.children[highlightedIndex]) {
+      listRef.current.children[highlightedIndex].scrollIntoView({
+        block: "nearest",
+      });
     }
-  }, [isOpen]);
-
-  // Reset visible window when search changes
-  useEffect(() => {
-    setVisibleStart(0);
-    setHighlightedIndex(-1);
-  }, [debouncedSearchQuery]);
-
-  // Enhanced flag component with better error handling
-  const FlagIcon = ({ currency }: { currency: EnrichedCurrencySymbol }) => {
-    const [hasError, setHasError] = useState(false);
-
-    if (!currency.countryCode || hasError) {
-      return (
-        <div className="w-6 h-4 bg-gradient-to-br from-gray-200 to-gray-300 rounded-sm flex items-center justify-center">
-          <Flag className="w-3 h-3 text-gray-500" />
-        </div>
-      );
-    }
-
-    return (
-      <img
-        src={`https://flagcdn.com/w20/${currency.countryCode.toLowerCase()}.png`}
-        alt={`${currency.code} flag`}
-        className="w-6 h-4 object-cover rounded-sm border border-gray-200 shadow-sm"
-        onError={() => setHasError(true)}
-        loading="lazy"
-      />
-    );
   };
 
   return (
-    <div className={`relative ${className}`} ref={dropdownRef}>
-      {/* Dropdown Button */}
+    <div className="relative inline-block w-full" ref={dropdownRef}>
       <button
         id={id}
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
+        className={`w-full flex items-center justify-between py-3 px-3 border border-gray-300 rounded-md bg-white text-left shadow-sm hover:shadow-md transition-all duration-300 ${
+          disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:border-blue-500 focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50"
+        }`}
+        onClick={() => !disabled && setIsOpen(!isOpen)}
         onKeyDown={handleKeyDown}
-        className="w-full flex items-center justify-between px-3 py-3 border border-gray-300 rounded-md bg-white hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 group"
         aria-haspopup="listbox"
         aria-expanded={isOpen}
-        aria-labelledby={`${id}-label`}
+        disabled={disabled}
       >
-        <div className="flex items-center space-x-3 min-w-0 flex-1">
-          {selectedCurrency && selectedCurrency.countryCode && (
-            <FlagIcon currency={selectedCurrency as EnrichedCurrencySymbol} />
-          )}
-          <div className="flex flex-col items-start min-w-0 flex-1">
-            <span className="font-semibold text-gray-900 text-sm">
-              {selectedCurrency?.code || placeholder}
+        <span className="truncate font-medium flex items-center">
+          {selectedCurrency ? (
+            <span className="flex items-center">
+              {selectedCurrency.countryCode && (
+                <span 
+                  className={`fi fi-${selectedCurrency.countryCode} mr-2`} 
+                  style={{ width: '1.2em', height: '1em' }}
+                  aria-hidden="true"
+                ></span>
+              )}
+              <span className="font-bold">{selectedCurrency.code}</span>
+              <span className="text-gray-500 ml-2">({selectedCurrency.description})</span>
             </span>
-            {selectedCurrency && (
-              <span className="text-xs text-gray-500 truncate w-full text-left">
-                {selectedCurrency.description}
-              </span>
-            )}
-          </div>
-        </div>
-        <ChevronDown
-          className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${
-            isOpen ? "rotate-180" : ""
-          } group-hover:text-blue-500`}
-        />
+          ) : (
+            "Select currency"
+          )}
+        </span>
+        {isOpen ? (
+          <ChevronUp className="h-4 w-4 text-gray-500 flex-shrink-0" />
+        ) : (
+          <ChevronDown className="h-4 w-4 text-gray-500 flex-shrink-0" />
+        )}
       </button>
 
-      {/* Enhanced Dropdown Menu */}
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-50 max-h-80 overflow-hidden">
-          {/* Enhanced Search Box */}
-          <div className="p-3 border-b border-gray-100 bg-gray-50">
+        <div 
+          className="absolute z-50 mt-1 w-72 md:w-96 bg-white border border-gray-200 rounded-md shadow-lg animate-fade-in"
+          style={{ 
+            animation: 'fade-in 0.2s ease-out',
+            transformOrigin: 'top center'
+          }}
+        >
+          <div className="sticky top-0 bg-white p-2 border-b border-gray-200 z-10">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
               <input
                 ref={searchInputRef}
                 type="text"
+                className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                 placeholder="Search currencies, countries, or codes..."
-                value={searchQuery}
+                value={searchTerm}
                 onChange={(e) => {
-                  setSearchQuery(e.target.value);
+                  setSearchTerm(e.target.value);
+                  setHighlightedIndex(0); // Reset highlight when search changes
                 }}
                 onKeyDown={handleKeyDown}
-                className="w-full pl-10 pr-8 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                aria-controls="currency-list"
               />
-              {searchQuery && (
-                <button
-                  onClick={() => {
-                    setSearchQuery("");
-                    searchInputRef.current?.focus();
-                  }}
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
             </div>
           </div>
 
-          {/* Virtualized Currency List */}
-          <div className="relative">
-            {/* Virtual spacer for items above visible range */}
-            {visibleStart > 0 && (
-              <div style={{ height: visibleStart * ITEM_HEIGHT }} />
-            )}
-            
-            <ul
+          <ScrollArea className="h-72">
+            <ul 
+              id="currency-list"
               ref={listRef}
-              className="py-1"
+              className="py-1" 
               role="listbox"
-              aria-labelledby={`${id}-label`}
-              style={{ minHeight: `${maxVisibleItems * ITEM_HEIGHT}px` }}
+              tabIndex={-1}
             >
-              {visibleCurrencies.map((currency, index) => {
-                const actualIndex = visibleStart + index;
-                const isRecent = recentlyUsed.includes(currency.code);
-                
-                return (
+              {filteredCurrencies.length > 0 ? (
+                filteredCurrencies.map((currency, index) => (
                   <li
                     key={currency.code}
-                    onClick={() => handleSelect(currency)}
-                    className={`px-3 py-3 cursor-pointer flex items-center space-x-3 hover:bg-blue-50 transition-colors ${
-                      value === currency.code
-                        ? "bg-blue-100 border-r-4 border-blue-500"
-                        : ""
-                    } ${
-                      highlightedIndex === actualIndex ? "bg-blue-50" : ""
-                    }`}
-                    style={{ height: ITEM_HEIGHT }}
+                    className={`px-3 py-2 cursor-pointer transition-all duration-150 ${
+                      currency.code === value ? "bg-blue-100" : "hover:bg-blue-50"
+                    } ${index === highlightedIndex ? "bg-blue-50" : ""}`}
+                    onClick={() => {
+                      onChange(currency.code);
+                      setIsOpen(false);
+                      setSearchTerm("");
+                    }}
                     role="option"
-                    aria-selected={value === currency.code}
+                    aria-selected={currency.code === value}
                   >
-                    {currency.countryCode && (
-                      <FlagIcon currency={currency} />
-                    )}
-                    <div className="flex flex-col min-w-0 flex-1">
-                      <div className="flex items-center space-x-2">
-                        <span className="font-semibold text-gray-900 text-sm">
-                          {currency.code}
+                    <div className="flex items-center">
+                      {currency.countryCode && (
+                        <span 
+                          className={`fi fi-${currency.countryCode} mr-2 flex-shrink-0`}
+                          style={{ width: '1.2em', height: '1em' }}
+                          aria-hidden="true"
+                        ></span>
+                      )}
+                      <div className="flex flex-col">
+                        <div className="flex items-center">
+                          <span className="font-bold">{currency.code}</span>
+                        </div>
+                        <span className="text-gray-500 text-sm truncate">
+                          {currency.description}
                         </span>
-                        {isRecent && (
-                          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
-                            Recent
-                          </span>
-                        )}
                       </div>
-                      <span className="text-xs text-gray-500 truncate">
-                        {currency.description}
-                      </span>
                     </div>
                   </li>
-                );
-              })}
+                ))
+              ) : (
+                <li className="px-3 py-4 text-gray-500 text-center">
+                  No currencies found
+                </li>
+              )}
             </ul>
-
-            {/* Virtual spacer for items below visible range */}
-            {visibleEnd < groupedCurrencies.length && (
-              <div style={{ height: (groupedCurrencies.length - visibleEnd) * ITEM_HEIGHT }} />
-            )}
-
-            {/* Scroll indicators */}
-            {groupedCurrencies.length > maxVisibleItems && (
-              <>
-                {visibleStart > 0 && (
-                  <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-b from-gray-100 to-transparent pointer-events-none" />
-                )}
-                {visibleEnd < groupedCurrencies.length && (
-                  <div className="absolute bottom-0 left-0 right-0 h-2 bg-gradient-to-t from-gray-100 to-transparent pointer-events-none" />
-                )}
-              </>
-            )}
-          </div>
-
-          {/* No Results */}
-          {filteredCurrencies.length === 0 && (
-            <div className="px-3 py-6 text-center text-gray-500 text-sm">
-              <div className="flex flex-col items-center space-y-2">
-                <Search className="h-8 w-8 text-gray-300" />
-                <span>No currencies found</span>
-                <span className="text-xs">Try searching for a country, currency name, or code</span>
-              </div>
-            </div>
-          )}
+          </ScrollArea>
         </div>
       )}
     </div>

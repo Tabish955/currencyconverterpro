@@ -67,12 +67,8 @@ const CurrencyInput = ({
       setInputValue("0");
       onChange(0);
     } else {
-      // Format the number to 4 decimal places for fiat currencies
-      const formatted = parseFloat(inputValue).toFixed(4);
-      const numericValue = parseFloat(formatted);
-      
       // Ensure the displayed value matches the actual value
-      setInputValue(numericValue.toString());
+      setInputValue(parseFloat(inputValue).toString());
     }
   };
 
@@ -97,8 +93,6 @@ const CurrencyInput = ({
         ref={inputRef}
         id={id}
         type="text"
-        inputMode="decimal" // Use numeric keyboard on mobile
-        pattern="[0-9]*\.?[0-9]*" // This helps with validating input format
         value={inputValue}
         onChange={handleInputChange}
         onFocus={handleFocus}
