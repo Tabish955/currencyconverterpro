@@ -135,8 +135,8 @@ const VirtualizedDropdown = memo<VirtualizedDropdownProps>(({
   const searchInputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<List>(null);
   
-  // Performance detection
-  const { enableLightMode } = usePerformanceDetection();
+  // Performance detection - disabled to prevent React errors
+  const enableLightMode = false; // usePerformanceDetection();
   
   // Search worker for offloading expensive operations
   const { search, isWorkerReady } = useSearchWorker(currencies);
