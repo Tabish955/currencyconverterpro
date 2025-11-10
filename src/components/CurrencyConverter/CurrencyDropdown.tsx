@@ -386,7 +386,7 @@ const CurrencyDropdown = ({
 
       {isOpen && (
         <div 
-          className="absolute z-[100] mt-2 w-full md:w-[450px] bg-white border-2 border-blue-200 rounded-xl shadow-2xl animate-fade-in"
+          className="absolute z-[9999] mt-2 w-full md:w-[450px] bg-white border-2 border-blue-200 rounded-xl shadow-2xl animate-fade-in"
           style={{ 
             animation: 'fade-in 0.2s ease-out',
             transformOrigin: 'top center'

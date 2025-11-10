@@ -34,98 +34,30 @@ interface RatesResponse {
 const symbolsCache = new CurrencyCache<CurrencySymbol[]>(24 * 60 * 60 * 1000); // 24 hours 
 const ratesCache = new CurrencyCache<Record<string, number>>(5 * 60 * 1000); // 5 minutes
 
-// Map ISO currency codes to country codes for flags
+// Comprehensive ISO currency codes to country codes mapping
 const currencyToCountryMap: Record<string, string> = {
-  // Major currencies
-  EUR: "eu", USD: "us", JPY: "jp", GBP: "gb", AUD: "au", CAD: "ca", CHF: "ch", CNY: "cn",
-  HKD: "hk", NZD: "nz", SEK: "se", KRW: "kr", SGD: "sg", NOK: "no", MXN: "mx", INR: "in",
-  RUB: "ru", ZAR: "za", TRY: "tr", BRL: "br", TWD: "tw", DKK: "dk", PLN: "pl", THB: "th",
-  IDR: "id", HUF: "hu", CZK: "cz", ILS: "il", CLP: "cl", PHP: "ph", AED: "ae", COP: "co",
-  SAR: "sa", MYR: "my", RON: "ro",
-  // Additional currencies
-  ARS: "ar", // Argentina
-  BGN: "bg", // Bulgaria
-  BHD: "bh", // Bahrain
-  BND: "bn", // Brunei
-  BOB: "bo", // Bolivia
-  BWP: "bw", // Botswana
-  BYN: "by", // Belarus
-  CRC: "cr", // Costa Rica
-  CUP: "cu", // Cuba
-  DOP: "do", // Dominican Republic
-  DZD: "dz", // Algeria
-  EGP: "eg", // Egypt
-  ETB: "et", // Ethiopia
-  FJD: "fj", // Fiji
-  GEL: "ge", // Georgia
-  GHS: "gh", // Ghana
-  GTQ: "gt", // Guatemala
-  HNL: "hn", // Honduras
-  HRK: "hr", // Croatia
-  HTG: "ht", // Haiti
-  ISK: "is", // Iceland
-  JMD: "jm", // Jamaica
-  JOD: "jo", // Jordan
-  KES: "ke", // Kenya
-  KGS: "kg", // Kyrgyzstan
-  KHR: "kh", // Cambodia
-  KWD: "kw", // Kuwait
-  KZT: "kz", // Kazakhstan
-  LAK: "la", // Laos
-  LBP: "lb", // Lebanon
-  LKR: "lk", // Sri Lanka
-  LYD: "ly", // Libya
-  MAD: "ma", // Morocco
-  MDL: "md", // Moldova
-  MKD: "mk", // North Macedonia
-  MMK: "mm", // Myanmar
-  MNT: "mn", // Mongolia
-  MOP: "mo", // Macau
-  MUR: "mu", // Mauritius
-  MVR: "mv", // Maldives
-  MWK: "mw", // Malawi
-  NAD: "na", // Namibia
-  NGN: "ng", // Nigeria
-  NIO: "ni", // Nicaragua
-  NPR: "np", // Nepal
-  OMR: "om", // Oman
-  PAB: "pa", // Panama
-  PEN: "pe", // Peru
-  PGK: "pg", // Papua New Guinea
-  PKR: "pk", // Pakistan
-  PYG: "py", // Paraguay
-  QAR: "qa", // Qatar
-  RSD: "rs", // Serbia
-  RWF: "rw", // Rwanda
-  SCR: "sc", // Seychelles
-  SDG: "sd", // Sudan
-  SLL: "sl", // Sierra Leone
-  SOS: "so", // Somalia
-  SRD: "sr", // Suriname
-  SSP: "ss", // South Sudan
-  SYP: "sy", // Syria
-  SZL: "sz", // Eswatini
-  TJS: "tj", // Tajikistan
-  TMT: "tm", // Turkmenistan
-  TND: "tn", // Tunisia
-  TOP: "to", // Tonga
-  TTD: "tt", // Trinidad and Tobago
-  TZS: "tz", // Tanzania
-  UAH: "ua", // Ukraine
-  UGX: "ug", // Uganda
-  UYU: "uy", // Uruguay
-  UZS: "uz", // Uzbekistan
-  VES: "ve", // Venezuela
-  VND: "vn", // Vietnam
-  VUV: "vu", // Vanuatu
-  WST: "ws", // Samoa
-  XAF: "cm", // Central African CFA franc (Cameroon)
-  XCD: "ag", // East Caribbean dollar (Antigua)
-  XOF: "sn", // West African CFA franc (Senegal)
-  XPF: "pf", // CFP franc (French Polynesia)
-  YER: "ye", // Yemen
-  ZMW: "zm", // Zambia
-  ZWL: "zw", // Zimbabwe
+  USD: "us", EUR: "eu", GBP: "gb", JPY: "jp", AUD: "au", CAD: "ca", CHF: "ch", CNY: "cn",
+  INR: "in", PKR: "pk", KWD: "kw", AED: "ae", SAR: "sa", QAR: "qa", BHD: "bh", OMR: "om",
+  EGP: "eg", TRY: "tr", RUB: "ru", NGN: "ng", ZAR: "za", BRL: "br", MXN: "mx", SGD: "sg",
+  NZD: "nz", HKD: "hk", KRW: "kr", IDR: "id", MYR: "my", THB: "th", VND: "vn", PHP: "ph",
+  AFN: "af", DZD: "dz", ARS: "ar", AMD: "am", AWG: "aw", AZN: "az", BSD: "bs", BBD: "bb",
+  BZD: "bz", BMD: "bm", BOB: "bo", BAM: "ba", BWP: "bw", BGN: "bg", BIF: "bi",
+  KHR: "kh", CVE: "cv", XAF: "cm", CLP: "cl", COP: "co", KMF: "km", CDF: "cd", CRC: "cr",
+  HRK: "hr", CZK: "cz", DKK: "dk", DJF: "dj", DOP: "do", XCD: "ag", ETB: "et", FJD: "fj",
+  GMD: "gm", GEL: "ge", GHS: "gh", GTQ: "gt", GNF: "gn", GYD: "gy", HTG: "ht", HNL: "hn",
+  HUF: "hu", ISK: "is", IRR: "ir", IQD: "iq", ILS: "il", JMD: "jm", JOD: "jo", KZT: "kz",
+  KES: "ke", LAK: "la", LBP: "lb", LSL: "ls", LRD: "lr", LYD: "ly", MKD: "mk", MGA: "mg",
+  MWK: "mw", MVR: "mv", MRU: "mr", MUR: "mu", MDL: "md", MNT: "mn", MAD: "ma", MMK: "mm",
+  NAD: "na", NPR: "np", NIO: "ni", XOF: "sn", NOK: "no", PAB: "pa", PGK: "pg", PYG: "py",
+  PEN: "pe", PLN: "pl", RON: "ro", RWF: "rw", SVC: "sv", WST: "ws", STN: "st", RSD: "rs",
+  SLL: "sl", SEK: "se", SOS: "so", SSP: "ss", LKR: "lk", SDG: "sd", SRD: "sr", SZL: "sz",
+  SYP: "sy", TWD: "tw", TZS: "tz", TOP: "to", TTD: "tt", TND: "tn", UGX: "ug", UAH: "ua",
+  UYU: "uy", UZS: "uz", VES: "ve", YER: "ye", ZMW: "zm", XPF: "pf", CUP: "cu", FKP: "fk",
+  GIP: "gi", GGP: "gg", IMP: "im", JEP: "je", KPW: "kp", SHP: "sh",
+  SCR: "sc", SBD: "sb", TVD: "tv", TMT: "tm", TJS: "tj", ANG: "cw", AOA: "ao",
+  BND: "bn", CUC: "cu", ERN: "er", FOK: "fo", KID: "ki", MOP: "mo", SLE: "sl", VUV: "vu",
+  XAU: "un", XAG: "un", XPT: "un", XDR: "un", XTS: "un", XXX: "un", KGS: "kg", ALL: "al",
+  BTN: "bt", BDT: "bd", MZN: "mz", LVL: "lv", LTL: "lt", ZWD: "zw", ZWL: "zw"
 };
 
 const CurrencyConverter = () => {
@@ -501,7 +433,7 @@ const CurrencyConverter = () => {
       )}
       
       {/* Currency Converter Form */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
         {/* Base Currency Column */}
         <div className="transition-all duration-300 hover:transform hover:translate-y-[-5px]">
           <div className="mb-3">
@@ -580,7 +512,7 @@ const CurrencyConverter = () => {
       </div>
       
       {/* Exchange Rate and Last Updated */}
-      <div className="mt-6 border-t border-gray-200 pt-4 text-sm text-gray-600 bg-gray-50 p-4 rounded-lg backdrop-blur-sm animate-fade-in relative z-0">
+      <div className="mt-6 border-t border-gray-200 pt-4 text-sm text-gray-600 bg-gray-50 p-4 rounded-lg backdrop-blur-sm animate-fade-in relative z-[1]">
         {isLoadingRate ? (
           <div className="flex items-center justify-center">
             <div className="animate-spin mr-2">
