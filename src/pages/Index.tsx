@@ -1,11 +1,8 @@
-
 import CurrencyConverter from "../components/CurrencyConverter/CurrencyConverter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Toaster } from "@/components/ui/sonner";
-
 const Index = () => {
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-indigo-100 via-blue-50 to-purple-100 p-4 overflow-hidden relative">
+  return <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-indigo-100 via-blue-50 to-purple-100 p-4 overflow-hidden relative">
       {/* Enhanced animated floating background elements */}
       <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-blue-200/30 to-indigo-300/30 rounded-full blur-3xl transform -translate-y-1/2 translate-x-1/4 animate-float-slow"></div>
       <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-purple-200/30 to-pink-200/30 rounded-full blur-3xl transform translate-y-1/3 -translate-x-1/3 animate-float-medium"></div>
@@ -44,14 +41,14 @@ const Index = () => {
           </CardContent>
         </Card>
         
-        <div className="mt-6 text-center text-sm animate-fade-in" style={{ animationDelay: '0.3s' }}>
-          <p className="text-indigo-700 font-medium">Real-time exchange rates from ExchangeRate.host API</p>
+        <div className="mt-6 text-center text-sm animate-fade-in" style={{
+        animationDelay: '0.3s'
+      }}>
+          <p className="text-indigo-700 font-medium">Real-time exchange rates from ExchangeR</p>
           <p className="text-blue-600 mt-1">Supports 170+ currencies worldwide</p>
         </div>
       </div>
       <Toaster position="top-center" />
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
