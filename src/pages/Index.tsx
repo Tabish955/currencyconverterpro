@@ -44,7 +44,7 @@ const Index = () => {
         <div className="mt-6 text-center text-sm animate-fade-in" style={{
         animationDelay: '0.3s'
       }}>
-          <p className="text-indigo-700 font-medium">Real-time exchange rates from ExchangeR</p>
+          <p className="text-indigo-700 font-medium">Real-time exchange rates f</p>
           <p className="text-blue-600 mt-1">Supports 170+ currencies worldwide</p>
         </div>
       </div>
