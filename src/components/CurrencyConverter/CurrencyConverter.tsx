@@ -5,6 +5,7 @@ import CurrencyDropdown, { CurrencySymbol } from "./CurrencyDropdown";
 import CurrencyInput from "./CurrencyInput";
 import ErrorDisplay from "./ErrorDisplay";
 import LoadingState from "./LoadingState";
+import ExchangeRateChart from "./ExchangeRateChart";
 import { ArrowDownUp, RefreshCw, WifiOff } from "lucide-react";
 import { toast } from "sonner";
 import { 
@@ -35,42 +36,96 @@ const ratesCache = new CurrencyCache<Record<string, number>>(5 * 60 * 1000); // 
 
 // Map ISO currency codes to country codes for flags
 const currencyToCountryMap: Record<string, string> = {
-  EUR: "eu", // European Union
-  USD: "us", // United States
-  JPY: "jp", // Japan
-  GBP: "gb", // United Kingdom
-  AUD: "au", // Australia
-  CAD: "ca", // Canada
-  CHF: "ch", // Switzerland
-  CNY: "cn", // China
-  HKD: "hk", // Hong Kong
-  NZD: "nz", // New Zealand
-  SEK: "se", // Sweden
-  KRW: "kr", // South Korea
-  SGD: "sg", // Singapore
-  NOK: "no", // Norway
-  MXN: "mx", // Mexico
-  INR: "in", // India
-  RUB: "ru", // Russia
-  ZAR: "za", // South Africa
-  TRY: "tr", // Turkey
-  BRL: "br", // Brazil
-  TWD: "tw", // Taiwan
-  DKK: "dk", // Denmark
-  PLN: "pl", // Poland
-  THB: "th", // Thailand
-  IDR: "id", // Indonesia
-  HUF: "hu", // Hungary
-  CZK: "cz", // Czech Republic
-  ILS: "il", // Israel
-  CLP: "cl", // Chile
-  PHP: "ph", // Philippines
-  AED: "ae", // United Arab Emirates
-  COP: "co", // Colombia
-  SAR: "sa", // Saudi Arabia
-  MYR: "my", // Malaysia
-  RON: "ro", // Romania
-  // Add more mappings as needed
+  // Major currencies
+  EUR: "eu", USD: "us", JPY: "jp", GBP: "gb", AUD: "au", CAD: "ca", CHF: "ch", CNY: "cn",
+  HKD: "hk", NZD: "nz", SEK: "se", KRW: "kr", SGD: "sg", NOK: "no", MXN: "mx", INR: "in",
+  RUB: "ru", ZAR: "za", TRY: "tr", BRL: "br", TWD: "tw", DKK: "dk", PLN: "pl", THB: "th",
+  IDR: "id", HUF: "hu", CZK: "cz", ILS: "il", CLP: "cl", PHP: "ph", AED: "ae", COP: "co",
+  SAR: "sa", MYR: "my", RON: "ro",
+  // Additional currencies
+  ARS: "ar", // Argentina
+  BGN: "bg", // Bulgaria
+  BHD: "bh", // Bahrain
+  BND: "bn", // Brunei
+  BOB: "bo", // Bolivia
+  BWP: "bw", // Botswana
+  BYN: "by", // Belarus
+  CRC: "cr", // Costa Rica
+  CUP: "cu", // Cuba
+  DOP: "do", // Dominican Republic
+  DZD: "dz", // Algeria
+  EGP: "eg", // Egypt
+  ETB: "et", // Ethiopia
+  FJD: "fj", // Fiji
+  GEL: "ge", // Georgia
+  GHS: "gh", // Ghana
+  GTQ: "gt", // Guatemala
+  HNL: "hn", // Honduras
+  HRK: "hr", // Croatia
+  HTG: "ht", // Haiti
+  ISK: "is", // Iceland
+  JMD: "jm", // Jamaica
+  JOD: "jo", // Jordan
+  KES: "ke", // Kenya
+  KGS: "kg", // Kyrgyzstan
+  KHR: "kh", // Cambodia
+  KWD: "kw", // Kuwait
+  KZT: "kz", // Kazakhstan
+  LAK: "la", // Laos
+  LBP: "lb", // Lebanon
+  LKR: "lk", // Sri Lanka
+  LYD: "ly", // Libya
+  MAD: "ma", // Morocco
+  MDL: "md", // Moldova
+  MKD: "mk", // North Macedonia
+  MMK: "mm", // Myanmar
+  MNT: "mn", // Mongolia
+  MOP: "mo", // Macau
+  MUR: "mu", // Mauritius
+  MVR: "mv", // Maldives
+  MWK: "mw", // Malawi
+  NAD: "na", // Namibia
+  NGN: "ng", // Nigeria
+  NIO: "ni", // Nicaragua
+  NPR: "np", // Nepal
+  OMR: "om", // Oman
+  PAB: "pa", // Panama
+  PEN: "pe", // Peru
+  PGK: "pg", // Papua New Guinea
+  PKR: "pk", // Pakistan
+  PYG: "py", // Paraguay
+  QAR: "qa", // Qatar
+  RSD: "rs", // Serbia
+  RWF: "rw", // Rwanda
+  SCR: "sc", // Seychelles
+  SDG: "sd", // Sudan
+  SLL: "sl", // Sierra Leone
+  SOS: "so", // Somalia
+  SRD: "sr", // Suriname
+  SSP: "ss", // South Sudan
+  SYP: "sy", // Syria
+  SZL: "sz", // Eswatini
+  TJS: "tj", // Tajikistan
+  TMT: "tm", // Turkmenistan
+  TND: "tn", // Tunisia
+  TOP: "to", // Tonga
+  TTD: "tt", // Trinidad and Tobago
+  TZS: "tz", // Tanzania
+  UAH: "ua", // Ukraine
+  UGX: "ug", // Uganda
+  UYU: "uy", // Uruguay
+  UZS: "uz", // Uzbekistan
+  VES: "ve", // Venezuela
+  VND: "vn", // Vietnam
+  VUV: "vu", // Vanuatu
+  WST: "ws", // Samoa
+  XAF: "cm", // Central African CFA franc (Cameroon)
+  XCD: "ag", // East Caribbean dollar (Antigua)
+  XOF: "sn", // West African CFA franc (Senegal)
+  XPF: "pf", // CFP franc (French Polynesia)
+  YER: "ye", // Yemen
+  ZMW: "zm", // Zambia
+  ZWL: "zw", // Zimbabwe
 };
 
 const CurrencyConverter = () => {
@@ -352,13 +407,15 @@ const CurrencyConverter = () => {
   // Handle currency changes
   const handleBaseCurrencyChange = (value: string) => {
     setBaseCurrency(value);
+    setBaseAmount(1); // Reset to 1 when changing currency
     setLastChangedField("base");
     // Rate fetch will be triggered by useEffect
   };
   
   const handleTargetCurrencyChange = (value: string) => {
     setTargetCurrency(value);
-    setLastChangedField("target");
+    setBaseAmount(1); // Reset to 1 when changing currency
+    setLastChangedField("base");
     // Rate fetch will be triggered by useEffect
   };
   
@@ -523,7 +580,7 @@ const CurrencyConverter = () => {
       </div>
       
       {/* Exchange Rate and Last Updated */}
-      <div className="mt-6 border-t border-gray-200 pt-4 text-sm text-gray-600 bg-gray-50 p-4 rounded-lg backdrop-blur-sm animate-fade-in">
+      <div className="mt-6 border-t border-gray-200 pt-4 text-sm text-gray-600 bg-gray-50 p-4 rounded-lg backdrop-blur-sm animate-fade-in relative z-0">
         {isLoadingRate ? (
           <div className="flex items-center justify-center">
             <div className="animate-spin mr-2">
@@ -556,6 +613,9 @@ const CurrencyConverter = () => {
           </div>
         ) : null}
       </div>
+      
+      {/* Exchange Rate Chart */}
+      {currentRate && <ExchangeRateChart baseCurrency={baseCurrency} targetCurrency={targetCurrency} currentRate={currentRate} />}
     </div>
   );
 };

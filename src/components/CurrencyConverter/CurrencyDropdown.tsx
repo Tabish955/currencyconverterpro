@@ -351,8 +351,8 @@ const CurrencyDropdown = ({
     <div className="relative inline-block w-full" ref={dropdownRef}>
       <button
         id={id}
-        className={`w-full flex items-center justify-between py-3 px-3 border border-gray-300 rounded-md bg-white text-left shadow-sm hover:shadow-md transition-all duration-300 ${
-          disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:border-blue-500 focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50"
+        className={`w-full flex items-center justify-between py-3.5 px-4 border-2 border-gray-300 rounded-lg bg-white text-left shadow-md hover:shadow-xl transition-all duration-300 relative z-10 ${
+          disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:border-blue-400 hover:-translate-y-0.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         }`}
         onClick={() => !disabled && setIsOpen(!isOpen)}
         onKeyDown={handleKeyDown}
@@ -386,24 +386,24 @@ const CurrencyDropdown = ({
 
       {isOpen && (
         <div 
-          className="absolute z-50 mt-1 w-72 md:w-96 bg-white border border-gray-200 rounded-md shadow-lg animate-fade-in"
+          className="absolute z-[100] mt-2 w-full md:w-[450px] bg-white border-2 border-blue-200 rounded-xl shadow-2xl animate-fade-in"
           style={{ 
             animation: 'fade-in 0.2s ease-out',
             transformOrigin: 'top center'
           }}
         >
-          <div className="sticky top-0 bg-white p-2 border-b border-gray-200 z-10">
+          <div className="sticky top-0 bg-gradient-to-r from-blue-50 to-indigo-50 p-3 border-b-2 border-blue-100 z-10 rounded-t-xl">
             <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-3 h-4 w-4 text-blue-500" />
               <input
                 ref={searchInputRef}
                 type="text"
-                className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                className="w-full pl-10 pr-4 py-2.5 border-2 border-blue-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white shadow-sm"
                 placeholder="Search currencies, countries, or codes..."
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
-                  setHighlightedIndex(0); // Reset highlight when search changes
+                  setHighlightedIndex(0);
                 }}
                 onKeyDown={handleKeyDown}
                 aria-controls="currency-list"
@@ -411,7 +411,7 @@ const CurrencyDropdown = ({
             </div>
           </div>
 
-          <ScrollArea className="h-72">
+          <ScrollArea className="h-80">
             <ul 
               id="currency-list"
               ref={listRef}
@@ -423,8 +423,10 @@ const CurrencyDropdown = ({
                 filteredCurrencies.map((currency, index) => (
                   <li
                     key={currency.code}
-                    className={`px-3 py-2 cursor-pointer transition-all duration-150 ${
-                      currency.code === value ? "bg-blue-100" : "hover:bg-blue-50"
+                    className={`px-4 py-3 cursor-pointer transition-all duration-200 border-b border-gray-100 last:border-b-0 ${
+                      currency.code === value 
+                        ? "bg-gradient-to-r from-blue-100 to-indigo-100 border-l-4 border-l-blue-500" 
+                        : "hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50"
                     } ${index === highlightedIndex ? "bg-blue-50" : ""}`}
                     onClick={() => {
                       onChange(currency.code);
@@ -434,19 +436,22 @@ const CurrencyDropdown = ({
                     role="option"
                     aria-selected={currency.code === value}
                   >
-                    <div className="flex items-center">
+                    <div className="flex items-center space-x-3">
                       {currency.countryCode && (
                         <span 
-                          className={`fi fi-${currency.countryCode} mr-2 flex-shrink-0`}
-                          style={{ width: '1.2em', height: '1em' }}
+                          className={`fi fi-${currency.countryCode} flex-shrink-0 rounded shadow-sm`}
+                          style={{ width: '1.5em', height: '1.2em' }}
                           aria-hidden="true"
                         ></span>
                       )}
-                      <div className="flex flex-col">
-                        <div className="flex items-center">
-                          <span className="font-bold">{currency.code}</span>
+                      <div className="flex flex-col min-w-0 flex-1">
+                        <div className="flex items-center space-x-2">
+                          <span className="font-bold text-gray-800 text-base">{currency.code}</span>
+                          {currency.code === value && (
+                            <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full">Selected</span>
+                          )}
                         </div>
-                        <span className="text-gray-500 text-sm truncate">
+                        <span className="text-gray-600 text-sm truncate">
                           {currency.description}
                         </span>
                       </div>
@@ -454,8 +459,10 @@ const CurrencyDropdown = ({
                   </li>
                 ))
               ) : (
-                <li className="px-3 py-4 text-gray-500 text-center">
-                  No currencies found
+                <li className="px-4 py-8 text-gray-500 text-center">
+                  <div className="text-gray-400 mb-2">🔍</div>
+                  <div className="font-medium">No currencies found</div>
+                  <div className="text-xs mt-1">Try a different search term</div>
                 </li>
               )}
             </ul>
