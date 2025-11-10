@@ -92,3 +92,9 @@ export function formatRelativeTime(date: Date): string {
   const diffDays = Math.floor(diffHours / 24);
   return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
 }
+
+// ExchangeRate API endpoints
+export const API_ENDPOINTS = {
+  SYMBOLS: "https://api.exchangerate-api.com/v4/symbols",
+  RATES_BASE: "https://api.exchangerate-api.com/v4/latest"
+};
