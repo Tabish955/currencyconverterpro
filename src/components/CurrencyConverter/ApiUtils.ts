@@ -93,8 +93,8 @@ export function formatRelativeTime(date: Date): string {
   return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
 }
 
-// ExchangeRate API endpoints
+// New Exchange API endpoints (fawazahmed0)
 export const API_ENDPOINTS = {
-  SYMBOLS: "https://api.exchangerate-api.com/v4/symbols",
-  RATES_BASE: "https://api.exchangerate-api.com/v4/latest"
+  CURRENCIES: "https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies.json",
+  RATES_BASE: "https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies"
 };

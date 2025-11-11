@@ -113,9 +113,9 @@ const CurrencyConverter = () => {
         return;
       }
       
-      // Fetch with retry logic
+      // Fetch with retry logic from new API
       const data = await retryWithBackoff<SymbolsResponse>(async () => {
-        const response = await fetch("https://openexchangerates.org/api/currencies.json");
+        const response = await fetch(API_ENDPOINTS.CURRENCIES);
         if (!response.ok) {
           throw new Error(`Failed to fetch symbols: ${response.status}`);
         }
@@ -172,7 +172,7 @@ const CurrencyConverter = () => {
     // Don't fetch if we're just comparing a currency to itself
     if (baseCurrency === targetCurrency) {
       const singleRate: Record<string, number> = {};
-      singleRate[targetCurrency] = 1;
+      singleRate[targetCurrency.toLowerCase()] = 1;
       setRates(singleRate);
       
       // Update amounts based on which field was last changed
@@ -217,8 +217,8 @@ const CurrencyConverter = () => {
       }
       
       // Fetch with retry logic from the new API
-      const data = await retryWithBackoff<RatesResponse>(async () => {
-        const url = `${API_ENDPOINTS.RATES_BASE}/${base}`;
+      const data = await retryWithBackoff<any>(async () => {
+        const url = `${API_ENDPOINTS.RATES_BASE}/${base.toLowerCase()}.json`;
         const response = await fetch(url);
         
         if (!response.ok) {
@@ -228,10 +228,12 @@ const CurrencyConverter = () => {
         return response.json();
       }, retry ? 1 : 2); // Only retry once if this is already a retry attempt
       
-      if (data.rates) {
+      // The new API returns data in format: { date: "2024-03-06", [currencyCode]: { [targetCode]: rate } }
+      if (data && data[base.toLowerCase()]) {
+        const rates = data[base.toLowerCase()];
         // Update state and cache
-        setRates(data.rates);
-        ratesCache.set(cacheKey, data.rates);
+        setRates(rates);
+        ratesCache.set(cacheKey, rates);
         
         // Store in localStorage with timestamp
         const timestamp = new Date();
@@ -280,12 +282,13 @@ const CurrencyConverter = () => {
   
   // Helper function to update amounts based on the rates and which field was last changed
   const updateAmounts = (currentRates: Record<string, number>) => {
-    if (!currentRates[targetCurrency]) {
+    const targetKey = targetCurrency.toLowerCase();
+    if (!currentRates[targetKey]) {
       console.error(`Rate not found for ${targetCurrency}`);
       return;
     }
     
-    const currentRate = currentRates[targetCurrency];
+    const currentRate = currentRates[targetKey];
     
     if (lastChangedField === "base") {
       setTargetAmount(parseFloat((baseAmount * currentRate).toFixed(4)));
@@ -312,9 +315,10 @@ const CurrencyConverter = () => {
     setLastChangedField("base");
     
     // If rates are available, calculate target amount without waiting for API
-    if (rates !== null && rates[targetCurrency]) {
+    const targetKey = targetCurrency.toLowerCase();
+    if (rates !== null && rates[targetKey]) {
       // Use precise math, then round for display only
-      setTargetAmount(parseFloat((value * rates[targetCurrency]).toFixed(4)));
+      setTargetAmount(parseFloat((value * rates[targetKey]).toFixed(4)));
     } else {
       // Trigger rate fetch if needed
       fetchExchangeRates(baseCurrency);
@@ -327,9 +331,10 @@ const CurrencyConverter = () => {
     setLastChangedField("target");
     
     // If rates are available, calculate base amount without waiting for API
-    if (rates !== null && rates[targetCurrency] !== 0) {
+    const targetKey = targetCurrency.toLowerCase();
+    if (rates !== null && rates[targetKey] !== 0) {
       // Use precise math for inverse calculation
-      setBaseAmount(parseFloat((value / rates[targetCurrency]).toFixed(4)));
+      setBaseAmount(parseFloat((value / rates[targetKey]).toFixed(4)));
     } else {
       // Trigger rate fetch if needed
       fetchExchangeRates(baseCurrency);
@@ -397,7 +402,7 @@ const CurrencyConverter = () => {
   }
   
   // Calculate current rate for display
-  const currentRate = rates && rates[targetCurrency] ? rates[targetCurrency] : null;
+  const currentRate = rates && rates[targetCurrency.toLowerCase()] ? rates[targetCurrency.toLowerCase()] : null;
   
   return (
     <div className="w-full">
@@ -433,9 +438,9 @@ const CurrencyConverter = () => {
       )}
       
       {/* Currency Converter Form */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-[50]">
         {/* Base Currency Column */}
-        <div className="transition-all duration-300 hover:transform hover:translate-y-[-5px]">
+        <div className="transition-all duration-300 hover:transform hover:translate-y-[-5px] relative z-[30]">
           <div className="mb-3">
             <label htmlFor="baseAmount" className="block text-sm font-medium text-gray-700 mb-1">
               From
@@ -472,7 +477,7 @@ const CurrencyConverter = () => {
         </div>
         
         {/* Target Currency Column */}
-        <div className="transition-all duration-300 hover:transform hover:translate-y-[-5px]">
+        <div className="transition-all duration-300 hover:transform hover:translate-y-[-5px] relative z-[20]">
           <div className="mb-3 relative">
             <div className="flex items-center justify-between mb-1">
               <label htmlFor="targetAmount" className="block text-sm font-medium text-gray-700">
