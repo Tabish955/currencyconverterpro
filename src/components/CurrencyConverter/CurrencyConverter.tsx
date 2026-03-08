@@ -99,14 +99,18 @@ const CurrencyConverter = () => {
         return response.json();
       });
       
-      // Transform symbols into array of currency symbols
+      // Helper to title-case a currency name
+      const titleCase = (str: string) =>
+        str.replace(/\b\w/g, (c) => c.toUpperCase());
+
+      // Transform symbols into array of currency symbols (uppercase codes, title-case names)
       const symbolsArray: CurrencySymbol[] = Object.entries(data).map(([code, name]) => {
-        // Find country code for flag
+        const upperCode = code.toUpperCase();
         const countryCode = getCountryCode(code);
         
         return {
-          code,
-          description: name as string,
+          code: upperCode,
+          description: titleCase((name as string) || code),
           countryCode
         };
       });
@@ -416,8 +420,8 @@ const CurrencyConverter = () => {
       
       {/* Currency Converter Form */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-[50]">
-        {/* Base Currency Column */}
-        <div className="transition-all duration-300 hover:transform hover:translate-y-[-5px] relative z-[30]">
+        {/* Base Currency Column - higher z-index so its dropdown appears above target */}
+        <div className="transition-all duration-300 hover:transform hover:translate-y-[-5px] relative z-[40]">
           <div className="mb-3">
             <label htmlFor="baseAmount" className="block text-sm font-medium text-gray-700 mb-1">
               From
@@ -454,7 +458,7 @@ const CurrencyConverter = () => {
         </div>
         
         {/* Target Currency Column */}
-        <div className="transition-all duration-300 hover:transform hover:translate-y-[-5px] relative z-[20]">
+        <div className="transition-all duration-300 hover:transform hover:translate-y-[-5px] relative z-[10]">
           <div className="mb-3 relative">
             <div className="flex items-center justify-between mb-1">
               <label htmlFor="targetAmount" className="block text-sm font-medium text-gray-700">
