@@ -99,14 +99,18 @@ const CurrencyConverter = () => {
         return response.json();
       });
       
-      // Transform symbols into array of currency symbols
+      // Helper to title-case a currency name
+      const titleCase = (str: string) =>
+        str.replace(/\b\w/g, (c) => c.toUpperCase());
+
+      // Transform symbols into array of currency symbols (uppercase codes, title-case names)
       const symbolsArray: CurrencySymbol[] = Object.entries(data).map(([code, name]) => {
-        // Find country code for flag
+        const upperCode = code.toUpperCase();
         const countryCode = getCountryCode(code);
         
         return {
-          code,
-          description: name as string,
+          code: upperCode,
+          description: titleCase((name as string) || code),
           countryCode
         };
       });
