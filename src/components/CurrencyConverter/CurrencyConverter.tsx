@@ -74,8 +74,8 @@ const CurrencyConverter = () => {
   // State for selected currencies and amounts
   const [baseAmount, setBaseAmount] = useState(1);
   const [targetAmount, setTargetAmount] = useState(0);
-  const [baseCurrency, setBaseCurrency] = useState("USD"); // Default to USD
-  const [targetCurrency, setTargetCurrency] = useState("EUR"); // Default to EUR
+  const [baseCurrency, setBaseCurrency] = useState("KWD"); // Default to KWD
+  const [targetCurrency, setTargetCurrency] = useState("PKR"); // Default to PKR
   
   // Track which field was last changed to prevent ping-pong effect
   const [lastChangedField, setLastChangedField] = useState<"base" | "target">("base");
