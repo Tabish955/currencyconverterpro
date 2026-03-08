@@ -35,31 +35,7 @@ interface RatesResponse {
 const symbolsCache = new CurrencyCache<CurrencySymbol[]>(24 * 60 * 60 * 1000); // 24 hours 
 const ratesCache = new CurrencyCache<Record<string, number>>(5 * 60 * 1000); // 5 minutes
 
-// Comprehensive ISO currency codes to country codes mapping
-const currencyToCountryMap: Record<string, string> = {
-  USD: "us", EUR: "eu", GBP: "gb", JPY: "jp", AUD: "au", CAD: "ca", CHF: "ch", CNY: "cn",
-  INR: "in", PKR: "pk", KWD: "kw", AED: "ae", SAR: "sa", QAR: "qa", BHD: "bh", OMR: "om",
-  EGP: "eg", TRY: "tr", RUB: "ru", NGN: "ng", ZAR: "za", BRL: "br", MXN: "mx", SGD: "sg",
-  NZD: "nz", HKD: "hk", KRW: "kr", IDR: "id", MYR: "my", THB: "th", VND: "vn", PHP: "ph",
-  AFN: "af", DZD: "dz", ARS: "ar", AMD: "am", AWG: "aw", AZN: "az", BSD: "bs", BBD: "bb",
-  BZD: "bz", BMD: "bm", BOB: "bo", BAM: "ba", BWP: "bw", BGN: "bg", BIF: "bi",
-  KHR: "kh", CVE: "cv", XAF: "cm", CLP: "cl", COP: "co", KMF: "km", CDF: "cd", CRC: "cr",
-  HRK: "hr", CZK: "cz", DKK: "dk", DJF: "dj", DOP: "do", XCD: "ag", ETB: "et", FJD: "fj",
-  GMD: "gm", GEL: "ge", GHS: "gh", GTQ: "gt", GNF: "gn", GYD: "gy", HTG: "ht", HNL: "hn",
-  HUF: "hu", ISK: "is", IRR: "ir", IQD: "iq", ILS: "il", JMD: "jm", JOD: "jo", KZT: "kz",
-  KES: "ke", LAK: "la", LBP: "lb", LSL: "ls", LRD: "lr", LYD: "ly", MKD: "mk", MGA: "mg",
-  MWK: "mw", MVR: "mv", MRU: "mr", MUR: "mu", MDL: "md", MNT: "mn", MAD: "ma", MMK: "mm",
-  NAD: "na", NPR: "np", NIO: "ni", XOF: "sn", NOK: "no", PAB: "pa", PGK: "pg", PYG: "py",
-  PEN: "pe", PLN: "pl", RON: "ro", RWF: "rw", SVC: "sv", WST: "ws", STN: "st", RSD: "rs",
-  SLL: "sl", SEK: "se", SOS: "so", SSP: "ss", LKR: "lk", SDG: "sd", SRD: "sr", SZL: "sz",
-  SYP: "sy", TWD: "tw", TZS: "tz", TOP: "to", TTD: "tt", TND: "tn", UGX: "ug", UAH: "ua",
-  UYU: "uy", UZS: "uz", VES: "ve", YER: "ye", ZMW: "zm", XPF: "pf", CUP: "cu", FKP: "fk",
-  GIP: "gi", GGP: "gg", IMP: "im", JEP: "je", KPW: "kp", SHP: "sh",
-  SCR: "sc", SBD: "sb", TVD: "tv", TMT: "tm", TJS: "tj", ANG: "cw", AOA: "ao",
-  BND: "bn", CUC: "cu", ERN: "er", FOK: "fo", KID: "ki", MOP: "mo", SLE: "sl", VUV: "vu",
-  XAU: "un", XAG: "un", XPT: "un", XDR: "un", XTS: "un", XXX: "un", KGS: "kg", ALL: "al",
-  BTN: "bt", BDT: "bd", MZN: "mz", LVL: "lv", LTL: "lt", ZWD: "zw", ZWL: "zw"
-};
+// Country code lookup is now in currencyFlags.ts
 
 const CurrencyConverter = () => {
   // State for currency symbols
