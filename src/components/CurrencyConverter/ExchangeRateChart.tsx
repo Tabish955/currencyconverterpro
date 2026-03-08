@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from "recharts";
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from "recharts";
 import { TrendingUp, TrendingDown, Minus, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { API_ENDPOINTS } from "./ApiUtils";
 
 interface ExchangeRateChartProps {
   baseCurrency: string;
@@ -14,39 +15,86 @@ interface ChartDataPoint {
   rate: number;
 }
 
+interface PeriodChange {
+  label: string;
+  change: number | null;
+}
+
 const ExchangeRateChart = ({ baseCurrency, targetCurrency, currentRate }: ExchangeRateChartProps) => {
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [aiInsight, setAiInsight] = useState<string>("");
   const [isLoadingInsight, setIsLoadingInsight] = useState(false);
+  const [periodChanges, setPeriodChanges] = useState<PeriodChange[]>([]);
 
   useEffect(() => {
     fetchHistoricalData();
-  }, [baseCurrency, targetCurrency]);
+  }, [baseCurrency, targetCurrency, currentRate]);
+
+  const getDateString = (daysAgo: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() - daysAgo);
+    return d.toISOString().split("T")[0];
+  };
+
+  const fetchRateForDate = async (date: string): Promise<number | null> => {
+    try {
+      const url = `https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@${date}/v1/currencies/${baseCurrency.toLowerCase()}.json`;
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      const data = await res.json();
+      const rates = data[baseCurrency.toLowerCase()];
+      return rates?.[targetCurrency.toLowerCase()] ?? null;
+    } catch {
+      return null;
+    }
+  };
 
   const fetchHistoricalData = async () => {
     setIsLoading(true);
     try {
-      // Generate 30 days of mock historical data based on current rate
-      // In production, you would fetch real historical data from an API
-      const data: ChartDataPoint[] = [];
-      const today = new Date();
-      
-      for (let i = 29; i >= 0; i--) {
-        const date = new Date(today);
-        date.setDate(date.getDate() - i);
-        
-        // Generate realistic fluctuation around current rate
-        const fluctuation = (Math.random() - 0.5) * 0.1 * currentRate; // ±5% variation
-        const rate = currentRate + fluctuation;
-        
-        data.push({
-          date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-          rate: parseFloat(rate.toFixed(4))
-        });
+      // Fetch rates for 30 days at key intervals
+      const dates: string[] = [];
+      for (let i = 30; i >= 0; i--) {
+        dates.push(getDateString(i));
       }
-      
+
+      // Fetch all dates in parallel (batched)
+      const ratePromises = dates.map(async (date) => {
+        const rate = await fetchRateForDate(date);
+        return { date, rate };
+      });
+
+      const results = await Promise.all(ratePromises);
+
+      const data: ChartDataPoint[] = results
+        .filter((r) => r.rate !== null)
+        .map((r) => ({
+          date: new Date(r.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+          rate: parseFloat((r.rate as number).toFixed(6)),
+        }));
+
       setChartData(data);
+
+      // Calculate percentage changes for 24h, 7d, 30d
+      const changes: PeriodChange[] = [];
+      const periods = [
+        { label: "24h", days: 1 },
+        { label: "7d", days: 7 },
+        { label: "30d", days: 30 },
+      ];
+
+      for (const period of periods) {
+        const pastRate = await fetchRateForDate(getDateString(period.days));
+        if (pastRate && pastRate > 0) {
+          const change = ((currentRate - pastRate) / pastRate) * 100;
+          changes.push({ label: period.label, change });
+        } else {
+          changes.push({ label: period.label, change: null });
+        }
+      }
+
+      setPeriodChanges(changes);
     } catch (error) {
       console.error("Error fetching historical data:", error);
     } finally {
@@ -58,27 +106,24 @@ const ExchangeRateChart = ({ baseCurrency, targetCurrency, currentRate }: Exchan
     setIsLoadingInsight(true);
     try {
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/currency-insights`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
         body: JSON.stringify({
           baseCurrency,
           targetCurrency,
           currentRate,
-          chartData
-        })
+          chartData,
+          periodChanges,
+        }),
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to get insights');
-      }
-      
+      if (!response.ok) throw new Error("Failed to get insights");
+
       const data = await response.json();
-      if (data?.insight) {
-        setAiInsight(data.insight);
-      }
+      if (data?.insight) setAiInsight(data.insight);
     } catch (error) {
       console.error("Error getting AI insight:", error);
       toast.error("Unable to generate insights. Please try again.");
@@ -98,49 +143,57 @@ const ExchangeRateChart = ({ baseCurrency, targetCurrency, currentRate }: Exchan
     );
   }
 
-  const firstRate = chartData[0]?.rate || currentRate;
-  const lastRate = chartData[chartData.length - 1]?.rate || currentRate;
-  const percentageChange = ((lastRate - firstRate) / firstRate) * 100;
-  const isPositive = percentageChange > 0;
-  const isNeutral = Math.abs(percentageChange) < 0.5;
+  const renderChangeChip = (pc: PeriodChange) => {
+    if (pc.change === null) return null;
+    const isPos = pc.change > 0;
+    const isNeutral = Math.abs(pc.change) < 0.01;
+    return (
+      <div
+        key={pc.label}
+        className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold ${
+          isNeutral
+            ? "bg-gray-100 text-gray-600"
+            : isPos
+            ? "bg-green-50 text-green-700 border border-green-200"
+            : "bg-red-50 text-red-700 border border-red-200"
+        }`}
+      >
+        {isNeutral ? (
+          <Minus className="h-3 w-3" />
+        ) : isPos ? (
+          <TrendingUp className="h-3 w-3" />
+        ) : (
+          <TrendingDown className="h-3 w-3" />
+        )}
+        <span>{pc.label}</span>
+        <span>{isPos ? "+" : ""}{pc.change.toFixed(2)}%</span>
+      </div>
+    );
+  };
 
   return (
     <div className="mt-6 p-6 bg-gradient-to-br from-white to-blue-50/30 rounded-xl shadow-md border border-blue-100">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3">
         <div>
-          <h3 className="text-lg font-semibold text-gray-800 flex items-center">
-            30-Day Trend
-            <span className="ml-2 text-sm font-normal text-gray-500">
-              ({baseCurrency}/{targetCurrency})
-            </span>
+          <h3 className="text-lg font-semibold text-gray-800">
+            {baseCurrency}/{targetCurrency} Exchange Rate
           </h3>
-          <div className="flex items-center mt-1">
-            {isNeutral ? (
-              <Minus className="h-4 w-4 text-gray-500 mr-1" />
-            ) : isPositive ? (
-              <TrendingUp className="h-4 w-4 text-green-600 mr-1" />
-            ) : (
-              <TrendingDown className="h-4 w-4 text-red-600 mr-1" />
-            )}
-            <span className={`text-sm font-medium ${
-              isNeutral ? 'text-gray-600' : isPositive ? 'text-green-600' : 'text-red-600'
-            }`}>
-              {isPositive ? '+' : ''}{percentageChange.toFixed(2)}%
-            </span>
-            <span className="text-xs text-gray-500 ml-2">vs 30 days ago</span>
-          </div>
+          <p className="text-xs text-gray-500 mt-0.5">Last 30 days historical data</p>
         </div>
-        
+
         <button
           onClick={getAiInsight}
           disabled={isLoadingInsight}
           className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <Sparkles className={`h-4 w-4 ${isLoadingInsight ? 'animate-spin' : ''}`} />
-          <span className="text-sm font-medium">
-            {isLoadingInsight ? 'Analyzing...' : 'AI Insights'}
-          </span>
+          <Sparkles className={`h-4 w-4 ${isLoadingInsight ? "animate-spin" : ""}`} />
+          <span className="text-sm font-medium">{isLoadingInsight ? "Analyzing..." : "AI Insights"}</span>
         </button>
+      </div>
+
+      {/* Percentage change chips */}
+      <div className="flex flex-wrap gap-2 mb-4">
+        {periodChanges.map(renderChangeChip)}
       </div>
 
       {aiInsight && (
@@ -152,43 +205,27 @@ const ExchangeRateChart = ({ baseCurrency, targetCurrency, currentRate }: Exchan
         </div>
       )}
 
-      <ResponsiveContainer width="100%" height={200}>
+      <ResponsiveContainer width="100%" height={220}>
         <AreaChart data={chartData}>
           <defs>
             <linearGradient id="colorRate" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-          <XAxis 
-            dataKey="date" 
-            stroke="#6b7280"
-            style={{ fontSize: '12px' }}
-            interval="preserveStartEnd"
-          />
-          <YAxis 
-            stroke="#6b7280"
-            style={{ fontSize: '12px' }}
-            domain={['auto', 'auto']}
-            tickFormatter={(value) => value.toFixed(4)}
-          />
+          <XAxis dataKey="date" stroke="#6b7280" style={{ fontSize: "11px" }} interval="preserveStartEnd" />
+          <YAxis stroke="#6b7280" style={{ fontSize: "11px" }} domain={["auto", "auto"]} tickFormatter={(v) => v.toFixed(4)} />
           <Tooltip
             contentStyle={{
-              backgroundColor: 'rgba(255, 255, 255, 0.95)',
-              border: '1px solid #e5e7eb',
-              borderRadius: '8px',
-              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+              backgroundColor: "rgba(255,255,255,0.95)",
+              border: "1px solid #e5e7eb",
+              borderRadius: "8px",
+              boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
             }}
-            formatter={(value: number) => [value.toFixed(4), 'Rate']}
+            formatter={(value: number) => [value.toFixed(6), "Rate"]}
           />
-          <Area 
-            type="monotone" 
-            dataKey="rate" 
-            stroke="#3b82f6" 
-            strokeWidth={2}
-            fill="url(#colorRate)"
-          />
+          <Area type="monotone" dataKey="rate" stroke="#3b82f6" strokeWidth={2} fill="url(#colorRate)" />
         </AreaChart>
       </ResponsiveContainer>
     </div>
