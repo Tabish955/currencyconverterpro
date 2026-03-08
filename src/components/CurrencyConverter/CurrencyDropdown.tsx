@@ -74,7 +74,7 @@ const CurrencyDropdown = ({
   // Prepare currency data with country codes and aliases
   const enrichedCurrencies = currencies.map(currency => ({
     ...currency,
-    countryCode: currencyToCountryCode[currency.code] || "un", // Fallback to UN flag
+    countryCode: getCountryCode(currency.code),
     aliases: currencyAliases[currency.code] || []
   }));
 
