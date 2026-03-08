@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { CurrencyCache } from "./CurrencyCache";
 import CurrencyDropdown, { CurrencySymbol } from "./CurrencyDropdown";
+import { getCountryCode } from "./currencyFlags";
 import CurrencyInput from "./CurrencyInput";
 import ErrorDisplay from "./ErrorDisplay";
 import LoadingState from "./LoadingState";
