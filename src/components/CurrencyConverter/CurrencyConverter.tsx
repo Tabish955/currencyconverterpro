@@ -215,12 +215,12 @@ const CurrencyConverter = () => {
         // Store in localStorage with timestamp
         const timestamp = new Date();
         saveToCache(localCacheKey, {
-          rates: data.rates,
+          rates: rates,
           timestamp: timestamp.toISOString()
         });
         
         // Update the correct amount based on which field was last changed
-        updateAmounts(data.rates);
+        updateAmounts(rates);
         
         // Set the current time as last updated time
         setLastUpdated(timestamp);
