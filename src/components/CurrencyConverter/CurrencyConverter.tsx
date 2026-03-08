@@ -458,7 +458,7 @@ const CurrencyConverter = () => {
         </div>
         
         {/* Target Currency Column */}
-        <div className="transition-all duration-300 hover:transform hover:translate-y-[-5px] relative z-[20]">
+        <div className="transition-all duration-300 hover:transform hover:translate-y-[-5px] relative z-[10]">
           <div className="mb-3 relative">
             <div className="flex items-center justify-between mb-1">
               <label htmlFor="targetAmount" className="block text-sm font-medium text-gray-700">
