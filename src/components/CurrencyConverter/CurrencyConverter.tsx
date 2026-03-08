@@ -102,7 +102,7 @@ const CurrencyConverter = () => {
       // Transform symbols into array of currency symbols
       const symbolsArray: CurrencySymbol[] = Object.entries(data).map(([code, name]) => {
         // Find country code for flag
-        const countryCode = currencyToCountryMap[code] || code.substring(0, 2).toLowerCase();
+        const countryCode = getCountryCode(code);
         
         return {
           code,
