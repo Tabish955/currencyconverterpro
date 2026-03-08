@@ -54,10 +54,6 @@ const currencyToCountryCode: Record<string, string> = {
 
   // Other / less common
   clf: "cl", cnh: "cn", std: "st", vef: "ve", xcg: "cw",
-
-  // Additional currencies commonly returned by the API
-  top: "to", wst: "ws", sos: "so", mru: "mr", stn: "st",
-  cuc: "cu", cup: "cu", ssp: "ss", sdg: "sd", syp: "sy",
 };
 
 /**
