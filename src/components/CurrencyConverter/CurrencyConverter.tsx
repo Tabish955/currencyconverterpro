@@ -420,8 +420,8 @@ const CurrencyConverter = () => {
       
       {/* Currency Converter Form */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-[50]">
-        {/* Base Currency Column */}
-        <div className="transition-all duration-300 hover:transform hover:translate-y-[-5px] relative z-[30]">
+        {/* Base Currency Column - higher z-index so its dropdown appears above target */}
+        <div className="transition-all duration-300 hover:transform hover:translate-y-[-5px] relative z-[40]">
           <div className="mb-3">
             <label htmlFor="baseAmount" className="block text-sm font-medium text-gray-700 mb-1">
               From
