@@ -4,6 +4,7 @@ import { ChevronDown, ChevronUp, Search } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import Fuse from 'fuse.js';
 import 'flag-icons/css/flag-icons.min.css';
+import { getCountryCode } from "./currencyFlags";
 
 export interface CurrencySymbol {
   code: string;
@@ -20,68 +21,20 @@ interface CurrencyDropdownProps {
   disabled?: boolean;
 }
 
-// Enhanced Currency to Country Code mapping (ISO 4217 to ISO 3166-1)
-// Comprehensive mapping to ensure ALL currencies have proper flags
-const currencyToCountryCode: Record<string, string> = {
-  // Major Currencies
-  USD: "us", EUR: "eu", GBP: "gb", JPY: "jp", AUD: "au", CAD: "ca", CHF: "ch", CNY: "cn",
-  // Asia
-  INR: "in", PKR: "pk", KWD: "kw", AED: "ae", SAR: "sa", QAR: "qa", BHD: "bh", OMR: "om",
-  EGP: "eg", TRY: "tr", SGD: "sg", HKD: "hk", KRW: "kr", IDR: "id", MYR: "my", THB: "th",
-  VND: "vn", PHP: "ph", AFN: "af", AMD: "am", AZN: "az", BDT: "bd", BTN: "bt", KHR: "kh",
-  IRR: "ir", IQD: "iq", ILS: "il", JOD: "jo", KZT: "kz", KGS: "kg", LAK: "la",
-  LBP: "lb", MVR: "mv", MNT: "mn", MMK: "mm", NPR: "np", KPW: "kp", LKR: "lk", SYP: "sy",
-  TWD: "tw", TJS: "tj", TMT: "tm", UZS: "uz", YER: "ye", BND: "bn", MOP: "mo",
-  // Africa
-  NGN: "ng", ZAR: "za", DZD: "dz", AOA: "ao", BIF: "bi", BWP: "bw", CVE: "cv", XAF: "cm",
-  KMF: "km", CDF: "cd", DJF: "dj", ERN: "er", ETB: "et", GMD: "gm", GHS: "gh", GNF: "gn",
-  KES: "ke", LSL: "ls", LRD: "lr", LYD: "ly", MGA: "mg", MWK: "mw", MRU: "mr", MUR: "mu",
-  MAD: "ma", MZN: "mz", NAD: "na", RWF: "rw", STN: "st", SCR: "sc", SLL: "sl", SLE: "sl",
-  SOS: "so", SSP: "ss", SDG: "sd", SZL: "sz", TZS: "tz", TND: "tn", UGX: "ug", ZMW: "zm",
-  ZWL: "zw", ZWD: "zw", XOF: "sn",
-  // Europe
-  ALL: "al", BAM: "ba", BGN: "bg", HRK: "hr", CZK: "cz", DKK: "dk", GEL: "ge", HUF: "hu",
-  ISK: "is", MDL: "md", MKD: "mk", NOK: "no", PLN: "pl", RON: "ro", RUB: "ru", RSD: "rs",
-  SEK: "se", UAH: "ua", BYN: "by", GGP: "gg", IMP: "im", JEP: "je", LVL: "lv", LTL: "lt",
-  // Americas
-  ARS: "ar", BRL: "br", MXN: "mx", ANG: "cw", AWG: "aw", BSD: "bs", BBD: "bb", BZD: "bz",
-  BMD: "bm", BOB: "bo", CLP: "cl", COP: "co", CRC: "cr", CUP: "cu", CUC: "cu", DOP: "do",
-  XCD: "ag", FKP: "fk", GYD: "gy", HTG: "ht", HNL: "hn", JMD: "jm", NIO: "ni", PAB: "pa",
-  PYG: "py", PEN: "pe", SRD: "sr", TTD: "tt", UYU: "uy", VES: "ve",
-  // Oceania
-  NZD: "nz", FJD: "fj", PGK: "pg", SBD: "sb", TOP: "to", VUV: "vu", WST: "ws", TVD: "tv",
-  KID: "ki", XPF: "pf",
-  // Europe Additional
-  GIP: "gi", FOK: "fo", SHP: "sh",
-  // Cryptocurrencies & Special
-  BTC: "un", ETH: "un", LTC: "un", XRP: "un", BCH: "un", DOGE: "un",
-  // Precious Metals
-  XAU: "un", XAG: "un", XPT: "un", XPD: "un",
-  // Special Drawing Rights
-  XDR: "un", XTS: "un", XXX: "un",
-  // Additional
-  CLF: "cl", CNH: "cn", STD: "st", SVC: "sv", VEF: "ve", ZWG: "zw",
-  CYP: "cy", EEK: "ee", SKK: "sk", SIT: "si", MTL: "mt", ADP: "ad",
-  ATS: "at", BEF: "be", DEM: "de", ESP: "es", FIM: "fi", FRF: "fr",
-  GRD: "gr", IEP: "ie", ITL: "it", LUF: "lu", NLG: "nl", PTE: "pt",
-  // Caribbean & Others  
-  KYD: "ky", XCG: "cw"
-};
-
-// Currency aliases for improved search
+// Currency aliases for improved fuzzy search
 const currencyAliases: Record<string, string[]> = {
-  USD: ["dollar", "us dollar", "american dollar", "america", "united states", "usa", "us", "united states dollar"],
-  EUR: ["euro", "europe", "european", "eurozone", "european union", "eu"],
-  GBP: ["pound", "british pound", "sterling", "uk", "united kingdom", "britain", "great britain", "england"],
+  USD: ["dollar", "us dollar", "american dollar", "america", "united states", "usa"],
+  EUR: ["euro", "europe", "european", "eurozone"],
+  GBP: ["pound", "british pound", "sterling", "uk", "united kingdom", "england"],
   JPY: ["yen", "japanese yen", "japan"],
   INR: ["indian rupee", "india", "rupee"],
   PKR: ["pakistani rupee", "pakistan"],
   KWD: ["kuwaiti dinar", "kuwait", "dinar"],
-  AED: ["dirham", "emirati dirham", "uae", "united arab emirates", "dubai", "abu dhabi"],
+  AED: ["dirham", "emirati dirham", "uae", "dubai"],
   SAR: ["saudi riyal", "saudi arabia", "riyal"],
   CAD: ["canadian dollar", "canada"],
   AUD: ["australian dollar", "australia"],
-  NZD: ["new zealand dollar", "new zealand", "kiwi"],
+  NZD: ["new zealand dollar", "new zealand"],
   CHF: ["swiss franc", "switzerland"],
   CNY: ["chinese yuan", "china", "renminbi"],
   HKD: ["hong kong dollar", "hong kong"],
@@ -97,15 +50,11 @@ const currencyAliases: Record<string, string[]> = {
   TRY: ["turkish lira", "turkey"],
   KRW: ["korean won", "south korea", "korea"],
   TWD: ["taiwan dollar", "taiwan"],
-  ANG: ["netherlands antillean guilder", "netherlands antilles", "curacao", "sint maarten"],
-  AOA: ["angolan kwanza", "angola"],
-  BND: ["brunei dollar", "brunei"],
-  CUC: ["cuban convertible peso", "cuba"],
-  ERN: ["eritrean nakfa", "eritrea"],
-  FOK: ["faroese króna", "faroe islands"],
-  KID: ["kiribati dollar", "kiribati"],
-  MOP: ["macanese pataca", "macau"],
-  SLE: ["sierra leonean leone", "sierra leone"]
+  NGN: ["naira", "nigeria"],
+  EGP: ["egyptian pound", "egypt"],
+  BDT: ["taka", "bangladesh"],
+  VND: ["dong", "vietnam"],
+  KES: ["shilling", "kenya"],
 };
 
 const CurrencyDropdown = ({
