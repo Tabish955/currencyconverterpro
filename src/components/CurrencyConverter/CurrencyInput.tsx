@@ -1,5 +1,6 @@
-
 import React, { useState, useRef, useEffect } from "react";
+import 'flag-icons/css/flag-icons.min.css';
+import { getCountryCode } from "./currencyFlags";
 
 interface CurrencyInputProps {
   id: string;
@@ -9,85 +10,52 @@ interface CurrencyInputProps {
   disabled?: boolean;
 }
 
-const CurrencyInput = ({
-  id,
-  value,
-  onChange,
-  currencyCode,
-  disabled = false,
-}: CurrencyInputProps) => {
-  // Local state for input display value
+const CurrencyInput = ({ id, value, onChange, currencyCode, disabled = false }: CurrencyInputProps) => {
   const [inputValue, setInputValue] = useState(value.toString());
-  // Reference to the input element to maintain focus
   const inputRef = useRef<HTMLInputElement>(null);
-  // To track if the input is focused
   const [isFocused, setIsFocused] = useState(false);
-  
-  // Update local state when value prop changes
+
   useEffect(() => {
-    // Only update if the input is not focused to prevent cursor jumping
-    if (!isFocused) {
-      setInputValue(value.toString());
-    }
+    if (!isFocused) setInputValue(value.toString());
   }, [value, isFocused]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
-    
-    // Allow empty string for backspacing
-    if (newValue === "") {
-      setInputValue("");
-      onChange(0);
-      return;
-    }
-    
-    // Only allow numbers and a single decimal point
+    if (newValue === "") { setInputValue(""); onChange(0); return; }
     const regex = /^[0-9]*\.?[0-9]*$/;
     if (regex.test(newValue)) {
       setInputValue(newValue);
-      
-      // Convert to number and call onChange if valid
       const numericValue = parseFloat(newValue);
-      if (!isNaN(numericValue)) {
-        onChange(numericValue);
-      }
+      if (!isNaN(numericValue)) onChange(numericValue);
     }
   };
 
-  // Handle focus events
-  const handleFocus = () => {
-    setIsFocused(true);
-  };
-  
+  const handleFocus = () => setIsFocused(true);
   const handleBlur = () => {
     setIsFocused(false);
-    
-    // Format the value on blur to ensure it displays properly
-    if (inputValue === "") {
-      setInputValue("0");
-      onChange(0);
-    } else {
-      // Ensure the displayed value matches the actual value
-      setInputValue(parseFloat(inputValue).toString());
-    }
+    if (inputValue === "") { setInputValue("0"); onChange(0); }
+    else setInputValue(parseFloat(inputValue).toString());
   };
 
-  // Focus the input element if there's a click on the container
-  const handleContainerClick = () => {
-    if (inputRef.current && !disabled) {
-      inputRef.current.focus();
-    }
-  };
+  const countryCode = getCountryCode(currencyCode);
 
   return (
-    <div 
-      className={`relative rounded-md shadow-sm transition-all duration-300 ${
-        isFocused ? "ring-2 ring-blue-300" : ""
-      }`}
-      onClick={handleContainerClick}
+    <div
+      className="relative rounded-xl transition-all duration-300"
+      style={{
+        boxShadow: isFocused ? '0 0 0 3px hsl(var(--converter-accent) / 0.15)' : 'none',
+      }}
+      onClick={() => inputRef.current && !disabled && inputRef.current.focus()}
     >
-      <div className="absolute inset-y-0 left-0 flex items-center pl-3">
-        <span className="text-gray-500 sm:text-sm">{currencyCode}</span>
+      <div className="absolute inset-y-0 left-0 flex items-center pl-3.5 gap-2 pointer-events-none">
+        <span
+          className={`fi fi-${countryCode} rounded-sm`}
+          style={{ width: '1.2em', height: '0.9em', display: 'inline-block' }}
+          aria-hidden="true"
+        />
+        <span className="text-xs font-bold" style={{ color: 'hsl(var(--converter-text-muted))' }}>
+          {currencyCode}
+        </span>
       </div>
       <input
         ref={inputRef}
@@ -98,18 +66,15 @@ const CurrencyInput = ({
         onFocus={handleFocus}
         onBlur={handleBlur}
         disabled={disabled}
-        className={`
-          block w-full pl-16 pr-3 py-3 rounded-md 
-          border-gray-300 border focus:outline-none
-          bg-white placeholder-gray-400 
-          text-gray-900 font-medium text-lg
-          transition-all duration-200
-          currency-input
-          ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-text hover:border-gray-400"}
-          ${isFocused ? "border-blue-400 shadow-blue-100" : ""}
-        `}
+        className={`block w-full pl-20 pr-4 py-3.5 rounded-xl border text-right font-semibold text-lg outline-none transition-all duration-200 ${
+          disabled ? "opacity-50 cursor-not-allowed" : "cursor-text"
+        }`}
+        style={{
+          background: 'hsl(var(--converter-input-bg))',
+          borderColor: isFocused ? 'hsl(var(--converter-accent) / 0.5)' : 'hsl(var(--converter-border))',
+          color: 'hsl(var(--converter-text))',
+        }}
         placeholder="0"
-        aria-describedby={`${id}-currency`}
       />
     </div>
   );

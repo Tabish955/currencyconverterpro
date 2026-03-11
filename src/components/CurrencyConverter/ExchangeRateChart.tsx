@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from "recharts";
 import { TrendingUp, TrendingDown, Minus, Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import { API_ENDPOINTS } from "./ApiUtils";
 
 interface ExchangeRateChartProps {
   baseCurrency: string;
@@ -53,19 +52,15 @@ const ExchangeRateChart = ({ baseCurrency, targetCurrency, currentRate }: Exchan
   const fetchHistoricalData = async () => {
     setIsLoading(true);
     try {
-      // Fetch rates for 30 days at key intervals
       const dates: string[] = [];
-      for (let i = 30; i >= 0; i--) {
-        dates.push(getDateString(i));
-      }
+      for (let i = 30; i >= 0; i--) dates.push(getDateString(i));
 
-      // Fetch all dates in parallel (batched)
-      const ratePromises = dates.map(async (date) => {
-        const rate = await fetchRateForDate(date);
-        return { date, rate };
-      });
-
-      const results = await Promise.all(ratePromises);
+      const results = await Promise.all(
+        dates.map(async (date) => {
+          const rate = await fetchRateForDate(date);
+          return { date, rate };
+        })
+      );
 
       const data: ChartDataPoint[] = results
         .filter((r) => r.rate !== null)
@@ -76,7 +71,6 @@ const ExchangeRateChart = ({ baseCurrency, targetCurrency, currentRate }: Exchan
 
       setChartData(data);
 
-      // Calculate percentage changes for 24h, 7d, 30d
       const changes: PeriodChange[] = [];
       const periods = [
         { label: "24h", days: 1 },
@@ -93,7 +87,6 @@ const ExchangeRateChart = ({ baseCurrency, targetCurrency, currentRate }: Exchan
           changes.push({ label: period.label, change: null });
         }
       }
-
       setPeriodChanges(changes);
     } catch (error) {
       console.error("Error fetching historical data:", error);
@@ -111,22 +104,14 @@ const ExchangeRateChart = ({ baseCurrency, targetCurrency, currentRate }: Exchan
           "Content-Type": "application/json",
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
-        body: JSON.stringify({
-          baseCurrency,
-          targetCurrency,
-          currentRate,
-          chartData,
-          periodChanges,
-        }),
+        body: JSON.stringify({ baseCurrency, targetCurrency, currentRate, chartData, periodChanges }),
       });
-
       if (!response.ok) throw new Error("Failed to get insights");
-
       const data = await response.json();
       if (data?.insight) setAiInsight(data.insight);
     } catch (error) {
       console.error("Error getting AI insight:", error);
-      toast.error("Unable to generate insights. Please try again.");
+      toast.error("Unable to generate insights.");
     } finally {
       setIsLoadingInsight(false);
     }
@@ -134,10 +119,13 @@ const ExchangeRateChart = ({ baseCurrency, targetCurrency, currentRate }: Exchan
 
   if (isLoading) {
     return (
-      <div className="mt-6 p-6 bg-white rounded-lg shadow-sm border border-gray-200">
+      <div className="mt-6 p-6 rounded-xl border" style={{
+        background: 'hsl(var(--converter-card) / 0.5)',
+        borderColor: 'hsl(var(--converter-border) / 0.5)',
+      }}>
         <div className="animate-pulse">
-          <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
-          <div className="h-48 bg-gray-100 rounded"></div>
+          <div className="h-4 rounded w-1/4 mb-4" style={{ background: 'hsl(var(--converter-border))' }} />
+          <div className="h-48 rounded" style={{ background: 'hsl(var(--converter-input-bg))' }} />
         </div>
       </div>
     );
@@ -148,23 +136,27 @@ const ExchangeRateChart = ({ baseCurrency, targetCurrency, currentRate }: Exchan
     const isPos = pc.change > 0;
     const isNeutral = Math.abs(pc.change) < 0.01;
     return (
-      <div
-        key={pc.label}
-        className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold ${
-          isNeutral
-            ? "bg-gray-100 text-gray-600"
+      <div key={pc.label}
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border"
+        style={{
+          background: isNeutral
+            ? 'hsl(var(--converter-card-hover))'
             : isPos
-            ? "bg-green-50 text-green-700 border border-green-200"
-            : "bg-red-50 text-red-700 border border-red-200"
-        }`}
+            ? 'hsl(142 76% 36% / 0.1)'
+            : 'hsl(0 84% 60% / 0.1)',
+          borderColor: isNeutral
+            ? 'hsl(var(--converter-border))'
+            : isPos
+            ? 'hsl(142 76% 36% / 0.25)'
+            : 'hsl(0 84% 60% / 0.25)',
+          color: isNeutral
+            ? 'hsl(var(--converter-text-muted))'
+            : isPos
+            ? 'hsl(142 76% 50%)'
+            : 'hsl(0 84% 65%)',
+        }}
       >
-        {isNeutral ? (
-          <Minus className="h-3 w-3" />
-        ) : isPos ? (
-          <TrendingUp className="h-3 w-3" />
-        ) : (
-          <TrendingDown className="h-3 w-3" />
-        )}
+        {isNeutral ? <Minus className="h-3 w-3" /> : isPos ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
         <span>{pc.label}</span>
         <span>{isPos ? "+" : ""}{pc.change.toFixed(2)}%</span>
       </div>
@@ -172,35 +164,47 @@ const ExchangeRateChart = ({ baseCurrency, targetCurrency, currentRate }: Exchan
   };
 
   return (
-    <div className="mt-6 p-6 bg-gradient-to-br from-white to-blue-50/30 rounded-xl shadow-md border border-blue-100">
+    <div className="mt-6 rounded-xl border p-6"
+      style={{
+        background: 'hsl(var(--converter-card) / 0.5)',
+        borderColor: 'hsl(var(--converter-border) / 0.5)',
+      }}
+    >
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3">
         <div>
-          <h3 className="text-lg font-semibold text-gray-800">
-            {baseCurrency}/{targetCurrency} Exchange Rate
+          <h3 className="text-base font-bold" style={{ color: 'hsl(var(--converter-text))' }}>
+            {baseCurrency}/{targetCurrency} Trend
           </h3>
-          <p className="text-xs text-gray-500 mt-0.5">Last 30 days historical data</p>
+          <p className="text-xs mt-0.5" style={{ color: 'hsl(var(--converter-text-muted))' }}>30-day historical data</p>
         </div>
-
-        <button
-          onClick={getAiInsight}
-          disabled={isLoadingInsight}
-          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+        <button onClick={getAiInsight} disabled={isLoadingInsight}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all hover:scale-105 disabled:opacity-50 border"
+          style={{
+            background: 'linear-gradient(135deg, hsl(262 83% 58% / 0.15), hsl(234 89% 64% / 0.15))',
+            borderColor: 'hsl(262 83% 58% / 0.3)',
+            color: 'hsl(262 83% 72%)',
+          }}
         >
           <Sparkles className={`h-4 w-4 ${isLoadingInsight ? "animate-spin" : ""}`} />
-          <span className="text-sm font-medium">{isLoadingInsight ? "Analyzing..." : "AI Insights"}</span>
+          {isLoadingInsight ? "Analyzing..." : "AI Insights"}
         </button>
       </div>
 
-      {/* Percentage change chips */}
+      {/* Change chips */}
       <div className="flex flex-wrap gap-2 mb-4">
         {periodChanges.map(renderChangeChip)}
       </div>
 
       {aiInsight && (
-        <div className="mb-4 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-lg animate-fade-in">
-          <div className="flex items-start">
-            <Sparkles className="h-5 w-5 text-purple-600 mr-2 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-gray-700 leading-relaxed">{aiInsight}</p>
+        <div className="mb-4 p-4 rounded-xl border animate-fade-in"
+          style={{
+            background: 'hsl(262 83% 58% / 0.06)',
+            borderColor: 'hsl(262 83% 58% / 0.2)',
+          }}
+        >
+          <div className="flex items-start gap-2">
+            <Sparkles className="h-4 w-4 flex-shrink-0 mt-0.5" style={{ color: 'hsl(262 83% 68%)' }} />
+            <p className="text-sm leading-relaxed" style={{ color: 'hsl(var(--converter-text))' }}>{aiInsight}</p>
           </div>
         </div>
       )}
@@ -209,23 +213,24 @@ const ExchangeRateChart = ({ baseCurrency, targetCurrency, currentRate }: Exchan
         <AreaChart data={chartData}>
           <defs>
             <linearGradient id="colorRate" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+              <stop offset="5%" stopColor="hsl(234, 89%, 64%)" stopOpacity={0.3} />
+              <stop offset="95%" stopColor="hsl(234, 89%, 64%)" stopOpacity={0} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-          <XAxis dataKey="date" stroke="#6b7280" style={{ fontSize: "11px" }} interval="preserveStartEnd" />
-          <YAxis stroke="#6b7280" style={{ fontSize: "11px" }} domain={["auto", "auto"]} tickFormatter={(v) => v.toFixed(4)} />
+          <CartesianGrid strokeDasharray="3 3" stroke="hsl(230, 15%, 20%)" />
+          <XAxis dataKey="date" stroke="hsl(220, 12%, 45%)" style={{ fontSize: "11px" }} interval="preserveStartEnd" />
+          <YAxis stroke="hsl(220, 12%, 45%)" style={{ fontSize: "11px" }} domain={["auto", "auto"]} tickFormatter={(v) => v.toFixed(4)} />
           <Tooltip
             contentStyle={{
-              backgroundColor: "rgba(255,255,255,0.95)",
-              border: "1px solid #e5e7eb",
+              backgroundColor: "hsl(230, 20%, 14%)",
+              border: "1px solid hsl(230, 15%, 25%)",
               borderRadius: "8px",
-              boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
+              color: "hsl(220, 20%, 95%)",
+              boxShadow: "0 10px 30px -5px rgba(0,0,0,0.5)",
             }}
             formatter={(value: number) => [value.toFixed(6), "Rate"]}
           />
-          <Area type="monotone" dataKey="rate" stroke="#3b82f6" strokeWidth={2} fill="url(#colorRate)" />
+          <Area type="monotone" dataKey="rate" stroke="hsl(234, 89%, 64%)" strokeWidth={2} fill="url(#colorRate)" />
         </AreaChart>
       </ResponsiveContainer>
     </div>

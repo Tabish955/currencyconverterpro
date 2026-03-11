@@ -46,15 +46,33 @@ const currencyToCountryCode: Record<string, string> = {
   grd: "gr", iep: "ie", itl: "it", luf: "lu", nlg: "nl", pte: "pt",
   lvl: "lv", ltl: "lt",
 
-  // Precious metals & special (globe/UN flag)
-  xau: "un", xag: "un", xpt: "un", xpd: "un", xdr: "un", xts: "un", xxx: "un",
-
-  // Crypto (globe flag)
-  btc: "un", eth: "un", ltc: "un", xrp: "un", bch: "un", doge: "un",
-
-  // Other / less common
+  // Other less common fiat
   clf: "cl", cnh: "cn", std: "st", vef: "ve", xcg: "cw",
 };
+
+/**
+ * Non-ISO-4217 fiat codes to exclude (crypto, metals, test codes, SDR)
+ */
+export const NON_FIAT_CODES = new Set([
+  // Crypto
+  "btc", "eth", "ltc", "xrp", "bch", "doge", "bnb", "ada", "sol", "dot",
+  "avax", "matic", "link", "uni", "atom", "xlm", "algo", "xmr", "trx",
+  "dai", "usdt", "usdc", "busd", "shib", "fil", "icp", "eos", "aave",
+  "cake", "theta", "ftm", "hbar", "mana", "sand", "axs", "grt", "snx",
+  "comp", "mkr", "yfi", "sushi", "crv", "enj", "bat", "zec", "dash",
+  "neo", "qtum", "zil", "iost", "ont", "vet", "icx", "waves",
+  // Precious metals
+  "xau", "xag", "xpt", "xpd",
+  // IMF / test / supranational
+  "xdr", "xts", "xxx",
+]);
+
+/**
+ * Check if a currency code is a fiat ISO-4217 currency
+ */
+export function isFiatCurrency(code: string): boolean {
+  return !NON_FIAT_CODES.has(code.toLowerCase());
+}
 
 /**
  * Get the country code for a given currency code (case-insensitive).
@@ -65,12 +83,12 @@ export function getCountryCode(currencyCode: string): string {
   if (currencyToCountryCode[lower]) {
     return currencyToCountryCode[lower];
   }
-  // Fallback: try first 2 chars as country code (works for many currencies like SGD->sg, etc.)
+  // Fallback: try first 2 chars as country code
   const guess = lower.substring(0, 2);
   if (/^[a-z]{2}$/.test(guess)) {
     return guess;
   }
-  return "un"; // UN flag as ultimate fallback
+  return "un";
 }
 
 export default currencyToCountryCode;
