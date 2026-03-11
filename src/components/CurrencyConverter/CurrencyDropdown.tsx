@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { ChevronDown, ChevronUp, Search } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -21,7 +20,6 @@ interface CurrencyDropdownProps {
   disabled?: boolean;
 }
 
-// Currency aliases for improved fuzzy search
 const currencyAliases: Record<string, string[]> = {
   USD: ["dollar", "us dollar", "american dollar", "america", "united states", "usa"],
   EUR: ["euro", "europe", "european", "eurozone"],
@@ -55,15 +53,13 @@ const currencyAliases: Record<string, string[]> = {
   BDT: ["taka", "bangladesh"],
   VND: ["dong", "vietnam"],
   KES: ["shilling", "kenya"],
+  QAR: ["qatari riyal", "qatar"],
+  BHD: ["bahraini dinar", "bahrain"],
+  OMR: ["omani rial", "oman"],
+  JOD: ["jordanian dinar", "jordan"],
 };
 
-const CurrencyDropdown = ({
-  id,
-  value,
-  onChange,
-  currencies,
-  disabled = false,
-}: CurrencyDropdownProps) => {
+const CurrencyDropdown = ({ id, value, onChange, currencies, disabled = false }: CurrencyDropdownProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [highlightedIndex, setHighlightedIndex] = useState(0);
@@ -71,16 +67,14 @@ const CurrencyDropdown = ({
   const searchInputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
 
-  // Prepare currency data with country codes and aliases
   const enrichedCurrencies = currencies.map(currency => ({
     ...currency,
     countryCode: getCountryCode(currency.code),
     aliases: currencyAliases[currency.code] || []
   }));
 
-  // Setup Fuse.js for fuzzy search
   const fuseRef = useRef<Fuse<CurrencySymbol>>();
-  
+
   useEffect(() => {
     fuseRef.current = new Fuse(enrichedCurrencies, {
       keys: ['code', 'description', 'aliases'],
@@ -89,24 +83,16 @@ const CurrencyDropdown = ({
     });
   }, [currencies]);
 
-  // Handle outside clicks to close dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Focus search input when dropdown opens
   useEffect(() => {
     if (isOpen && searchInputRef.current) {
       searchInputRef.current.focus();
@@ -114,17 +100,14 @@ const CurrencyDropdown = ({
     }
   }, [isOpen]);
 
-  // Get the selected currency details
   const selectedCurrency = enrichedCurrencies.find((c) => c.code === value);
 
-  // Filter currencies based on search term using Fuse.js
-  const filteredCurrencies = searchTerm.trim() === "" 
-    ? enrichedCurrencies 
-    : fuseRef.current 
+  const filteredCurrencies = searchTerm.trim() === ""
+    ? enrichedCurrencies
+    : fuseRef.current
       ? fuseRef.current.search(searchTerm).map(result => result.item)
       : enrichedCurrencies;
 
-  // Handle keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (!isOpen) {
       if (e.key === "Enter" || e.key === " " || e.key === "ArrowDown") {
@@ -133,21 +116,16 @@ const CurrencyDropdown = ({
       }
       return;
     }
-
     switch (e.key) {
-      case "Escape":
-        setIsOpen(false);
-        break;
+      case "Escape": setIsOpen(false); break;
       case "ArrowDown":
         e.preventDefault();
-        setHighlightedIndex((prevIndex) =>
-          Math.min(prevIndex + 1, filteredCurrencies.length - 1)
-        );
+        setHighlightedIndex(prev => Math.min(prev + 1, filteredCurrencies.length - 1));
         scrollToHighlighted();
         break;
       case "ArrowUp":
         e.preventDefault();
-        setHighlightedIndex((prevIndex) => Math.max(prevIndex - 1, 0));
+        setHighlightedIndex(prev => Math.max(prev - 1, 0));
         scrollToHighlighted();
         break;
       case "Enter":
@@ -158,18 +136,13 @@ const CurrencyDropdown = ({
           setSearchTerm("");
         }
         break;
-      case "Tab":
-        setIsOpen(false);
-        break;
+      case "Tab": setIsOpen(false); break;
     }
   };
 
-  // Scroll to highlighted item
   const scrollToHighlighted = () => {
     if (listRef.current && listRef.current.children[highlightedIndex]) {
-      listRef.current.children[highlightedIndex].scrollIntoView({
-        block: "nearest",
-      });
+      listRef.current.children[highlightedIndex].scrollIntoView({ block: "nearest" });
     }
   };
 
@@ -177,9 +150,15 @@ const CurrencyDropdown = ({
     <div className="relative inline-block w-full" ref={dropdownRef}>
       <button
         id={id}
-        className={`w-full flex items-center justify-between py-3.5 px-4 border-2 border-gray-300 rounded-lg bg-white text-left shadow-md hover:shadow-xl transition-all duration-300 relative z-10 ${
-          disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:border-blue-400 hover:-translate-y-0.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        className={`w-full flex items-center justify-between py-3 px-4 rounded-xl border text-left transition-all duration-300 relative z-10 ${
+          disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:scale-[1.01]"
         }`}
+        style={{
+          background: 'hsl(var(--converter-input-bg))',
+          borderColor: isOpen ? 'hsl(var(--converter-accent) / 0.5)' : 'hsl(var(--converter-border))',
+          color: 'hsl(var(--converter-text))',
+          boxShadow: isOpen ? '0 0 0 3px hsl(var(--converter-accent) / 0.1)' : 'none',
+        }}
         onClick={() => !disabled && setIsOpen(!isOpen)}
         onKeyDown={handleKeyDown}
         aria-haspopup="listbox"
@@ -188,107 +167,118 @@ const CurrencyDropdown = ({
       >
         <span className="truncate font-medium flex items-center">
           {selectedCurrency ? (
-            <span className="flex items-center">
+            <span className="flex items-center gap-2.5">
               {selectedCurrency.countryCode && (
-                <span 
-                  className={`fi fi-${selectedCurrency.countryCode} mr-2`} 
-                  style={{ width: '1.2em', height: '1em' }}
+                <span
+                  className={`fi fi-${selectedCurrency.countryCode} rounded-sm shadow-sm`}
+                  style={{ width: '1.4em', height: '1.1em', display: 'inline-block' }}
                   aria-hidden="true"
-                ></span>
+                />
               )}
               <span className="font-bold">{selectedCurrency.code}</span>
-              <span className="text-gray-500 ml-2">({selectedCurrency.description})</span>
+              <span style={{ color: 'hsl(var(--converter-text-muted))' }} className="text-sm hidden sm:inline">
+                {selectedCurrency.description}
+              </span>
             </span>
           ) : (
             "Select currency"
           )}
         </span>
         {isOpen ? (
-          <ChevronUp className="h-4 w-4 text-gray-500 flex-shrink-0" />
+          <ChevronUp className="h-4 w-4 flex-shrink-0" style={{ color: 'hsl(var(--converter-text-muted))' }} />
         ) : (
-          <ChevronDown className="h-4 w-4 text-gray-500 flex-shrink-0" />
+          <ChevronDown className="h-4 w-4 flex-shrink-0" style={{ color: 'hsl(var(--converter-text-muted))' }} />
         )}
       </button>
 
       {isOpen && (
-        <div 
-          className="absolute z-[9999] mt-2 w-full md:w-[450px] bg-white border-2 border-blue-200 rounded-xl shadow-2xl animate-fade-in"
-          style={{ 
-            animation: 'fade-in 0.2s ease-out',
-            transformOrigin: 'top center'
+        <div
+          className="absolute z-[9999] mt-2 w-full md:w-[420px] rounded-xl border overflow-hidden animate-fade-in"
+          style={{
+            background: 'hsl(var(--converter-card))',
+            borderColor: 'hsl(var(--converter-accent) / 0.2)',
+            boxShadow: '0 20px 50px -10px hsl(234 89% 20% / 0.5), 0 0 0 1px hsl(var(--converter-border) / 0.3)',
           }}
         >
-          <div className="sticky top-0 bg-gradient-to-r from-blue-50 to-indigo-50 p-3 border-b-2 border-blue-100 z-10 rounded-t-xl">
+          {/* Search */}
+          <div className="p-3 border-b" style={{ borderColor: 'hsl(var(--converter-border) / 0.5)' }}>
             <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-blue-500" />
+              <Search className="absolute left-3 top-2.5 h-4 w-4" style={{ color: 'hsl(var(--converter-accent))' }} />
               <input
                 ref={searchInputRef}
                 type="text"
-                className="w-full pl-10 pr-4 py-2.5 border-2 border-blue-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white shadow-sm"
-                placeholder="Search currencies, countries, or codes..."
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  setHighlightedIndex(0);
+                className="w-full pl-10 pr-4 py-2 rounded-lg text-sm outline-none transition-all border"
+                style={{
+                  background: 'hsl(var(--converter-input-bg))',
+                  borderColor: 'hsl(var(--converter-border))',
+                  color: 'hsl(var(--converter-text))',
                 }}
+                placeholder="Search currency, country, or code..."
+                value={searchTerm}
+                onChange={(e) => { setSearchTerm(e.target.value); setHighlightedIndex(0); }}
                 onKeyDown={handleKeyDown}
-                aria-controls="currency-list"
               />
             </div>
           </div>
 
-          <ScrollArea className="h-80">
-            <ul 
-              id="currency-list"
-              ref={listRef}
-              className="py-1" 
-              role="listbox"
-              tabIndex={-1}
-            >
+          <ScrollArea className="h-72 converter-scrollbar">
+            <ul ref={listRef} className="py-1" role="listbox" tabIndex={-1}>
               {filteredCurrencies.length > 0 ? (
-                filteredCurrencies.map((currency, index) => (
-                  <li
-                    key={currency.code}
-                    className={`px-4 py-3 cursor-pointer transition-all duration-200 border-b border-gray-100 last:border-b-0 ${
-                      currency.code === value 
-                        ? "bg-gradient-to-r from-blue-100 to-indigo-100 border-l-4 border-l-blue-500" 
-                        : "hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50"
-                    } ${index === highlightedIndex ? "bg-blue-50" : ""}`}
-                    onClick={() => {
-                      onChange(currency.code);
-                      setIsOpen(false);
-                      setSearchTerm("");
-                    }}
-                    role="option"
-                    aria-selected={currency.code === value}
-                  >
-                    <div className="flex items-center space-x-3">
-                      {currency.countryCode && (
-                        <span 
-                          className={`fi fi-${currency.countryCode} flex-shrink-0 rounded shadow-sm`}
-                          style={{ width: '1.5em', height: '1.2em' }}
-                          aria-hidden="true"
-                        ></span>
-                      )}
-                      <div className="flex flex-col min-w-0 flex-1">
-                        <div className="flex items-center space-x-2">
-                          <span className="font-bold text-gray-800 text-base">{currency.code}</span>
-                          {currency.code === value && (
-                            <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full">Selected</span>
-                          )}
+                filteredCurrencies.map((currency, index) => {
+                  const isSelected = currency.code === value;
+                  const isHighlighted = index === highlightedIndex;
+                  return (
+                    <li
+                      key={currency.code}
+                      className="px-3 py-2.5 cursor-pointer transition-all duration-150"
+                      style={{
+                        background: isSelected
+                          ? 'hsl(var(--converter-accent) / 0.12)'
+                          : isHighlighted
+                          ? 'hsl(var(--converter-card-hover))'
+                          : 'transparent',
+                        borderLeft: isSelected ? '3px solid hsl(var(--converter-accent))' : '3px solid transparent',
+                      }}
+                      onClick={() => { onChange(currency.code); setIsOpen(false); setSearchTerm(""); }}
+                      onMouseEnter={() => setHighlightedIndex(index)}
+                      role="option"
+                      aria-selected={isSelected}
+                    >
+                      <div className="flex items-center gap-3">
+                        {currency.countryCode && (
+                          <span
+                            className={`fi fi-${currency.countryCode} rounded-sm shadow-sm flex-shrink-0`}
+                            style={{ width: '1.6em', height: '1.2em', display: 'inline-block' }}
+                            aria-hidden="true"
+                          />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-sm" style={{ color: 'hsl(var(--converter-text))' }}>{currency.code}</span>
+                            {isSelected && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
+                                style={{
+                                  background: 'hsl(var(--converter-accent) / 0.2)',
+                                  color: 'hsl(var(--converter-accent))',
+                                }}
+                              >
+                                Selected
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-xs truncate block" style={{ color: 'hsl(var(--converter-text-muted))' }}>
+                            {currency.description}
+                          </span>
                         </div>
-                        <span className="text-gray-600 text-sm truncate">
-                          {currency.description}
-                        </span>
                       </div>
-                    </div>
-                  </li>
-                ))
+                    </li>
+                  );
+                })
               ) : (
-                <li className="px-4 py-8 text-gray-500 text-center">
-                  <div className="text-gray-400 mb-2">🔍</div>
-                  <div className="font-medium">No currencies found</div>
-                  <div className="text-xs mt-1">Try a different search term</div>
+                <li className="px-4 py-8 text-center">
+                  <div className="text-2xl mb-2">🔍</div>
+                  <div className="font-medium text-sm" style={{ color: 'hsl(var(--converter-text-muted))' }}>No currencies found</div>
+                  <div className="text-xs mt-1" style={{ color: 'hsl(var(--converter-text-muted))' }}>Try a different search term</div>
                 </li>
               )}
             </ul>
