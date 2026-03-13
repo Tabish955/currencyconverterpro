@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { CurrencyCache } from "./CurrencyCache";
 import CurrencyDropdown, { CurrencySymbol } from "./CurrencyDropdown";
-import { getCountryCode, isFiatCurrency } from "./currencyFlags";
+import { CURRENCY_DATABASE, getCurrencyName, getCurrencyCategory } from "./currencyFlags";
 import CurrencyInput from "./CurrencyInput";
 import ErrorDisplay from "./ErrorDisplay";
 import LoadingState from "./LoadingState";
@@ -32,7 +32,7 @@ const POPULAR_PAIRS = [
   { base: "USD", target: "PKR", label: "USD → PKR" },
   { base: "GBP", target: "USD", label: "GBP → USD" },
   { base: "EUR", target: "GBP", label: "EUR → GBP" },
-  { base: "AED", target: "PKR", label: "AED → PKR" },
+  { base: "BTC", target: "USD", label: "BTC → USD" },
 ];
 
 const CurrencyConverter = () => {
@@ -61,9 +61,6 @@ const CurrencyConverter = () => {
     return () => clearInterval(refreshInterval);
   }, []);
 
-  const titleCase = (str: string) =>
-    str.replace(/\b\w/g, (c) => c.toUpperCase());
-
   const fetchSymbols = useCallback(async (retry = false) => {
     try {
       setIsLoadingSymbols(true);
@@ -83,15 +80,17 @@ const CurrencyConverter = () => {
         return response.json();
       });
 
+      // Use ALL currencies from the API, with names from our database
       const symbolsArray: CurrencySymbol[] = Object.entries(data)
-        .filter(([code]) => isFiatCurrency(code))
-        .map(([code, name]) => {
+        .filter(([, name]) => typeof name === 'string')
+        .map(([code]) => {
           const upperCode = code.toUpperCase();
-          const countryCode = getCountryCode(code);
+          const properName = getCurrencyName(code);
+          const category = getCurrencyCategory(code);
           return {
             code: upperCode,
-            description: titleCase((name as string) || code),
-            countryCode
+            description: properName,
+            category,
           };
         });
 
@@ -279,8 +278,8 @@ const CurrencyConverter = () => {
   const handleRefreshRate = () => {
     const cacheKey = `rates-${baseCurrency}`;
     ratesCache.remove(cacheKey);
+    // Only show one toast - removed the duplicate toast.success here
     fetchExchangeRates(baseCurrency, true);
-    toast.success("Refreshing exchange rates");
   };
 
   const formattedLastUpdated = lastUpdated

@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import 'flag-icons/css/flag-icons.min.css';
-import { getCountryCode } from "./currencyFlags";
+import CurrencyIcon from "./CurrencyIcon";
 
 interface CurrencyInputProps {
   id: string;
@@ -37,8 +36,6 @@ const CurrencyInput = ({ id, value, onChange, currencyCode, disabled = false }: 
     else setInputValue(parseFloat(inputValue).toString());
   };
 
-  const countryCode = getCountryCode(currencyCode);
-
   return (
     <div
       className="relative rounded-xl transition-all duration-300"
@@ -48,11 +45,7 @@ const CurrencyInput = ({ id, value, onChange, currencyCode, disabled = false }: 
       onClick={() => inputRef.current && !disabled && inputRef.current.focus()}
     >
       <div className="absolute inset-y-0 left-0 flex items-center pl-3.5 gap-2 pointer-events-none">
-        <span
-          className={`fi fi-${countryCode} rounded-sm`}
-          style={{ width: '1.2em', height: '0.9em', display: 'inline-block' }}
-          aria-hidden="true"
-        />
+        <CurrencyIcon code={currencyCode} size="sm" />
         <span className="text-xs font-bold" style={{ color: 'hsl(var(--converter-text-muted))' }}>
           {currencyCode}
         </span>

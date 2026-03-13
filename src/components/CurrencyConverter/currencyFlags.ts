@@ -1,94 +1,420 @@
-// Comprehensive ISO 4217 currency code to ISO 3166-1 alpha-2 country code mapping
-// Lowercase keys for direct API matching.
+// Comprehensive currency data: ALL currencies from fawazahmed0/exchange-api
+// Categorized as fiat, crypto, metal, or regional
 
-const currencyToCountryCode: Record<string, string> = {
-  // Major currencies
-  usd: "us", eur: "eu", gbp: "gb", jpy: "jp", aud: "au", cad: "ca", chf: "ch", cny: "cn",
+export type CurrencyCategory = 'fiat' | 'crypto' | 'metal' | 'regional';
 
-  // Asia & Middle East
-  inr: "in", pkr: "pk", kwd: "kw", aed: "ae", sar: "sa", qar: "qa", bhd: "bh", omr: "om",
-  egp: "eg", try: "tr", sgd: "sg", hkd: "hk", krw: "kr", idr: "id", myr: "my", thb: "th",
-  vnd: "vn", php: "ph", afn: "af", amd: "am", azn: "az", bdt: "bd", btn: "bt", khr: "kh",
-  irr: "ir", iqd: "iq", ils: "il", jod: "jo", kzt: "kz", kgs: "kg", lak: "la",
-  lbp: "lb", mvr: "mv", mnt: "mn", mmk: "mm", npr: "np", kpw: "kp", lkr: "lk", syp: "sy",
-  twd: "tw", tjs: "tj", tmt: "tm", uzs: "uz", yer: "ye", bnd: "bn", mop: "mo",
-  gel: "ge", bam: "ba",
+interface CurrencyMeta {
+  name: string;
+  category: CurrencyCategory;
+  countryCode?: string; // ISO 3166-1 alpha-2 for fiat
+}
 
-  // Africa
-  ngn: "ng", zar: "za", dzd: "dz", aoa: "ao", bif: "bi", bwp: "bw", cve: "cv", xaf: "cm",
-  kmf: "km", cdf: "cd", djf: "dj", ern: "er", etb: "et", gmd: "gm", ghs: "gh", gnf: "gn",
-  kes: "ke", lsl: "ls", lrd: "lr", lyd: "ly", mga: "mg", mwk: "mw", mru: "mr", mur: "mu",
-  mad: "ma", mzn: "mz", nad: "na", rwf: "rw", stn: "st", scr: "sc", sll: "sl", sle: "sl",
-  sos: "so", ssp: "ss", sdg: "sd", szl: "sz", tzs: "tz", tnd: "tn", ugx: "ug", zmw: "zm",
-  zwl: "zw", zwd: "zw", xof: "sn", zwg: "zw",
+// Master currency database with proper names and categories
+export const CURRENCY_DATABASE: Record<string, CurrencyMeta> = {
+  // ── Crypto ──────────────────────────────────────────
+  "1inch": { name: "1inch", category: "crypto" },
+  aave: { name: "Aave", category: "crypto" },
+  ada: { name: "Cardano", category: "crypto" },
+  agix: { name: "SingularityNET", category: "crypto" },
+  akt: { name: "Akash Network", category: "crypto" },
+  algo: { name: "Algorand", category: "crypto" },
+  amp: { name: "Amp", category: "crypto" },
+  ape: { name: "ApeCoin", category: "crypto" },
+  apt: { name: "Aptos", category: "crypto" },
+  ar: { name: "Arweave", category: "crypto" },
+  arb: { name: "Arbitrum", category: "crypto" },
+  atom: { name: "Cosmos", category: "crypto" },
+  avax: { name: "Avalanche", category: "crypto" },
+  axs: { name: "Axie Infinity", category: "crypto" },
+  bake: { name: "BakeryToken", category: "crypto" },
+  bat: { name: "Basic Attention Token", category: "crypto" },
+  bch: { name: "Bitcoin Cash", category: "crypto" },
+  bnb: { name: "Binance Coin", category: "crypto" },
+  bsv: { name: "Bitcoin SV", category: "crypto" },
+  bsw: { name: "Biswap", category: "crypto" },
+  btc: { name: "Bitcoin", category: "crypto" },
+  btg: { name: "Bitcoin Gold", category: "crypto" },
+  btt: { name: "BitTorrent", category: "crypto" },
+  busd: { name: "Binance USD", category: "crypto" },
+  cake: { name: "PancakeSwap", category: "crypto" },
+  celo: { name: "Celo", category: "crypto" },
+  cfx: { name: "Conflux", category: "crypto" },
+  chz: { name: "Chiliz", category: "crypto" },
+  comp: { name: "Compound", category: "crypto" },
+  cro: { name: "Crypto.com Chain", category: "crypto" },
+  crv: { name: "Curve DAO Token", category: "crypto" },
+  cspr: { name: "Casper", category: "crypto" },
+  cvx: { name: "Convex Finance", category: "crypto" },
+  dai: { name: "DAI", category: "crypto" },
+  dash: { name: "Digital Cash", category: "crypto" },
+  dcr: { name: "Decred", category: "crypto" },
+  dfi: { name: "DeFiChain", category: "crypto" },
+  doge: { name: "Dogecoin", category: "crypto" },
+  dot: { name: "Polkadot", category: "crypto" },
+  dydx: { name: "dYdX", category: "crypto" },
+  egld: { name: "MultiversX", category: "crypto" },
+  enj: { name: "Enjin Coin", category: "crypto" },
+  eos: { name: "EOS", category: "crypto" },
+  etc: { name: "Ethereum Classic", category: "crypto" },
+  eth: { name: "Ethereum", category: "crypto" },
+  eurc: { name: "Euro Coin", category: "crypto" },
+  fei: { name: "Fei USD", category: "crypto" },
+  fil: { name: "Filecoin", category: "crypto" },
+  flow: { name: "Flow", category: "crypto" },
+  flr: { name: "Flare", category: "crypto" },
+  frax: { name: "Frax", category: "crypto" },
+  ftt: { name: "FTX Token", category: "crypto" },
+  gala: { name: "Gala", category: "crypto" },
+  gmx: { name: "GMX", category: "crypto" },
+  gno: { name: "Gnosis", category: "crypto" },
+  grt: { name: "The Graph", category: "crypto" },
+  gt: { name: "GateToken", category: "crypto" },
+  gusd: { name: "Gemini Dollar", category: "crypto" },
+  hbar: { name: "Hedera", category: "crypto" },
+  hnt: { name: "Helium", category: "crypto" },
+  hot: { name: "Holo", category: "crypto" },
+  ht: { name: "Huobi Token", category: "crypto" },
+  icp: { name: "Internet Computer", category: "crypto" },
+  imx: { name: "Immutable X", category: "crypto" },
+  inj: { name: "Injective", category: "crypto" },
+  kas: { name: "Kaspa", category: "crypto" },
+  kava: { name: "Kava", category: "crypto" },
+  kcs: { name: "KuCoin Token", category: "crypto" },
+  kda: { name: "Kadena", category: "crypto" },
+  klay: { name: "Klaytn", category: "crypto" },
+  knc: { name: "Kyber Network", category: "crypto" },
+  ksm: { name: "Kusama", category: "crypto" },
+  ldo: { name: "Lido DAO", category: "crypto" },
+  leo: { name: "UNUS SED LEO", category: "crypto" },
+  link: { name: "Chainlink", category: "crypto" },
+  lrc: { name: "Loopring", category: "crypto" },
+  ltc: { name: "Litecoin", category: "crypto" },
+  luna: { name: "Terra", category: "crypto" },
+  lunc: { name: "Terra Classic", category: "crypto" },
+  mana: { name: "Decentraland", category: "crypto" },
+  mbx: { name: "MobieCoin", category: "crypto" },
+  mina: { name: "Mina Protocol", category: "crypto" },
+  mkr: { name: "Maker", category: "crypto" },
+  near: { name: "NEAR Protocol", category: "crypto" },
+  neo: { name: "NEO", category: "crypto" },
+  nexo: { name: "Nexo", category: "crypto" },
+  nft: { name: "APENFT", category: "crypto" },
+  okb: { name: "OKB", category: "crypto" },
+  one: { name: "Harmony", category: "crypto" },
+  op: { name: "Optimism", category: "crypto" },
+  ordi: { name: "ORDI", category: "crypto" },
+  paxg: { name: "PAX Gold", category: "crypto" },
+  pepe: { name: "Pepe", category: "crypto" },
+  pi: { name: "Pi Network", category: "crypto" },
+  pol: { name: "Polygon", category: "crypto" },
+  qnt: { name: "Quant", category: "crypto" },
+  qtum: { name: "Qtum", category: "crypto" },
+  rpl: { name: "Rocket Pool", category: "crypto" },
+  rune: { name: "THORChain", category: "crypto" },
+  rvn: { name: "Ravencoin", category: "crypto" },
+  sand: { name: "The Sandbox", category: "crypto" },
+  shib: { name: "Shiba Inu", category: "crypto" },
+  snx: { name: "Synthetix", category: "crypto" },
+  sol: { name: "Solana", category: "crypto" },
+  stx: { name: "Stacks", category: "crypto" },
+  sui: { name: "Sui", category: "crypto" },
+  theta: { name: "Theta Network", category: "crypto" },
+  ton: { name: "Toncoin", category: "crypto" },
+  trx: { name: "TRON", category: "crypto" },
+  tusd: { name: "TrueUSD", category: "crypto" },
+  twt: { name: "Trust Wallet Token", category: "crypto" },
+  uni: { name: "Uniswap", category: "crypto" },
+  usdc: { name: "USD Coin", category: "crypto" },
+  usdd: { name: "USDD", category: "crypto" },
+  usdp: { name: "Pax Dollar", category: "crypto" },
+  usdt: { name: "Tether", category: "crypto" },
+  vet: { name: "VeChain", category: "crypto" },
+  waves: { name: "Waves", category: "crypto" },
+  wemix: { name: "WEMIX", category: "crypto" },
+  woo: { name: "WOO Network", category: "crypto" },
+  xaut: { name: "Tether Gold", category: "crypto" },
+  xbt: { name: "Bitcoin", category: "crypto" },
+  xch: { name: "Chia", category: "crypto" },
+  xdc: { name: "XDC Network", category: "crypto" },
+  xec: { name: "eCash", category: "crypto" },
+  xem: { name: "NEM", category: "crypto" },
+  xlm: { name: "Stellar", category: "crypto" },
+  xmr: { name: "Monero", category: "crypto" },
+  xrp: { name: "Ripple", category: "crypto" },
+  xtz: { name: "Tezos", category: "crypto" },
+  zec: { name: "Zcash", category: "crypto" },
+  zil: { name: "Zilliqa", category: "crypto" },
 
-  // Europe
-  all: "al", bgn: "bg", hrk: "hr", czk: "cz", dkk: "dk", huf: "hu",
-  isk: "is", mdl: "md", mkd: "mk", nok: "no", pln: "pl", ron: "ro", rub: "ru", rsd: "rs",
-  sek: "se", uah: "ua", byn: "by", ggp: "gg", imp: "im", jep: "je",
+  // ── Metals ──────────────────────────────────────────
+  xag: { name: "Silver Ounce", category: "metal" },
+  xau: { name: "Gold Ounce", category: "metal" },
+  xpd: { name: "Palladium Ounce", category: "metal" },
+  xpt: { name: "Platinum Ounce", category: "metal" },
 
-  // Americas
-  ars: "ar", brl: "br", mxn: "mx", ang: "cw", awg: "aw", bsd: "bs", bbd: "bb", bzd: "bz",
-  bmd: "bm", bob: "bo", clp: "cl", cop: "co", crc: "cr", cup: "cu", cuc: "cu", dop: "do",
-  xcd: "ag", fkp: "fk", gyd: "gy", htg: "ht", hnl: "hn", jmd: "jm", nio: "ni", pab: "pa",
-  pyg: "py", pen: "pe", srd: "sr", ttd: "tt", uyu: "uy", ves: "ve", gtq: "gt", svc: "sv",
+  // ── Regional / IMF ─────────────────────────────────
+  xdr: { name: "IMF Special Drawing Rights", category: "regional" },
+  xcg: { name: "Caribbean Guilder", category: "regional" },
+  spl: { name: "Seborgan Luigino", category: "regional" },
 
-  // Oceania
-  nzd: "nz", fjd: "fj", pgk: "pg", sbd: "sb", top: "to", vuv: "vu", wst: "ws", tvd: "tv",
-  kid: "ki", xpf: "pf",
-
-  // Additional Europe / territories
-  gip: "gi", fok: "fo", shp: "sh", kyd: "ky",
-
-  // Legacy / Historical European currencies
-  cyp: "cy", eek: "ee", skk: "sk", sit: "si", mtl: "mt", adp: "ad",
-  ats: "at", bef: "be", dem: "de", esp: "es", fim: "fi", frf: "fr",
-  grd: "gr", iep: "ie", itl: "it", luf: "lu", nlg: "nl", pte: "pt",
-  lvl: "lv", ltl: "lt",
-
-  // Other less common fiat
-  clf: "cl", cnh: "cn", std: "st", vef: "ve", xcg: "cw",
+  // ── Fiat Currencies (country-based) ────────────────
+  aed: { name: "Emirati Dirham", category: "fiat", countryCode: "ae" },
+  afn: { name: "Afghan Afghani", category: "fiat", countryCode: "af" },
+  all: { name: "Albanian Lek", category: "fiat", countryCode: "al" },
+  amd: { name: "Armenian Dram", category: "fiat", countryCode: "am" },
+  ang: { name: "Dutch Guilder", category: "fiat", countryCode: "cw" },
+  aoa: { name: "Angolan Kwanza", category: "fiat", countryCode: "ao" },
+  ars: { name: "Argentine Peso", category: "fiat", countryCode: "ar" },
+  ats: { name: "Austrian Schilling", category: "fiat", countryCode: "at" },
+  aud: { name: "Australian Dollar", category: "fiat", countryCode: "au" },
+  awg: { name: "Aruban Guilder", category: "fiat", countryCode: "aw" },
+  azm: { name: "Azerbaijani Manat", category: "fiat", countryCode: "az" },
+  azn: { name: "Azerbaijan Manat", category: "fiat", countryCode: "az" },
+  bam: { name: "Bosnian Convertible Mark", category: "fiat", countryCode: "ba" },
+  bbd: { name: "Barbadian Dollar", category: "fiat", countryCode: "bb" },
+  bdt: { name: "Bangladeshi Taka", category: "fiat", countryCode: "bd" },
+  bef: { name: "Belgian Franc", category: "fiat", countryCode: "be" },
+  bgn: { name: "Bulgarian Lev", category: "fiat", countryCode: "bg" },
+  bhd: { name: "Bahraini Dinar", category: "fiat", countryCode: "bh" },
+  bif: { name: "Burundian Franc", category: "fiat", countryCode: "bi" },
+  bmd: { name: "Bermudian Dollar", category: "fiat", countryCode: "bm" },
+  bnd: { name: "Bruneian Dollar", category: "fiat", countryCode: "bn" },
+  bob: { name: "Bolivian Bolíviano", category: "fiat", countryCode: "bo" },
+  brl: { name: "Brazilian Real", category: "fiat", countryCode: "br" },
+  bsd: { name: "Bahamian Dollar", category: "fiat", countryCode: "bs" },
+  btn: { name: "Bhutanese Ngultrum", category: "fiat", countryCode: "bt" },
+  bwp: { name: "Botswana Pula", category: "fiat", countryCode: "bw" },
+  byn: { name: "Belarusian Ruble", category: "fiat", countryCode: "by" },
+  byr: { name: "Belarusian Ruble", category: "fiat", countryCode: "by" },
+  bzd: { name: "Belizean Dollar", category: "fiat", countryCode: "bz" },
+  cad: { name: "Canadian Dollar", category: "fiat", countryCode: "ca" },
+  cdf: { name: "Congolese Franc", category: "fiat", countryCode: "cd" },
+  chf: { name: "Swiss Franc", category: "fiat", countryCode: "ch" },
+  clp: { name: "Chilean Peso", category: "fiat", countryCode: "cl" },
+  cnh: { name: "Chinese Yuan Offshore", category: "fiat", countryCode: "cn" },
+  cny: { name: "Chinese Yuan Renminbi", category: "fiat", countryCode: "cn" },
+  cop: { name: "Colombian Peso", category: "fiat", countryCode: "co" },
+  crc: { name: "Costa Rican Colon", category: "fiat", countryCode: "cr" },
+  cuc: { name: "Cuban Convertible Peso", category: "fiat", countryCode: "cu" },
+  cup: { name: "Cuban Peso", category: "fiat", countryCode: "cu" },
+  cve: { name: "Cape Verdean Escudo", category: "fiat", countryCode: "cv" },
+  cyp: { name: "Cypriot Pound", category: "fiat", countryCode: "cy" },
+  czk: { name: "Czech Koruna", category: "fiat", countryCode: "cz" },
+  dem: { name: "German Deutsche Mark", category: "fiat", countryCode: "de" },
+  djf: { name: "Djiboutian Franc", category: "fiat", countryCode: "dj" },
+  dkk: { name: "Danish Krone", category: "fiat", countryCode: "dk" },
+  dop: { name: "Dominican Peso", category: "fiat", countryCode: "do" },
+  dzd: { name: "Algerian Dinar", category: "fiat", countryCode: "dz" },
+  eek: { name: "Estonian Kroon", category: "fiat", countryCode: "ee" },
+  egp: { name: "Egyptian Pound", category: "fiat", countryCode: "eg" },
+  ern: { name: "Eritrean Nakfa", category: "fiat", countryCode: "er" },
+  esp: { name: "Spanish Peseta", category: "fiat", countryCode: "es" },
+  etb: { name: "Ethiopian Birr", category: "fiat", countryCode: "et" },
+  eur: { name: "Euro", category: "fiat", countryCode: "eu" },
+  fim: { name: "Finnish Markka", category: "fiat", countryCode: "fi" },
+  fjd: { name: "Fijian Dollar", category: "fiat", countryCode: "fj" },
+  fkp: { name: "Falkland Island Pound", category: "fiat", countryCode: "fk" },
+  frf: { name: "French Franc", category: "fiat", countryCode: "fr" },
+  gbp: { name: "British Pound", category: "fiat", countryCode: "gb" },
+  gel: { name: "Georgian Lari", category: "fiat", countryCode: "ge" },
+  ggp: { name: "Guernsey Pound", category: "fiat", countryCode: "gg" },
+  ghc: { name: "Ghanaian Cedi", category: "fiat", countryCode: "gh" },
+  ghs: { name: "Ghanaian Cedi", category: "fiat", countryCode: "gh" },
+  gip: { name: "Gibraltar Pound", category: "fiat", countryCode: "gi" },
+  gmd: { name: "Gambian Dalasi", category: "fiat", countryCode: "gm" },
+  gnf: { name: "Guinean Franc", category: "fiat", countryCode: "gn" },
+  grd: { name: "Greek Drachma", category: "fiat", countryCode: "gr" },
+  gtq: { name: "Guatemalan Quetzal", category: "fiat", countryCode: "gt" },
+  gyd: { name: "Guyanese Dollar", category: "fiat", countryCode: "gy" },
+  hkd: { name: "Hong Kong Dollar", category: "fiat", countryCode: "hk" },
+  hnl: { name: "Honduran Lempira", category: "fiat", countryCode: "hn" },
+  hrk: { name: "Croatian Kuna", category: "fiat", countryCode: "hr" },
+  htg: { name: "Haitian Gourde", category: "fiat", countryCode: "ht" },
+  huf: { name: "Hungarian Forint", category: "fiat", countryCode: "hu" },
+  idr: { name: "Indonesian Rupiah", category: "fiat", countryCode: "id" },
+  iep: { name: "Irish Pound", category: "fiat", countryCode: "ie" },
+  ils: { name: "Israeli Shekel", category: "fiat", countryCode: "il" },
+  imp: { name: "Isle of Man Pound", category: "fiat", countryCode: "im" },
+  inr: { name: "Indian Rupee", category: "fiat", countryCode: "in" },
+  iqd: { name: "Iraqi Dinar", category: "fiat", countryCode: "iq" },
+  irr: { name: "Iranian Rial", category: "fiat", countryCode: "ir" },
+  isk: { name: "Icelandic Krona", category: "fiat", countryCode: "is" },
+  itl: { name: "Italian Lira", category: "fiat", countryCode: "it" },
+  jep: { name: "Jersey Pound", category: "fiat", countryCode: "je" },
+  jmd: { name: "Jamaican Dollar", category: "fiat", countryCode: "jm" },
+  jod: { name: "Jordanian Dinar", category: "fiat", countryCode: "jo" },
+  jpy: { name: "Japanese Yen", category: "fiat", countryCode: "jp" },
+  kes: { name: "Kenyan Shilling", category: "fiat", countryCode: "ke" },
+  kgs: { name: "Kyrgyzstani Som", category: "fiat", countryCode: "kg" },
+  khr: { name: "Cambodian Riel", category: "fiat", countryCode: "kh" },
+  kmf: { name: "Comorian Franc", category: "fiat", countryCode: "km" },
+  kpw: { name: "North Korean Won", category: "fiat", countryCode: "kp" },
+  krw: { name: "South Korean Won", category: "fiat", countryCode: "kr" },
+  kwd: { name: "Kuwaiti Dinar", category: "fiat", countryCode: "kw" },
+  kyd: { name: "Caymanian Dollar", category: "fiat", countryCode: "ky" },
+  kzt: { name: "Kazakhstani Tenge", category: "fiat", countryCode: "kz" },
+  lak: { name: "Lao Kip", category: "fiat", countryCode: "la" },
+  lbp: { name: "Lebanese Pound", category: "fiat", countryCode: "lb" },
+  lkr: { name: "Sri Lankan Rupee", category: "fiat", countryCode: "lk" },
+  lrd: { name: "Liberian Dollar", category: "fiat", countryCode: "lr" },
+  lsl: { name: "Basotho Loti", category: "fiat", countryCode: "ls" },
+  ltl: { name: "Lithuanian Litas", category: "fiat", countryCode: "lt" },
+  luf: { name: "Luxembourg Franc", category: "fiat", countryCode: "lu" },
+  lvl: { name: "Latvian Lat", category: "fiat", countryCode: "lv" },
+  lyd: { name: "Libyan Dinar", category: "fiat", countryCode: "ly" },
+  mad: { name: "Moroccan Dirham", category: "fiat", countryCode: "ma" },
+  mdl: { name: "Moldovan Leu", category: "fiat", countryCode: "md" },
+  mga: { name: "Malagasy Ariary", category: "fiat", countryCode: "mg" },
+  mgf: { name: "Malagasy Franc", category: "fiat", countryCode: "mg" },
+  mkd: { name: "Macedonian Denar", category: "fiat", countryCode: "mk" },
+  mmk: { name: "Burmese Kyat", category: "fiat", countryCode: "mm" },
+  mnt: { name: "Mongolian Tughrik", category: "fiat", countryCode: "mn" },
+  mop: { name: "Macau Pataca", category: "fiat", countryCode: "mo" },
+  mro: { name: "Mauritanian Ouguiya", category: "fiat", countryCode: "mr" },
+  mru: { name: "Mauritanian Ouguiya", category: "fiat", countryCode: "mr" },
+  mtl: { name: "Maltese Lira", category: "fiat", countryCode: "mt" },
+  mur: { name: "Mauritian Rupee", category: "fiat", countryCode: "mu" },
+  mvr: { name: "Maldivian Rufiyaa", category: "fiat", countryCode: "mv" },
+  mwk: { name: "Malawian Kwacha", category: "fiat", countryCode: "mw" },
+  mxn: { name: "Mexican Peso", category: "fiat", countryCode: "mx" },
+  mxv: { name: "Mexican Investment Unit", category: "fiat", countryCode: "mx" },
+  myr: { name: "Malaysian Ringgit", category: "fiat", countryCode: "my" },
+  mzm: { name: "Mozambican Metical", category: "fiat", countryCode: "mz" },
+  mzn: { name: "Mozambican Metical", category: "fiat", countryCode: "mz" },
+  nad: { name: "Namibian Dollar", category: "fiat", countryCode: "na" },
+  ngn: { name: "Nigerian Naira", category: "fiat", countryCode: "ng" },
+  nio: { name: "Nicaraguan Cordoba", category: "fiat", countryCode: "ni" },
+  nlg: { name: "Dutch Guilder", category: "fiat", countryCode: "nl" },
+  nok: { name: "Norwegian Krone", category: "fiat", countryCode: "no" },
+  npr: { name: "Nepalese Rupee", category: "fiat", countryCode: "np" },
+  nzd: { name: "New Zealand Dollar", category: "fiat", countryCode: "nz" },
+  omr: { name: "Omani Rial", category: "fiat", countryCode: "om" },
+  pab: { name: "Panamanian Balboa", category: "fiat", countryCode: "pa" },
+  pen: { name: "Peruvian Sol", category: "fiat", countryCode: "pe" },
+  pgk: { name: "Papua New Guinean Kina", category: "fiat", countryCode: "pg" },
+  php: { name: "Philippine Peso", category: "fiat", countryCode: "ph" },
+  pkr: { name: "Pakistani Rupee", category: "fiat", countryCode: "pk" },
+  pln: { name: "Polish Zloty", category: "fiat", countryCode: "pl" },
+  pte: { name: "Portuguese Escudo", category: "fiat", countryCode: "pt" },
+  pyg: { name: "Paraguayan Guarani", category: "fiat", countryCode: "py" },
+  qar: { name: "Qatari Riyal", category: "fiat", countryCode: "qa" },
+  rol: { name: "Romanian Leu", category: "fiat", countryCode: "ro" },
+  ron: { name: "Romanian Leu", category: "fiat", countryCode: "ro" },
+  rsd: { name: "Serbian Dinar", category: "fiat", countryCode: "rs" },
+  rub: { name: "Russian Ruble", category: "fiat", countryCode: "ru" },
+  rwf: { name: "Rwandan Franc", category: "fiat", countryCode: "rw" },
+  sar: { name: "Saudi Arabian Riyal", category: "fiat", countryCode: "sa" },
+  sbd: { name: "Solomon Islander Dollar", category: "fiat", countryCode: "sb" },
+  scr: { name: "Seychellois Rupee", category: "fiat", countryCode: "sc" },
+  sdd: { name: "Sudanese Dinar", category: "fiat", countryCode: "sd" },
+  sdg: { name: "Sudanese Pound", category: "fiat", countryCode: "sd" },
+  sek: { name: "Swedish Krona", category: "fiat", countryCode: "se" },
+  sgd: { name: "Singapore Dollar", category: "fiat", countryCode: "sg" },
+  shp: { name: "Saint Helenian Pound", category: "fiat", countryCode: "sh" },
+  sit: { name: "Slovenian Tolar", category: "fiat", countryCode: "si" },
+  skk: { name: "Slovak Koruna", category: "fiat", countryCode: "sk" },
+  sle: { name: "Sierra Leonean Leone", category: "fiat", countryCode: "sl" },
+  sll: { name: "Sierra Leonean Leone", category: "fiat", countryCode: "sl" },
+  sos: { name: "Somali Shilling", category: "fiat", countryCode: "so" },
+  srd: { name: "Surinamese Dollar", category: "fiat", countryCode: "sr" },
+  srg: { name: "Surinamese Guilder", category: "fiat", countryCode: "sr" },
+  ssp: { name: "South Sudanese Pound", category: "fiat", countryCode: "ss" },
+  std: { name: "São Toméan Dobra", category: "fiat", countryCode: "st" },
+  stn: { name: "São Toméan Dobra", category: "fiat", countryCode: "st" },
+  svc: { name: "Salvadoran Colon", category: "fiat", countryCode: "sv" },
+  syp: { name: "Syrian Pound", category: "fiat", countryCode: "sy" },
+  szl: { name: "Swazi Lilangeni", category: "fiat", countryCode: "sz" },
+  thb: { name: "Thai Baht", category: "fiat", countryCode: "th" },
+  tjs: { name: "Tajikistani Somoni", category: "fiat", countryCode: "tj" },
+  tmm: { name: "Turkmenistani Manat", category: "fiat", countryCode: "tm" },
+  tmt: { name: "Turkmenistani Manat", category: "fiat", countryCode: "tm" },
+  tnd: { name: "Tunisian Dinar", category: "fiat", countryCode: "tn" },
+  top: { name: "Tongan Pa'anga", category: "fiat", countryCode: "to" },
+  trl: { name: "Turkish Lira", category: "fiat", countryCode: "tr" },
+  try: { name: "Turkish Lira", category: "fiat", countryCode: "tr" },
+  ttd: { name: "Trinidadian Dollar", category: "fiat", countryCode: "tt" },
+  tvd: { name: "Tuvaluan Dollar", category: "fiat", countryCode: "tv" },
+  twd: { name: "Taiwan New Dollar", category: "fiat", countryCode: "tw" },
+  tzs: { name: "Tanzanian Shilling", category: "fiat", countryCode: "tz" },
+  uah: { name: "Ukrainian Hryvnia", category: "fiat", countryCode: "ua" },
+  ugx: { name: "Ugandan Shilling", category: "fiat", countryCode: "ug" },
+  usd: { name: "US Dollar", category: "fiat", countryCode: "us" },
+  uyu: { name: "Uruguayan Peso", category: "fiat", countryCode: "uy" },
+  uzs: { name: "Uzbekistani Som", category: "fiat", countryCode: "uz" },
+  val: { name: "Vatican City Lira", category: "fiat", countryCode: "va" },
+  veb: { name: "Venezuelan Bolívar", category: "fiat", countryCode: "ve" },
+  ved: { name: "Venezuelan Digital Bolívar", category: "fiat", countryCode: "ve" },
+  vef: { name: "Venezuelan Bolívar", category: "fiat", countryCode: "ve" },
+  ves: { name: "Venezuelan Bolívar", category: "fiat", countryCode: "ve" },
+  vnd: { name: "Vietnamese Dong", category: "fiat", countryCode: "vn" },
+  vuv: { name: "Ni-Vanuatu Vatu", category: "fiat", countryCode: "vu" },
+  wst: { name: "Samoan Tala", category: "fiat", countryCode: "ws" },
+  xaf: { name: "Central African CFA Franc", category: "fiat", countryCode: "cm" },
+  xcd: { name: "East Caribbean Dollar", category: "fiat", countryCode: "ag" },
+  xof: { name: "West African CFA Franc", category: "fiat", countryCode: "sn" },
+  xpf: { name: "CFP Franc", category: "fiat", countryCode: "pf" },
+  yer: { name: "Yemeni Rial", category: "fiat", countryCode: "ye" },
+  zar: { name: "South African Rand", category: "fiat", countryCode: "za" },
+  zmk: { name: "Zambian Kwacha", category: "fiat", countryCode: "zm" },
+  zmw: { name: "Zambian Kwacha", category: "fiat", countryCode: "zm" },
+  zwd: { name: "Zimbabwean Dollar", category: "fiat", countryCode: "zw" },
+  zwg: { name: "Zimbabwe Gold", category: "fiat", countryCode: "zw" },
+  zwl: { name: "Zimbabwean Dollar", category: "fiat", countryCode: "zw" },
 };
 
 /**
- * Non-ISO-4217 fiat codes to exclude (crypto, metals, test codes, SDR)
+ * Get currency metadata from the database
  */
-export const NON_FIAT_CODES = new Set([
-  // Crypto
-  "btc", "eth", "ltc", "xrp", "bch", "doge", "bnb", "ada", "sol", "dot",
-  "avax", "matic", "link", "uni", "atom", "xlm", "algo", "xmr", "trx",
-  "dai", "usdt", "usdc", "busd", "shib", "fil", "icp", "eos", "aave",
-  "cake", "theta", "ftm", "hbar", "mana", "sand", "axs", "grt", "snx",
-  "comp", "mkr", "yfi", "sushi", "crv", "enj", "bat", "zec", "dash",
-  "neo", "qtum", "zil", "iost", "ont", "vet", "icx", "waves",
-  // Precious metals
-  "xau", "xag", "xpt", "xpd",
-  // IMF / test / supranational
-  "xdr", "xts", "xxx",
-]);
-
-/**
- * Check if a currency code is a fiat ISO-4217 currency
- */
-export function isFiatCurrency(code: string): boolean {
-  return !NON_FIAT_CODES.has(code.toLowerCase());
+export function getCurrencyMeta(code: string): CurrencyMeta | undefined {
+  return CURRENCY_DATABASE[code.toLowerCase()];
 }
 
 /**
- * Get the country code for a given currency code (case-insensitive).
- * Falls back to deriving from the first 2 chars of the currency code.
+ * Get the country code for fiat currencies
  */
-export function getCountryCode(currencyCode: string): string {
-  const lower = currencyCode.toLowerCase();
-  if (currencyToCountryCode[lower]) {
-    return currencyToCountryCode[lower];
-  }
-  // Fallback: try first 2 chars as country code
-  const guess = lower.substring(0, 2);
-  if (/^[a-z]{2}$/.test(guess)) {
-    return guess;
-  }
-  return "un";
+export function getCountryCode(currencyCode: string): string | undefined {
+  const meta = CURRENCY_DATABASE[currencyCode.toLowerCase()];
+  return meta?.countryCode;
 }
 
-export default currencyToCountryCode;
+/**
+ * Get the category of a currency
+ */
+export function getCurrencyCategory(code: string): CurrencyCategory {
+  return CURRENCY_DATABASE[code.toLowerCase()]?.category ?? 'fiat';
+}
+
+/**
+ * Get proper currency name from our database (not from API)
+ */
+export function getCurrencyName(code: string): string {
+  const meta = CURRENCY_DATABASE[code.toLowerCase()];
+  return meta?.name ?? code.toUpperCase();
+}
+
+/**
+ * Get crypto icon URL from cryptocurrency-icons CDN
+ */
+export function getCryptoIconUrl(code: string): string {
+  const lower = code.toLowerCase();
+  return `https://cdn.jsdelivr.net/npm/cryptocurrency-icons@0.18.1/svg/color/${lower}.svg`;
+}
+
+/**
+ * Get a generic fallback crypto icon URL
+ */
+export function getCryptoFallbackUrl(): string {
+  return `https://cdn.jsdelivr.net/npm/cryptocurrency-icons@0.18.1/svg/color/generic.svg`;
+}
+
+/**
+ * Metal emoji map
+ */
+export function getMetalEmoji(code: string): string {
+  const map: Record<string, string> = {
+    xau: '🥇',
+    xag: '🥈',
+    xpt: '⚪',
+    xpd: '🔘',
+  };
+  return map[code.toLowerCase()] ?? '💎';
+}
