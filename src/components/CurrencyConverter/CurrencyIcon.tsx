@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import 'flag-icons/css/flag-icons.min.css';
-import { getCurrencyCategory, getCountryCode, getCryptoIconUrl, getCryptoFallbackUrl, getMetalEmoji } from './currencyFlags';
+import { getCurrencyCategory, getCountryCode, getCryptoIconUrl, getCryptoFallbackUrl, getCryptoGenericUrl, getMetalEmoji, getRegionalEmoji } from './currencyFlags';
 
 interface CurrencyIconProps {
   code: string;
@@ -17,6 +17,7 @@ const sizeMap = {
 const CurrencyIcon = ({ code, size = 'md', className = '' }: CurrencyIconProps) => {
   const [imgError, setImgError] = useState(false);
   const [fallbackError, setFallbackError] = useState(false);
+  const [genericError, setGenericError] = useState(false);
   const category = getCurrencyCategory(code);
   const s = sizeMap[size];
 
@@ -31,7 +32,6 @@ const CurrencyIcon = ({ code, size = 'md', className = '' }: CurrencyIconProps) 
         />
       );
     }
-    // Fiat without country code - show code badge
     return (
       <span
         className={`inline-flex items-center justify-center rounded-sm font-bold ${s.text} ${className}`}
@@ -57,17 +57,26 @@ const CurrencyIcon = ({ code, size = 'md', className = '' }: CurrencyIconProps) 
     );
   }
 
+  if (category === 'regional') {
+    const emoji = getRegionalEmoji(code);
+    return (
+      <span className={`inline-flex items-center justify-center ${className}`} style={{ fontSize: s.icon * 0.8 }} aria-hidden="true">
+        {emoji}
+      </span>
+    );
+  }
+
   if (category === 'crypto') {
-    if (fallbackError) {
-      // Both primary and fallback failed - show text badge
+    // Three-tier fallback: cryptocurrency-icons CDN → CoinGecko → generic → text badge
+    if (genericError) {
       return (
         <span
           className={`inline-flex items-center justify-center rounded-full font-bold ${className}`}
           style={{
             width: s.icon + 4,
             height: s.icon + 4,
-            background: 'hsl(var(--converter-accent) / 0.15)',
-            color: 'hsl(var(--converter-accent))',
+            background: 'linear-gradient(135deg, hsl(45 100% 50% / 0.2), hsl(30 100% 50% / 0.2))',
+            color: 'hsl(45 100% 65%)',
             fontSize: '0.5em',
           }}
         >
@@ -76,15 +85,22 @@ const CurrencyIcon = ({ code, size = 'md', className = '' }: CurrencyIconProps) 
       );
     }
 
+    const src = imgError
+      ? fallbackError
+        ? getCryptoGenericUrl()
+        : getCryptoFallbackUrl(code)
+      : getCryptoIconUrl(code);
+
     return (
       <img
-        src={imgError ? getCryptoFallbackUrl() : getCryptoIconUrl(code)}
+        src={src}
         alt={code}
         width={s.icon + 2}
         height={s.icon + 2}
         className={`rounded-full ${className}`}
         onError={() => {
-          if (imgError) setFallbackError(true);
+          if (fallbackError) setGenericError(true);
+          else if (imgError) setFallbackError(true);
           else setImgError(true);
         }}
         loading="lazy"
@@ -92,7 +108,7 @@ const CurrencyIcon = ({ code, size = 'md', className = '' }: CurrencyIconProps) 
     );
   }
 
-  // Regional or unknown
+  // Unknown
   return (
     <span
       className={`inline-flex items-center justify-center rounded-sm font-bold ${className}`}

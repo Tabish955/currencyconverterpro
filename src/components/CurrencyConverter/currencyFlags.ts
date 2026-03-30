@@ -361,6 +361,145 @@ export const CURRENCY_DATABASE: Record<string, CurrencyMeta> = {
   zwl: { name: "Zimbabwean Dollar", category: "fiat", countryCode: "zw" },
 };
 
+// ── Crypto Icon URL Overrides ────────────────────────
+// Maps crypto codes to their CoinGecko asset IDs for reliable icon loading
+// Primary CDN: cryptocurrency-icons (covers ~100 major coins)
+// Fallback: CoinGecko static assets (covers 10,000+ coins)
+const CRYPTO_COINGECKO_IDS: Record<string, string> = {
+  "1inch": "1inch",
+  aave: "aave",
+  ada: "cardano",
+  agix: "singularitynet",
+  akt: "akash-network",
+  algo: "algorand",
+  amp: "amp-token",
+  ape: "apecoin",
+  apt: "aptos",
+  ar: "arweave",
+  arb: "arbitrum",
+  atom: "cosmos",
+  avax: "avalanche-2",
+  axs: "axie-infinity",
+  bake: "bakerytoken",
+  bat: "basic-attention-token",
+  bch: "bitcoin-cash",
+  bnb: "binancecoin",
+  bsv: "bitcoin-cash-sv",
+  bsw: "biswap",
+  btc: "bitcoin",
+  btg: "bitcoin-gold",
+  btt: "bittorrent",
+  busd: "binance-usd",
+  cake: "pancakeswap-token",
+  celo: "celo",
+  cfx: "conflux-token",
+  chz: "chiliz",
+  comp: "compound-governance-token",
+  cro: "crypto-com-chain",
+  crv: "curve-dao-token",
+  cspr: "casper-network",
+  cvx: "convex-finance",
+  dai: "dai",
+  dash: "dash",
+  dcr: "decred",
+  dfi: "defichain",
+  doge: "dogecoin",
+  dot: "polkadot",
+  dydx: "dydx",
+  egld: "elrond-erd-2",
+  enj: "enjincoin",
+  eos: "eos",
+  etc: "ethereum-classic",
+  eth: "ethereum",
+  eurc: "euro-coin",
+  fei: "fei-usd",
+  fil: "filecoin",
+  flow: "flow",
+  flr: "flare-networks",
+  frax: "frax",
+  ftt: "ftx-token",
+  gala: "gala",
+  gmx: "gmx",
+  gno: "gnosis",
+  grt: "the-graph",
+  gt: "gatechain-token",
+  gusd: "gemini-dollar",
+  hbar: "hedera-hashgraph",
+  hnt: "helium",
+  hot: "holotoken",
+  ht: "huobi-token",
+  icp: "internet-computer",
+  imx: "immutable-x",
+  inj: "injective-protocol",
+  kas: "kaspa",
+  kava: "kava",
+  kcs: "kucoin-shares",
+  kda: "kadena",
+  klay: "klay-token",
+  knc: "kyber-network-crystal",
+  ksm: "kusama",
+  ldo: "lido-dao",
+  leo: "leo-token",
+  link: "chainlink",
+  lrc: "loopring",
+  ltc: "litecoin",
+  luna: "terra-luna-2",
+  lunc: "terra-luna",
+  mana: "decentraland",
+  mbx: "mobiecoin",
+  mina: "mina-protocol",
+  mkr: "maker",
+  near: "near",
+  neo: "neo",
+  nexo: "nexo",
+  nft: "apenft",
+  okb: "okb",
+  one: "harmony",
+  op: "optimism",
+  ordi: "ordinals",
+  paxg: "pax-gold",
+  pepe: "pepe",
+  pi: "pi-network",
+  pol: "polygon-ecosystem-token",
+  qnt: "quant-network",
+  qtum: "qtum",
+  rpl: "rocket-pool",
+  rune: "thorchain",
+  rvn: "ravencoin",
+  sand: "the-sandbox",
+  shib: "shiba-inu",
+  snx: "havven",
+  sol: "solana",
+  stx: "blockstack",
+  sui: "sui",
+  theta: "theta-token",
+  ton: "the-open-network",
+  trx: "tron",
+  tusd: "true-usd",
+  twt: "trust-wallet-token",
+  uni: "uniswap",
+  usdc: "usd-coin",
+  usdd: "usdd",
+  usdp: "paxos-standard",
+  usdt: "tether",
+  vet: "vechain",
+  waves: "waves",
+  wemix: "wemix-token",
+  woo: "woo-network",
+  xaut: "tether-gold",
+  xbt: "bitcoin",
+  xch: "chia",
+  xdc: "xdce-crowd-sale",
+  xec: "ecash",
+  xem: "nem",
+  xlm: "stellar",
+  xmr: "monero",
+  xrp: "ripple",
+  xtz: "tezos",
+  zec: "zcash",
+  zil: "zilliqa",
+};
+
 /**
  * Get currency metadata from the database
  */
@@ -392,7 +531,7 @@ export function getCurrencyName(code: string): string {
 }
 
 /**
- * Get crypto icon URL from cryptocurrency-icons CDN
+ * Get crypto icon URL - uses cryptocurrency-icons CDN as primary
  */
 export function getCryptoIconUrl(code: string): string {
   const lower = code.toLowerCase();
@@ -400,9 +539,21 @@ export function getCryptoIconUrl(code: string): string {
 }
 
 /**
+ * Get CoinGecko-based fallback URL for crypto icons
+ */
+export function getCryptoFallbackUrl(code: string): string {
+  const lower = code.toLowerCase();
+  const geckoId = CRYPTO_COINGECKO_IDS[lower];
+  if (geckoId) {
+    return `https://assets.coingecko.com/coins/images/1/small/${geckoId}.png`;
+  }
+  return `https://cdn.jsdelivr.net/npm/cryptocurrency-icons@0.18.1/svg/color/generic.svg`;
+}
+
+/**
  * Get a generic fallback crypto icon URL
  */
-export function getCryptoFallbackUrl(): string {
+export function getCryptoGenericUrl(): string {
   return `https://cdn.jsdelivr.net/npm/cryptocurrency-icons@0.18.1/svg/color/generic.svg`;
 }
 
@@ -417,4 +568,16 @@ export function getMetalEmoji(code: string): string {
     xpd: '🔘',
   };
   return map[code.toLowerCase()] ?? '💎';
+}
+
+/**
+ * Regional icon emoji map
+ */
+export function getRegionalEmoji(code: string): string {
+  const map: Record<string, string> = {
+    xdr: '🌐',
+    xcg: '🏝️',
+    spl: '🏰',
+  };
+  return map[code.toLowerCase()] ?? '🌍';
 }

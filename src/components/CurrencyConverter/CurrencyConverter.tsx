@@ -35,7 +35,11 @@ const POPULAR_PAIRS = [
   { base: "BTC", target: "USD", label: "BTC → USD" },
 ];
 
-const CurrencyConverter = () => {
+interface CurrencyConverterProps {
+  liteMode?: boolean;
+}
+
+const CurrencyConverter = ({ liteMode = false }: CurrencyConverterProps) => {
   const [symbols, setSymbols] = useState<CurrencySymbol[]>([]);
   const [isLoadingSymbols, setIsLoadingSymbols] = useState(true);
   const [symbolsError, setSymbolsError] = useState<string | null>(null);
